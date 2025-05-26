@@ -1,6 +1,4 @@
 // Get all the elements we need
-const wordInput = document.getElementById('wordInput');
-const startButton = document.getElementById('startButton');
 const practiceSection = document.querySelector('.practice-section');
 const speakButton = document.getElementById('speakButton');
 const answerInput = document.getElementById('answerInput');
@@ -39,33 +37,21 @@ function updateDisplay() {
     nextButton.disabled = currentWordIndex === words.length - 1;
 }
 
-// Load words from JSON file
+// Load words from Firestore
 async function loadWords() {
     try {
-        const response = await fetch('words.json');
-        const data = await response.json();
-        words = data.words || [];
-        updateDisplay();
+        const doc = await db.collection('spelling').doc('wordlist').get();
+        if (doc.exists) {
+            words = doc.data().words || [];
+            updateDisplay();
+        } else {
+            practiceSection.innerHTML = '<p>No words found. Please add words in the admin page.</p>';
+        }
     } catch (error) {
-        console.error('Error loading words:', error);
-        practiceSection.innerHTML = '<p class="no-words">Error loading words. Please try again later.</p>';
+        practiceSection.innerHTML = '<p>Error loading words from Firebase.</p>';
+        console.error(error);
     }
 }
-
-// Start practice when the start button is clicked
-startButton.addEventListener('click', () => {
-    const inputWords = wordInput.value.trim().toLowerCase();
-    if (inputWords) {
-        // Split the input by commas and clean up each word
-        words = inputWords.split(',').map(word => word.trim()).filter(word => word.length > 0);
-        if (words.length > 0) {
-            currentWordIndex = 0;
-            practiceSection.style.display = 'block';
-            wordInput.value = '';
-            updateDisplay();
-        }
-    }
-});
 
 // Speak the word when the speak button is clicked
 speakButton.addEventListener('click', () => {
