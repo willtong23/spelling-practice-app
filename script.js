@@ -23,6 +23,11 @@ function speakWord(word) {
 
 // Function to update the display
 function updateDisplay() {
+    if (words.length === 0) {
+        practiceSection.innerHTML = '<p class="no-words">No words available. Please add words in the admin page.</p>';
+        return;
+    }
+
     currentWordNumber.textContent = currentWordIndex + 1;
     totalWords.textContent = words.length;
     answerInput.value = '';
@@ -32,6 +37,19 @@ function updateDisplay() {
     // Update navigation buttons
     prevButton.disabled = currentWordIndex === 0;
     nextButton.disabled = currentWordIndex === words.length - 1;
+}
+
+// Load words from JSON file
+async function loadWords() {
+    try {
+        const response = await fetch('words.json');
+        const data = await response.json();
+        words = data.words || [];
+        updateDisplay();
+    } catch (error) {
+        console.error('Error loading words:', error);
+        practiceSection.innerHTML = '<p class="no-words">Error loading words. Please try again later.</p>';
+    }
 }
 
 // Start practice when the start button is clicked
@@ -51,11 +69,15 @@ startButton.addEventListener('click', () => {
 
 // Speak the word when the speak button is clicked
 speakButton.addEventListener('click', () => {
-    speakWord(words[currentWordIndex]);
+    if (words.length > 0) {
+        speakWord(words[currentWordIndex]);
+    }
 });
 
 // Check the answer when the check button is clicked
 checkButton.addEventListener('click', () => {
+    if (words.length === 0) return;
+    
     const userAnswer = answerInput.value.trim().toLowerCase();
     
     if (userAnswer === words[currentWordIndex]) {
@@ -87,4 +109,7 @@ answerInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         checkButton.click();
     }
-}); 
+});
+
+// Load words when the page loads
+loadWords(); 
