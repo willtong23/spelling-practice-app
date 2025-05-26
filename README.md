@@ -26,4 +26,4 @@ A web-based spelling practice application that helps users improve their spellin
 
 ## Live Demo
 
-Visit the live demo at: [Your GitHub Pages URL will appear here] 
+Visit the live demo at: https://willtong23.github.io/spelling-practice-app/ 
