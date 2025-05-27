@@ -27,6 +27,7 @@
         <div class="header-row">
             <h1>Spelling Practice</h1>
         </div>
+        <button id="allWordsBtn" class="all-words-btn">All Words</button>
         <div class="practice-card">
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progressBar"></div>
@@ -48,6 +49,13 @@
             <div class="navigation-buttons">
                 <button id="prevButton" disabled>← Previous</button>
                 <button id="nextButton" disabled>Next →</button>
+            </div>
+        </div>
+        <!-- Modal for All Words and End-of-Quiz Feedback -->
+        <div id="modalOverlay" class="modal-overlay" style="display:none;">
+            <div class="modal-content" id="modalContent">
+                <button id="closeModalBtn" class="close-modal-btn">×</button>
+                <div id="modalBody"></div>
             </div>
         </div>
     </div>
