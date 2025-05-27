@@ -212,7 +212,21 @@ modalOverlay.addEventListener('click', (e) => {
 });
 
 function showEndOfQuizFeedback() {
-    let html = '<h2>Quiz Complete!</h2><ul style="text-align:left;max-width:350px;margin:0 auto;">';
+    let allPerfect = true;
+    for (let i = 0; i < words.length; i++) {
+        const entry = userAnswers[i] || { attempts: [], correct: false };
+        const correctWord = words[i];
+        const wrongAttempts = (entry.attempts || []).filter(a => a !== correctWord);
+        if (wrongAttempts.length > 0 || !entry.correct) {
+            allPerfect = false;
+            break;
+        }
+    }
+    let html = '<h2>Quiz Complete!</h2>';
+    if (allPerfect) {
+        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:12px;">🎉 Congratulations! You got everything correct on the first try!</div>';
+    }
+    html += '<ul style="text-align:left;max-width:350px;margin:0 auto;">';
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const correct = entry.correct;
