@@ -88,7 +88,7 @@ checkButton.addEventListener('click', () => {
     const correctWord = words[currentWordIndex];
     // Track all attempts for each word
     if (!userAnswers[currentWordIndex]) {
-        userAnswers[currentWordIndex] = { attempts: [], correct: false, feedbacks: [] };
+        userAnswers[currentWordIndex] = { attempts: [], correct: false };
     }
     userAnswers[currentWordIndex].attempts.push(userAnswer);
     let isCorrect = userAnswer === correctWord;
@@ -110,12 +110,8 @@ checkButton.addEventListener('click', () => {
             }
         }, 2000);
     } else if (!isCorrect) {
-        // Show all incorrect attempts stacked
-        let incorrectHtml = userAnswers[currentWordIndex].attempts
-            .filter(a => a !== correctWord)
-            .map(a => `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div>`)
-            .join('');
-        resultMessage.innerHTML = `${incorrectHtml}<div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
+        // Show a new red Incorrect message for this attempt
+        resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
         resultMessage.className = 'result-message incorrect';
         answerInput.value = '';
         answerInput.focus();
