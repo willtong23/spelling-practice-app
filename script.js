@@ -22,11 +22,34 @@ let userAnswers = [];
 let quizComplete = false;
 let lastQuizComplete = false;
 let originalWords = [];
+let selectedVoice = null;
+
+function setBritishVoice() {
+    const voices = speechSynthesis.getVoices();
+    // Prefer female British voices
+    let britishFemale = voices.find(v => v.lang === 'en-GB' && v.name.toLowerCase().includes('female'));
+    if (!britishFemale) {
+        // Fallback: any British English voice
+        britishFemale = voices.find(v => v.lang === 'en-GB');
+    }
+    if (!britishFemale) {
+        // Fallback: any voice with 'UK' in the name
+        britishFemale = voices.find(v => v.name.toLowerCase().includes('uk'));
+    }
+    selectedVoice = britishFemale || voices[0];
+}
+
+// Set the voice when voices are loaded
+if (typeof speechSynthesis !== 'undefined') {
+    speechSynthesis.onvoiceschanged = setBritishVoice;
+    setBritishVoice();
+}
 
 // Function to speak the word
 function speakWord(word) {
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.rate = 0.8; // Slightly slower speed for better clarity
+    if (selectedVoice) utterance.voice = selectedVoice;
     speechSynthesis.speak(utterance);
 }
 
