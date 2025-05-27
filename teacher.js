@@ -470,6 +470,7 @@ function renderAnalyticsTable() {
 function setupEventListeners() {
     // Word Sets
     document.getElementById('createWordSetBtn')?.addEventListener('click', showCreateWordSetModal);
+    document.getElementById('cleanupWordSetsBtn')?.addEventListener('click', cleanupWordSets);
     
     // Students & Classes
     document.getElementById('createClassBtn')?.addEventListener('click', showCreateClassModal);
@@ -1183,5 +1184,51 @@ async function refreshAssignmentStatus() {
     } catch (error) {
         console.error('Error refreshing assignment status:', error);
         showNotification('Error refreshing assignment status', 'error');
+    }
+}
+
+// Function to clean up test word sets and create proper defaults
+async function cleanupWordSets() {
+    try {
+        console.log('Checking for problematic word sets...');
+        
+        // Find word sets with test data (like ['a', 'b', 'c'])
+        const problematicSets = wordSets.filter(set => {
+            const words = set.words || [];
+            // Check if it's a test set with single letters or very short words
+            const isTestSet = words.length <= 3 && words.every(word => word.length <= 1);
+            return isTestSet;
+        });
+        
+        if (problematicSets.length > 0) {
+            console.log('Found problematic word sets:', problematicSets);
+            
+            for (const set of problematicSets) {
+                console.log(`Deleting problematic word set: ${set.name} with words:`, set.words);
+                await db.collection('wordSets').doc(set.id).delete();
+                
+                // Remove any assignments using this word set
+                const assignmentsToDelete = assignments.filter(a => a.wordSetId === set.id);
+                for (const assignment of assignmentsToDelete) {
+                    await db.collection('assignments').doc(assignment.id).delete();
+                }
+            }
+            
+            // Reload data
+            await loadAllData();
+            showNotification(`Cleaned up ${problematicSets.length} problematic word sets`, 'success');
+        } else {
+            showNotification('No problematic word sets found', 'info');
+        }
+        
+        // Ensure we have at least one proper word set
+        if (wordSets.length === 0) {
+            await createDefaultWordSet();
+            await loadAllData();
+        }
+        
+    } catch (error) {
+        console.error('Error cleaning up word sets:', error);
+        showNotification('Error cleaning up word sets', 'error');
     }
 } 

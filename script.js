@@ -4,12 +4,15 @@ const defaultWords = ["want", "went", "what", "should", "could"];
 
 async function getWordsFromAssignment(userName) {
     try {
+        console.log(`=== GETTING WORDS FOR USER: ${userName} ===`);
+        
         // First, try to find if this user has a specific assignment
         const studentsSnapshot = await window.db.collection('students').where('name', '==', userName).get();
         
         if (!studentsSnapshot.empty) {
             const studentDoc = studentsSnapshot.docs[0];
             const studentId = studentDoc.id;
+            console.log(`Found student in database: ${studentId}`);
             
             // Check if this student has an assignment
             const assignmentsSnapshot = await window.db.collection('assignments').where('studentId', '==', studentId).get();
@@ -17,26 +20,51 @@ async function getWordsFromAssignment(userName) {
             if (!assignmentsSnapshot.empty) {
                 const assignmentDoc = assignmentsSnapshot.docs[0];
                 const wordSetId = assignmentDoc.data().wordSetId;
+                console.log(`Found assignment for student: wordSetId = ${wordSetId}`);
                 
                 // Get the word set
                 const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
                 if (wordSetDoc.exists) {
                     console.log(`Found assignment for ${userName}: using word set "${wordSetDoc.data().name}"`);
+                    console.log(`Assignment words:`, wordSetDoc.data().words);
                     return {
                         words: wordSetDoc.data().words,
                         setId: wordSetId,
                         setName: wordSetDoc.data().name
                     };
                 }
+            } else {
+                console.log(`No assignment found for student ${userName}`);
             }
+        } else {
+            console.log(`Student ${userName} not found in database`);
         }
         
-        // If no specific assignment, try to get the active word set from the main wordlist
+        // If no specific assignment, check if there are any word sets available
+        console.log('No specific assignment found, checking for available word sets...');
+        const wordSetsSnapshot = await window.db.collection('wordSets').get();
+        
+        if (!wordSetsSnapshot.empty) {
+            // Use the first available word set instead of the potentially problematic active set
+            const firstWordSet = wordSetsSnapshot.docs[0];
+            const wordSetData = firstWordSet.data();
+            console.log(`Using first available word set: "${wordSetData.name}"`);
+            console.log(`Word set words:`, wordSetData.words);
+            return {
+                words: wordSetData.words,
+                setId: firstWordSet.id,
+                setName: wordSetData.name
+            };
+        }
+        
+        // If no word sets exist, try to get the active word set from the main wordlist
+        console.log('No word sets found, checking main wordlist...');
         const doc = await window.db.collection('spelling').doc('wordlist').get();
         if (doc.exists && doc.data().activeSetId) {
             const wordSetDoc = await window.db.collection('wordSets').doc(doc.data().activeSetId).get();
             if (wordSetDoc.exists) {
                 console.log(`Using active word set: "${wordSetDoc.data().name}"`);
+                console.log(`Active set words:`, wordSetDoc.data().words);
                 return {
                     words: wordSetDoc.data().words,
                     setId: doc.data().activeSetId,
@@ -48,6 +76,7 @@ async function getWordsFromAssignment(userName) {
         // Fallback to the old wordlist format
         if (doc.exists && doc.data().words) {
             console.log('Using legacy word list');
+            console.log('Legacy words:', doc.data().words);
             return {
                 words: doc.data().words,
                 setId: null,
