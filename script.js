@@ -203,7 +203,13 @@ closeModalBtn.addEventListener('click', () => {
     closeModal();
     if (lastQuizComplete) {
         lastQuizComplete = false;
-        resetQuiz();
+        setTimeout(() => {
+            resetQuiz();
+            // Ensure the first word and sound are in sync
+            setTimeout(() => {
+                speakWord(words[0]);
+            }, 200);
+        }, 100);
     }
 });
 
@@ -222,11 +228,12 @@ function showEndOfQuizFeedback() {
             break;
         }
     }
-    let html = '<h2>Quiz Complete!</h2>';
+    let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
     if (allPerfect) {
-        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:12px;">🎉 Congratulations! You got everything correct on the first try!</div>';
+        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Congratulations! You got everything correct on the first try!</div>';
     }
-    html += '<ul style="text-align:left;max-width:350px;margin:0 auto;">';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
+    html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">Result</th><th style="text-align:left;padding:4px 8px;">Wrong attempts</th></tr>';
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const correct = entry.correct;
@@ -234,7 +241,7 @@ function showEndOfQuizFeedback() {
         const correctWord = words[i];
         const wrongAttempts = attempts.filter(a => a !== correctWord);
         const correctAttempts = attempts.some(a => a === correctWord) ? 1 : 0;
-        html += `<li style='margin:10px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;'><span style='min-width:70px;'><b>${i+1}. ${words[i]}</b> :</span>`;
+        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
         // Show ticks and crosses
         if (correctAttempts) {
             html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;'>`;
@@ -246,13 +253,15 @@ function showEndOfQuizFeedback() {
             for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
             html += `</span>`;
         }
-        // Show wrong attempts as text (inline)
+        html += `</td><td style="color:#888;padding:4px 8px;">`;
         if (wrongAttempts.length) {
-            html += `<span style='color:#888;margin-left:10px;'>Wrong attempts: <b>${wrongAttempts.join(', ')}</b></span>`;
+            html += `<b>${wrongAttempts.join(', ')}</b>`;
+        } else {
+            html += '-';
         }
-        html += '</li>';
+        html += '</td></tr>';
     }
-    html += '</ul>';
+    html += '</table></div>';
     showModal(html);
     lastQuizComplete = true;
 }
