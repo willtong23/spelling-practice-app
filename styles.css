@@ -25,13 +25,25 @@ body {
     margin-bottom: 36px;
 }
 
-.school-logo {
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 80px;
     height: 80px;
-    object-fit: contain;
-    border-radius: 16px;
+    min-width: 80px;
+    min-height: 80px;
     background: #fff;
+    border-radius: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+}
+
+.school-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 h1 {
