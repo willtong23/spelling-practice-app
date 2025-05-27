@@ -42,6 +42,22 @@
             width: auto;
         }
     </style>
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <!-- Add Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
+        authDomain: "spelling-v001.firebaseapp.com",
+        projectId: "spelling-v001",
+        storageBucket: "spelling-v001.firebasestorage.app",
+        messagingSenderId: "789364838972",
+        appId: "1:789364838972:web:f571d4f5e385c4e0fce939"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
 </head>
 <body>
     <div class="container">

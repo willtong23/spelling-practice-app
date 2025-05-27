@@ -65,46 +65,59 @@ const performanceSummary = document.getElementById('performanceSummary');
 
 async function renderUserData() {
     userDataTbody.innerHTML = '';
-    let allResults = [];
+    let allRounds = [];
     try {
         const snapshot = await db.collection('results').orderBy('date', 'desc').get();
         snapshot.forEach(doc => {
             const data = doc.data();
             const user = data.user || 'unknown';
-            const date = data.date ? data.date.split('T')[0] : '';
-            (data.words || []).forEach(wordObj => {
-                allResults.push({
-                    user,
-                    date,
-                    word: wordObj.word,
-                    attempts: (wordObj.attempts || []).length,
-                    result: wordObj.correct ? '✅' : '❌',
-                    hint: wordObj.hint ? 'H' : ''
-                });
+            const dateTime = data.date ? new Date(data.date).toLocaleString() : '';
+            const words = data.words || [];
+            const total = words.length;
+            const correct = words.filter(w => w.correct).length;
+            // Build word details: show wrong attempts, and if hint was used
+            const wordDetails = words.map(w => {
+                let wrongs = (w.attempts || []).filter(a => a !== w.word);
+                let wrongStr = wrongs.length ? ` <span style='color:#ef4444;'>[${wrongs.join(', ')}]</span>` : '';
+                let hintStr = w.hint ? ` <span style='color:#fbbf24;font-weight:700;'>H</span>` : '';
+                return `<b>${w.word}</b>${wrongStr}${hintStr}`;
+            }).join('<br>');
+            allRounds.push({
+                user,
+                dateTime,
+                correct,
+                total,
+                wordDetails
             });
         });
     } catch (e) {
-        userDataTbody.innerHTML = `<tr><td colspan='6' style='text-align:center;color:#888;'>Error loading user data.</td></tr>`;
+        userDataTbody.innerHTML = `<tr><td colspan='4' style='text-align:center;color:#888;'>Error loading user data.</td></tr>`;
         performanceSummary.innerHTML = `<em>Error loading user data.</em>`;
         return;
     }
-    if (allResults.length === 0) {
-        userDataTbody.innerHTML = `<tr><td colspan='6' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
+    if (allRounds.length === 0) {
+        userDataTbody.innerHTML = `<tr><td colspan='4' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
         performanceSummary.innerHTML = `<em>No user data yet. This will show class performance, most-missed words, and trends.</em>`;
         return;
     }
-    allResults.forEach(row => {
+    allRounds.forEach(row => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.user}</td><td>${row.date}</td><td>${row.word}</td><td>${row.attempts}</td><td>${row.result} ${row.hint ? `<span style='color:#fbbf24;font-weight:700;'>H</span>` : ''}</td>`;
+        tr.innerHTML = `<td>${row.user}</td><td>${row.dateTime}</td><td>${row.correct} / ${row.total}</td><td>${row.wordDetails}</td>`;
         userDataTbody.appendChild(tr);
     });
     // Example summary (can be improved)
-    const total = allResults.length;
-    const correct = allResults.filter(r => r.result === '✅').length;
-    const accuracy = total ? Math.round((correct / total) * 100) : 0;
+    const totalWords = allRounds.reduce((sum, r) => sum + r.total, 0);
+    const totalCorrect = allRounds.reduce((sum, r) => sum + r.correct, 0);
+    const accuracy = totalWords ? Math.round((totalCorrect / totalWords) * 100) : 0;
+    // Find most-missed word
     const wordMissCounts = {};
-    allResults.forEach(r => {
-        if (r.result === '❌') wordMissCounts[r.word] = (wordMissCounts[r.word] || 0) + 1;
+    allRounds.forEach(r => {
+        // Parse wordDetails for wrongs
+        r.wordDetails.replace(/<b>(.*?)<\/b>(.*?)<br>?/g, (m, word, rest) => {
+            if (rest.includes("color:#ef4444")) {
+                wordMissCounts[word] = (wordMissCounts[word] || 0) + 1;
+            }
+        });
     });
     let mostMissed = '-';
     let maxMiss = 0;

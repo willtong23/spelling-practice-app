@@ -63,6 +63,10 @@ function speakWord(word) {
 
 // Function to update the display
 function updateDisplay() {
+    if (!practiceSection || !currentWordNumber || !totalWords || !answerInput || !resultMessage) {
+        console.error('One or more elements are missing!');
+        return;
+    }
     if (words.length === 0) {
         practiceSection.innerHTML = '<p class="no-words">No words available. Please add words in the admin page.</p>';
         return;
@@ -343,12 +347,10 @@ function promptUserName() {
 }
 
 function startQuiz() {
-    console.log('Start clicked');
     userName = userNameInput.value.trim() || 'unknown';
     userNameSection.style.display = 'none';
     quizContent.style.display = '';
     loadWords();
-    resetQuiz();
 }
 
 if (userNameSection && startQuizBtn && userNameInput && quizContent) {

@@ -4,8 +4,7 @@ const addButton = document.getElementById('addButton');
 const wordList = document.getElementById('wordList');
 const saveButton = document.getElementById('saveButton');
 
-// Load saved words from localStorage
-let words = JSON.parse(localStorage.getItem('spellingWords')) || [];
+let words = [];
 
 // Function to update the word list display
 function updateWordList() {
@@ -47,31 +46,29 @@ wordInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Save words to localStorage and GitHub
+// Save words to Firestore
 saveButton.addEventListener('click', async () => {
-    // Save to localStorage
-    localStorage.setItem('spellingWords', JSON.stringify(words));
-    
-    // Save to words.json
     try {
-        const response = await fetch('words.json', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ words: words })
-        });
-        
-        if (response.ok) {
-            alert('Word list saved successfully!');
-        } else {
-            alert('Error saving word list. Please try again.');
-        }
+        await db.collection('spelling').doc('wordlist').set({ words });
+        alert('Word list saved to Firebase!');
     } catch (error) {
-        alert('Error saving word list. Please try again.');
-        console.error('Error:', error);
+        alert('Error saving word list to Firebase.');
+        console.error(error);
     }
 });
 
+// Load words from Firestore on page load
+async function loadWords() {
+    try {
+        const doc = await db.collection('spelling').doc('wordlist').get();
+        if (doc.exists) {
+            words = doc.data().words || [];
+            updateWordList();
+        }
+    } catch (error) {
+        console.error('Error loading words from Firebase:', error);
+    }
+}
+
 // Initial display of words
-updateWordList(); 
+loadWords(); 
