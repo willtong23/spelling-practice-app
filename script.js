@@ -13,6 +13,7 @@ const letterHint = document.getElementById('letterHint');
 
 let words = [];
 let currentWordIndex = 0;
+let feedbackTimeout;
 
 // Function to speak the word
 function speakWord(word) {
@@ -85,6 +86,13 @@ checkButton.addEventListener('click', () => {
     }
     answerInput.value = '';
     answerInput.focus();
+    // Clear any previous timer
+    if (feedbackTimeout) clearTimeout(feedbackTimeout);
+    // Hide feedback after 3 seconds
+    feedbackTimeout = setTimeout(() => {
+        resultMessage.textContent = '';
+        resultMessage.className = 'result-message';
+    }, 3000);
 });
 
 // Navigation buttons
