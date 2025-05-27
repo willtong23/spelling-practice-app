@@ -1,0 +1,13 @@
+#!/bin/bash
+echo "🔄 Syncing files from GitHub repo to local directory..."
+cp -f "/Users/willtong/spelling-practice-app/index.html" "/Users/willtong/spelling apps/"
+cp -f "/Users/willtong/spelling-practice-app/script.js" "/Users/willtong/spelling apps/"
+cp -f "/Users/willtong/spelling-practice-app/styles.css" "/Users/willtong/spelling apps/"
+cp -f "/Users/willtong/spelling-practice-app/teacher.html" "/Users/willtong/spelling apps/"
+cp -f "/Users/willtong/spelling-practice-app/teacher.js" "/Users/willtong/spelling apps/"
+echo "✅ Files synchronized successfully!"
+echo "📍 GitHub repo (master): /Users/willtong/spelling-practice-app"
+echo "📍 Local directory: /Users/willtong/spelling apps"
+echo "🌐 Local links:"
+echo "   Student app: file:///Users/willtong/spelling-practice-app/index.html"
+echo "   Teacher dashboard: file:///Users/willtong/spelling-practice-app/teacher.html" 
