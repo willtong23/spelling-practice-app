@@ -4,16 +4,32 @@ const wordListTbody = document.getElementById('wordListTbody');
 const newWordInput = document.getElementById('newWordInput');
 const addWordBtn = document.getElementById('addWordBtn');
 
-// For demo: use localStorage (replace with Firebase for real app)
-function getWords() {
-    return JSON.parse(localStorage.getItem('spellingWords') || '[]');
+let words = [];
+
+async function loadWords() {
+    try {
+        const doc = await db.collection('spelling').doc('wordlist').get();
+        if (doc.exists) {
+            words = doc.data().words || [];
+        } else {
+            words = [];
+        }
+        renderWordList();
+    } catch (e) {
+        alert('Error loading words from Firebase.');
+    }
 }
-function setWords(words) {
-    localStorage.setItem('spellingWords', JSON.stringify(words));
+
+async function saveWordsToFirebase() {
+    try {
+        await db.collection('spelling').doc('wordlist').set({ words });
+        renderWordList();
+    } catch (e) {
+        alert('Error saving words to Firebase.');
+    }
 }
 
 function renderWordList() {
-    const words = getWords();
     wordListTbody.innerHTML = '';
     words.forEach((word, idx) => {
         const tr = document.createElement('tr');
@@ -24,20 +40,16 @@ function renderWordList() {
 
 function addWord() {
     const word = newWordInput.value.trim().toLowerCase();
-    if (word && !getWords().includes(word)) {
-        const words = getWords();
+    if (word && !words.includes(word)) {
         words.push(word);
-        setWords(words);
         newWordInput.value = '';
-        renderWordList();
+        saveWordsToFirebase();
     }
 }
 
 function deleteWord(idx) {
-    const words = getWords();
     words.splice(idx, 1);
-    setWords(words);
-    renderWordList();
+    saveWordsToFirebase();
 }
 
 addWordBtn.addEventListener('click', addWord);
@@ -45,29 +57,14 @@ newWordInput.addEventListener('keypress', e => {
     if (e.key === 'Enter') addWord();
 });
 
-renderWordList();
+loadWords();
 
 // --- User Data Placeholder ---
 const userDataTbody = document.getElementById('userDataTbody');
 const performanceSummary = document.getElementById('performanceSummary');
 
-// For demo: show placeholder data
 function renderUserData() {
-    userDataTbody.innerHTML = '';
-    // Example data (replace with real data from Firebase)
-    const demoData = [
-        { user: 'Alice', date: '2024-05-01', word: 'could', attempts: 2, result: '✅' },
-        { user: 'Alice', date: '2024-05-01', word: 'should', attempts: 1, result: '✅' },
-        { user: 'Bob', date: '2024-05-01', word: 'went', attempts: 3, result: '❌' },
-        { user: 'Bob', date: '2024-05-01', word: 'want', attempts: 2, result: '✅' },
-    ];
-    demoData.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.user}</td><td>${row.date}</td><td>${row.word}</td><td>${row.attempts}</td><td>${row.result}</td>`;
-        userDataTbody.appendChild(tr);
-    });
-    // Example summary
-    performanceSummary.innerHTML = `<b>Class Accuracy:</b> <span class='highlight'>75%</span> <br> <b>Most-missed word:</b> <span class='danger'>went</span>`;
+    userDataTbody.innerHTML = `<tr><td colspan='5' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
+    performanceSummary.innerHTML = `<em>No user data yet. This will show class performance, most-missed words, and trends.</em>`;
 }
-
 renderUserData(); 

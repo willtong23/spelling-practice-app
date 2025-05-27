@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard - Spelling Practice</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
+        authDomain: "spelling-v001.firebaseapp.com",
+        projectId: "spelling-v001",
+        storageBucket: "spelling-v001.firebasestorage.app",
+        messagingSenderId: "789364838972",
+        appId: "1:789364838972:web:f571d4f5e385c4e0fce939"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.firestore();
+    </script>
     <style>
         .dashboard-container {
             max-width: 1000px;
