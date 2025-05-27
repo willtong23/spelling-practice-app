@@ -9,6 +9,7 @@ const nextButton = document.getElementById('nextButton');
 const currentWordNumber = document.getElementById('currentWordNumber');
 const totalWords = document.getElementById('totalWords');
 const progressBar = document.getElementById('progressBar');
+const letterHint = document.getElementById('letterHint');
 
 let words = [];
 let currentWordIndex = 0;
@@ -33,6 +34,7 @@ function updateDisplay() {
     resultMessage.textContent = '';
     resultMessage.className = 'result-message';
     speakWord(words[currentWordIndex]);
+    updateLetterHint();
     
     // Update progress bar
     if (progressBar) {
@@ -81,6 +83,8 @@ checkButton.addEventListener('click', () => {
         resultMessage.innerHTML = '<span style="font-size:1.3em;">❌</span> Incorrect. The correct spelling is: <b>' + words[currentWordIndex] + '</b>';
         resultMessage.className = 'result-message incorrect';
     }
+    answerInput.value = '';
+    answerInput.focus();
 });
 
 // Navigation buttons
@@ -106,4 +110,18 @@ answerInput.addEventListener('keypress', (e) => {
 });
 
 // Load words when the page loads
-loadWords(); 
+loadWords();
+
+function updateLetterHint() {
+    if (!words.length) {
+        letterHint.innerHTML = '';
+        return;
+    }
+    const wordLength = words[currentWordIndex].length;
+    letterHint.innerHTML = '';
+    for (let i = 0; i < wordLength; i++) {
+        const box = document.createElement('div');
+        box.className = 'letter-hint-box';
+        letterHint.appendChild(box);
+    }
+} 
