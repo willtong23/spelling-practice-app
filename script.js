@@ -20,6 +20,7 @@ let currentWordIndex = 0;
 let feedbackTimeout;
 let userAnswers = [];
 let quizComplete = false;
+let lastQuizComplete = false;
 
 // Function to speak the word
 function speakWord(word) {
@@ -86,7 +87,7 @@ checkButton.addEventListener('click', () => {
     const correctWord = words[currentWordIndex];
     // Track all attempts for each word
     if (!userAnswers[currentWordIndex]) {
-        userAnswers[currentWordIndex] = { attempts: [], correct: false };
+        userAnswers[currentWordIndex] = { attempts: [], correct: false, feedbacks: [] };
     }
     userAnswers[currentWordIndex].attempts.push(userAnswer);
     let isCorrect = userAnswer === correctWord;
@@ -108,7 +109,12 @@ checkButton.addEventListener('click', () => {
             }
         }, 2000);
     } else if (!isCorrect) {
-        resultMessage.innerHTML = `<span style="font-size:1.3em;">❌</span> Incorrect. The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b>`;
+        // Show all incorrect attempts stacked
+        let incorrectHtml = userAnswers[currentWordIndex].attempts
+            .filter(a => a !== correctWord)
+            .map(a => `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div>`)
+            .join('');
+        resultMessage.innerHTML = `${incorrectHtml}<div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
         resultMessage.className = 'result-message incorrect';
         answerInput.value = '';
         answerInput.focus();
@@ -173,7 +179,13 @@ allWordsBtn.addEventListener('click', () => {
     showModal('<h2>All Words</h2><ul style="list-style:none;padding:0;">' + words.map(w => `<li style='font-size:1.2em;margin:8px 0;'>${w}</li>`).join('') + '</ul>');
 });
 
-closeModalBtn.addEventListener('click', closeModal);
+closeModalBtn.addEventListener('click', () => {
+    closeModal();
+    if (lastQuizComplete) {
+        lastQuizComplete = false;
+        resetQuiz();
+    }
+});
 
 modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModal();
@@ -198,6 +210,7 @@ function showEndOfQuizFeedback() {
     }
     html += '</ul>';
     showModal(html);
+    lastQuizComplete = true;
 }
 
 function shuffleArray(array) {
