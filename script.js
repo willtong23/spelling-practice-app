@@ -201,7 +201,7 @@ function showEndOfQuizFeedback() {
                 html += `<br><span style='color:#888;'>Wrong attempts: <b>${attempts.filter(a => a !== words[i]).join(', ')}</b></span>`;
             }
         } else {
-            html += `<span style='color:#ef4444;font-weight:600;'>Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
+            html += `<span style='color:#ef4444;font-weight:600;'>❌ Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
         }
         html += '</li>';
     }
