@@ -84,9 +84,16 @@ checkButton.addEventListener('click', () => {
     if (words.length === 0 || quizComplete) return;
     const userAnswer = answerInput.value.trim().toLowerCase();
     const correctWord = words[currentWordIndex];
+    // Track all attempts for each word
+    if (!userAnswers[currentWordIndex]) {
+        userAnswers[currentWordIndex] = { attempts: [], correct: false };
+    }
+    userAnswers[currentWordIndex].attempts.push(userAnswer);
     let isCorrect = userAnswer === correctWord;
-    userAnswers[currentWordIndex] = { answer: userAnswer, correct: isCorrect };
     if (isCorrect) {
+        userAnswers[currentWordIndex].correct = true;
+    }
+    if (isCorrect && userAnswers[currentWordIndex].correct) {
         resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
         resultMessage.className = 'result-message correct';
         answerInput.value = '';
@@ -100,7 +107,7 @@ checkButton.addEventListener('click', () => {
                 speakWord(words[currentWordIndex]);
             }
         }, 2000);
-    } else {
+    } else if (!isCorrect) {
         resultMessage.innerHTML = `<span style="font-size:1.3em;">❌</span> Incorrect. The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b>`;
         resultMessage.className = 'result-message incorrect';
         answerInput.value = '';
@@ -175,13 +182,17 @@ modalOverlay.addEventListener('click', (e) => {
 function showEndOfQuizFeedback() {
     let html = '<h2>Quiz Complete!</h2><ul style="text-align:left;max-width:350px;margin:0 auto;">';
     for (let i = 0; i < words.length; i++) {
-        const correct = userAnswers[i]?.correct;
-        const user = userAnswers[i]?.answer || '';
+        const entry = userAnswers[i] || { attempts: [], correct: false };
+        const correct = entry.correct;
+        const attempts = entry.attempts || [];
         html += `<li style='margin:10px 0;'><b>${i+1}. ${words[i]}</b>: `;
         if (correct) {
             html += "<span style='color:#22c55e;font-weight:600;'>Correct</span>";
+            if (attempts.length > 1) {
+                html += `<br><span style='color:#888;'>Wrong attempts: <b>${attempts.filter(a => a !== words[i]).join(', ')}</b></span>`;
+            }
         } else {
-            html += `<span style='color:#ef4444;font-weight:600;'>Incorrect</span> <br><span style='color:#888;'>Your answer: <b>${user}</b></span>`;
+            html += `<span style='color:#ef4444;font-weight:600;'>Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
         }
         html += '</li>';
     }
