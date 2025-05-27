@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Spelling Practice</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 32px 16px;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 32px rgba(37,99,235,0.08), 0 1.5px 4px rgba(0,0,0,0.04);
+        }
+        .dashboard-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+        .dashboard-title {
+            font-size: 2.2rem;
+            color: #2563eb;
+            font-weight: 800;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 1.3rem;
+            color: #1746a2;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .word-list-table, .user-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        .word-list-table th, .word-list-table td, .user-data-table th, .user-data-table td {
+            border: 1px solid #e0e7ef;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .word-list-table th, .user-data-table th {
+            background: #f0f4fa;
+        }
+        .add-word-btn {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+        .add-word-btn:hover {
+            background: #1746a2;
+        }
+        .performance-summary {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .highlight {
+            color: #22c55e;
+            font-weight: 700;
+        }
+        .danger {
+            color: #ef4444;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div class="dashboard-title">Teacher Dashboard</div>
+            <a href="index.html" style="color:#2563eb;text-decoration:none;font-weight:600;">Student View</a>
+        </div>
+        <div class="section">
+            <div class="section-title">Manage Word List</div>
+            <table class="word-list-table">
+                <thead>
+                    <tr><th>Word</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="wordListTbody">
+                    <!-- Words will be listed here -->
+                </tbody>
+            </table>
+            <input type="text" id="newWordInput" placeholder="Add new word...">
+            <button class="add-word-btn" id="addWordBtn">Add Word</button>
+        </div>
+        <div class="section">
+            <div class="section-title">User Learning Data</div>
+            <div class="performance-summary" id="performanceSummary">
+                <!-- Performance summary will go here -->
+                <em>No user data yet. This will show class performance, most-missed words, and trends.</em>
+            </div>
+            <table class="user-data-table">
+                <thead>
+                    <tr><th>User</th><th>Date</th><th>Word</th><th>Attempts</th><th>Result</th></tr>
+                </thead>
+                <tbody id="userDataTbody">
+                    <!-- User data will be listed here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="teacher.js"></script>
+</body>
+</html> 
