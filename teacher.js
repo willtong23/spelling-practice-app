@@ -66,6 +66,7 @@ const performanceSummary = document.getElementById('performanceSummary');
 async function renderUserData() {
     userDataTbody.innerHTML = '';
     let allRounds = [];
+    let docIds = [];
     try {
         const snapshot = await db.collection('results').orderBy('date', 'desc').get();
         snapshot.forEach(doc => {
@@ -75,7 +76,6 @@ async function renderUserData() {
             const words = data.words || [];
             const total = words.length;
             const correct = words.filter(w => w.correct).length;
-            // Build word details: show wrong attempts, and if hint was used
             const wordDetails = words.map(w => {
                 let wrongs = (w.attempts || []).filter(a => a !== w.word);
                 let wrongStr = wrongs.length ? ` <span style='color:#ef4444;'>[${wrongs.join(', ')}]</span>` : '';
@@ -87,23 +87,35 @@ async function renderUserData() {
                 dateTime,
                 correct,
                 total,
-                wordDetails
+                wordDetails,
+                id: doc.id
             });
+            docIds.push(doc.id);
         });
     } catch (e) {
-        userDataTbody.innerHTML = `<tr><td colspan='4' style='text-align:center;color:#888;'>Error loading user data.</td></tr>`;
+        userDataTbody.innerHTML = `<tr><td colspan='5' style='text-align:center;color:#888;'>Error loading user data.</td></tr>`;
         performanceSummary.innerHTML = `<em>Error loading user data.</em>`;
         return;
     }
     if (allRounds.length === 0) {
-        userDataTbody.innerHTML = `<tr><td colspan='4' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
+        userDataTbody.innerHTML = `<tr><td colspan='5' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
         performanceSummary.innerHTML = `<em>No user data yet. This will show class performance, most-missed words, and trends.</em>`;
         return;
     }
     allRounds.forEach(row => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${row.user}</td><td>${row.dateTime}</td><td>${row.correct} / ${row.total}</td><td>${row.wordDetails}</td>`;
+        tr.innerHTML = `<td>${row.user}</td><td>${row.dateTime}</td><td>${row.correct} / ${row.total}</td><td>${row.wordDetails}</td><td><button class='delete-result-btn' data-id='${row.id}' style='color:#ef4444;background:none;border:none;cursor:pointer;font-weight:700;'>Delete</button></td>`;
         userDataTbody.appendChild(tr);
+    });
+    // Attach delete event listeners
+    document.querySelectorAll('.delete-result-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.getAttribute('data-id');
+            if (confirm('Delete this quiz round?')) {
+                await db.collection('results').doc(id).delete();
+                renderUserData();
+            }
+        });
     });
     // Example summary (can be improved)
     const totalWords = allRounds.reduce((sum, r) => sum + r.total, 0);
@@ -112,7 +124,6 @@ async function renderUserData() {
     // Find most-missed word
     const wordMissCounts = {};
     allRounds.forEach(r => {
-        // Parse wordDetails for wrongs
         r.wordDetails.replace(/<b>(.*?)<\/b>(.*?)<br>?/g, (m, word, rest) => {
             if (rest.includes("color:#ef4444")) {
                 wordMissCounts[word] = (wordMissCounts[word] || 0) + 1;
@@ -128,5 +139,18 @@ async function renderUserData() {
         }
     }
     performanceSummary.innerHTML = `<b>Class Accuracy:</b> <span class='highlight'>${accuracy}%</span> <br> <b>Most-missed word:</b> <span class='danger'>${mostMissed}</span>`;
+    // Delete all data button
+    const deleteAllBtn = document.getElementById('deleteAllResultsBtn');
+    if (deleteAllBtn) {
+        deleteAllBtn.onclick = async function() {
+            if (confirm('Delete ALL user data? This cannot be undone!')) {
+                // Batch delete all docs
+                for (const id of docIds) {
+                    await db.collection('results').doc(id).delete();
+                }
+                renderUserData();
+            }
+        };
+    }
 }
 renderUserData(); 
