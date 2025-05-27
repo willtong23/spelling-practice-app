@@ -217,14 +217,24 @@ function showEndOfQuizFeedback() {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const correct = entry.correct;
         const attempts = entry.attempts || [];
+        const correctWord = words[i];
+        const wrongAttempts = attempts.filter(a => a !== correctWord);
+        const correctAttempts = attempts.some(a => a === correctWord) ? 1 : 0;
         html += `<li style='margin:10px 0;display:flex;align-items:center;gap:8px;'><b>${i+1}. ${words[i]}</b>: `;
-        if (correct) {
-            html += `<span style='color:#22c55e;font-weight:600;font-size:1.2em;display:inline-flex;align-items:center;'><span style='font-size:1.5em;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;vertical-align:middle;margin-right:4px;'>&#x2705;</span>Correct</span>`;
-            if (attempts.length > 1) {
-                html += `<br><span style='color:#888;'>Wrong attempts: <b>${attempts.filter(a => a !== words[i]).join(', ')}</b></span>`;
-            }
-        } else {
-            html += `<span style='color:#ef4444;font-weight:600;font-size:1.2em;display:inline-flex;align-items:center;'><span style='font-size:1.5em;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;vertical-align:middle;margin-right:4px;'>&#x274C;</span>Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
+        // Show ticks and crosses
+        if (correctAttempts) {
+            html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;'>`;
+            for (let t = 0; t < correctAttempts; t++) html += '✅';
+            html += `</span>`;
+        }
+        if (wrongAttempts.length) {
+            html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif; color:#ef4444;'>`;
+            for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
+            html += `</span>`;
+        }
+        // Show wrong attempts as text
+        if (wrongAttempts.length) {
+            html += `<br><span style='color:#888;'>Wrong attempts: <b>${wrongAttempts.join(', ')}</b></span>`;
         }
         html += '</li>';
     }
