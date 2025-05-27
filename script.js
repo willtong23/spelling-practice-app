@@ -90,7 +90,7 @@ checkButton.addEventListener('click', () => {
     if (feedbackTimeout) clearTimeout(feedbackTimeout);
     // Hide feedback after 3 seconds
     feedbackTimeout = setTimeout(() => {
-        resultMessage.textContent = '';
+        resultMessage.innerHTML = '';
         resultMessage.className = 'result-message';
     }, 3000);
 });
