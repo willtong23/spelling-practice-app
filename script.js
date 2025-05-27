@@ -229,6 +229,24 @@ modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModal();
 });
 
+async function saveQuizResultToFirebase() {
+    const result = {
+        user: userName,
+        date: new Date().toISOString(),
+        words: words.map((word, i) => ({
+            word,
+            attempts: userAnswers[i]?.attempts || [],
+            correct: userAnswers[i]?.correct || false,
+            hint: !!hintUsed[i]
+        }))
+    };
+    try {
+        await db.collection('results').add(result);
+    } catch (e) {
+        console.error('Error saving result to Firebase:', e);
+    }
+}
+
 function showEndOfQuizFeedback() {
     let allPerfect = true;
     for (let i = 0; i < words.length; i++) {
@@ -280,6 +298,7 @@ function showEndOfQuizFeedback() {
     html += '</table></div>';
     showModal(html);
     lastQuizComplete = true;
+    saveQuizResultToFirebase();
 }
 
 function shuffleArray(array) {
@@ -324,6 +343,7 @@ function promptUserName() {
 }
 
 function startQuiz() {
+    console.log('Start clicked');
     userName = userNameInput.value.trim() || 'unknown';
     userNameSection.style.display = 'none';
     quizContent.style.display = '';

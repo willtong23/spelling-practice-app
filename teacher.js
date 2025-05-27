@@ -63,8 +63,57 @@ loadWords();
 const userDataTbody = document.getElementById('userDataTbody');
 const performanceSummary = document.getElementById('performanceSummary');
 
-function renderUserData() {
-    userDataTbody.innerHTML = `<tr><td colspan='5' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
-    performanceSummary.innerHTML = `<em>No user data yet. This will show class performance, most-missed words, and trends.</em>`;
+async function renderUserData() {
+    userDataTbody.innerHTML = '';
+    let allResults = [];
+    try {
+        const snapshot = await db.collection('results').orderBy('date', 'desc').get();
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const user = data.user || 'unknown';
+            const date = data.date ? data.date.split('T')[0] : '';
+            (data.words || []).forEach(wordObj => {
+                allResults.push({
+                    user,
+                    date,
+                    word: wordObj.word,
+                    attempts: (wordObj.attempts || []).length,
+                    result: wordObj.correct ? '✅' : '❌',
+                    hint: wordObj.hint ? 'H' : ''
+                });
+            });
+        });
+    } catch (e) {
+        userDataTbody.innerHTML = `<tr><td colspan='6' style='text-align:center;color:#888;'>Error loading user data.</td></tr>`;
+        performanceSummary.innerHTML = `<em>Error loading user data.</em>`;
+        return;
+    }
+    if (allResults.length === 0) {
+        userDataTbody.innerHTML = `<tr><td colspan='6' style='text-align:center;color:#888;'>No user data yet.</td></tr>`;
+        performanceSummary.innerHTML = `<em>No user data yet. This will show class performance, most-missed words, and trends.</em>`;
+        return;
+    }
+    allResults.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.user}</td><td>${row.date}</td><td>${row.word}</td><td>${row.attempts}</td><td>${row.result} ${row.hint ? `<span style='color:#fbbf24;font-weight:700;'>H</span>` : ''}</td>`;
+        userDataTbody.appendChild(tr);
+    });
+    // Example summary (can be improved)
+    const total = allResults.length;
+    const correct = allResults.filter(r => r.result === '✅').length;
+    const accuracy = total ? Math.round((correct / total) * 100) : 0;
+    const wordMissCounts = {};
+    allResults.forEach(r => {
+        if (r.result === '❌') wordMissCounts[r.word] = (wordMissCounts[r.word] || 0) + 1;
+    });
+    let mostMissed = '-';
+    let maxMiss = 0;
+    for (const w in wordMissCounts) {
+        if (wordMissCounts[w] > maxMiss) {
+            maxMiss = wordMissCounts[w];
+            mostMissed = w;
+        }
+    }
+    performanceSummary.innerHTML = `<b>Class Accuracy:</b> <span class='highlight'>${accuracy}%</span> <br> <b>Most-missed word:</b> <span class='danger'>${mostMissed}</span>`;
 }
 renderUserData(); 
