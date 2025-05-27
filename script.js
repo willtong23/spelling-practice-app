@@ -21,6 +21,7 @@ let feedbackTimeout;
 let userAnswers = [];
 let quizComplete = false;
 let lastQuizComplete = false;
+let originalWords = [];
 
 // Function to speak the word
 function speakWord(word) {
@@ -62,8 +63,8 @@ async function loadWords() {
     try {
         const doc = await db.collection('spelling').doc('wordlist').get();
         if (doc.exists) {
-            words = doc.data().words || [];
-            updateDisplay();
+            originalWords = doc.data().words || [];
+            startNewRound();
         } else {
             practiceSection.innerHTML = '<p>No words found. Please add words in the admin page.</p>';
         }
@@ -220,14 +221,23 @@ function shuffleArray(array) {
     }
 }
 
-function resetQuiz() {
-    userAnswers = [];
-    currentWordIndex = 0;
-    quizComplete = false;
+function startNewRound() {
+    words = [...originalWords];
     if (words.length > 1) {
         shuffleArray(words);
     }
+    resetQuizState();
     updateDisplay();
+}
+
+function resetQuizState() {
+    userAnswers = [];
+    currentWordIndex = 0;
+    quizComplete = false;
+}
+
+function resetQuiz() {
+    startNewRound();
 }
 
 function moveToNextWord() {
