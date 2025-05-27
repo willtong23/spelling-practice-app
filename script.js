@@ -220,7 +220,7 @@ function showEndOfQuizFeedback() {
         const correctWord = words[i];
         const wrongAttempts = attempts.filter(a => a !== correctWord);
         const correctAttempts = attempts.some(a => a === correctWord) ? 1 : 0;
-        html += `<li style='margin:10px 0;display:flex;align-items:center;gap:8px;'><b>${i+1}. ${words[i]}</b>: `;
+        html += `<li style='margin:10px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;'><span style='min-width:70px;'><b>${i+1}. ${words[i]}</b> :</span>`;
         // Show ticks and crosses
         if (correctAttempts) {
             html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;'>`;
@@ -232,9 +232,9 @@ function showEndOfQuizFeedback() {
             for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
             html += `</span>`;
         }
-        // Show wrong attempts as text
+        // Show wrong attempts as text (inline)
         if (wrongAttempts.length) {
-            html += `<br><span style='color:#888;'>Wrong attempts: <b>${wrongAttempts.join(', ')}</b></span>`;
+            html += `<span style='color:#888;margin-left:10px;'>Wrong attempts: <b>${wrongAttempts.join(', ')}</b></span>`;
         }
         html += '</li>';
     }
