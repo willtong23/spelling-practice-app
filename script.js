@@ -63,6 +63,11 @@ function speakWord(word) {
 
 // Function to update the display
 function updateDisplay() {
+    if (!practiceSection) console.error('practiceSection missing');
+    if (!currentWordNumber) console.error('currentWordNumber missing');
+    if (!totalWords) console.error('totalWords missing');
+    if (!answerInput) console.error('answerInput missing');
+    if (!resultMessage) console.error('resultMessage missing');
     if (!practiceSection || !currentWordNumber || !totalWords || !answerInput || !resultMessage) {
         console.error('One or more elements are missing!');
         return;
