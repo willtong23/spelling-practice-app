@@ -23,6 +23,7 @@ let quizComplete = false;
 let lastQuizComplete = false;
 let originalWords = [];
 let selectedVoice = null;
+let hintUsed = [];
 
 function setBritishVoice() {
     const voices = speechSynthesis.getVoices();
@@ -181,6 +182,13 @@ function updateLetterHint() {
     for (let i = 0; i < wordLength; i++) {
         const box = document.createElement('div');
         box.className = 'letter-hint-box';
+        box.dataset.index = i;
+        box.addEventListener('click', function() {
+            // Show the correct letter as a hint
+            box.textContent = words[currentWordIndex][i];
+            // Mark that a hint was used for this word
+            hintUsed[currentWordIndex] = true;
+        });
         letterHint.appendChild(box);
     }
 }
@@ -253,6 +261,10 @@ function showEndOfQuizFeedback() {
             for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
             html += `</span>`;
         }
+        // Show 'H' if hint was used
+        if (hintUsed[i]) {
+            html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
+        }
         html += `</td><td style="color:#888;padding:4px 8px;">`;
         if (wrongAttempts.length) {
             html += `<b>${wrongAttempts.join(', ')}</b>`;
@@ -286,6 +298,7 @@ function resetQuizState() {
     userAnswers = [];
     currentWordIndex = 0;
     quizComplete = false;
+    hintUsed = [];
 }
 
 function resetQuiz() {
