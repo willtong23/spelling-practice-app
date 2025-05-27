@@ -15,6 +15,12 @@ const modalOverlay = document.getElementById('modalOverlay');
 const modalBody = document.getElementById('modalBody');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
+// User name input logic
+const userNameSection = document.getElementById('userNameSection');
+const userNameInput = document.getElementById('userNameInput');
+const startQuizBtn = document.getElementById('startQuizBtn');
+const quizContent = document.getElementById('quizContent');
+
 let words = [];
 let currentWordIndex = 0;
 let feedbackTimeout;
@@ -24,6 +30,7 @@ let lastQuizComplete = false;
 let originalWords = [];
 let selectedVoice = null;
 let hintUsed = [];
+let userName = '';
 
 function setBritishVoice() {
     const voices = speechSynthesis.getVoices();
@@ -169,9 +176,6 @@ answerInput.addEventListener('keypress', (e) => {
     }
 });
 
-// Load words when the page loads
-loadWords();
-
 function updateLetterHint() {
     if (!words.length) {
         letterHint.innerHTML = '';
@@ -315,6 +319,23 @@ function moveToNextWord() {
     }
 }
 
-// On page load, reset quiz state
-loadWords();
-resetQuiz(); 
+function promptUserName() {
+    userName = prompt('Please enter your name:')?.trim() || 'unknown';
+}
+
+function startQuiz() {
+    userName = userNameInput.value.trim() || 'unknown';
+    userNameSection.style.display = 'none';
+    quizContent.style.display = '';
+    loadWords();
+    resetQuiz();
+}
+
+if (userNameSection && startQuizBtn && userNameInput && quizContent) {
+    quizContent.style.display = 'none';
+    userNameSection.style.display = '';
+    startQuizBtn.addEventListener('click', startQuiz);
+    userNameInput.addEventListener('keypress', e => {
+        if (e.key === 'Enter') startQuiz();
+    });
+} 
