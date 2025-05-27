@@ -1,181 +1,66 @@
-// Get all the elements we need
-const practiceSection = document.querySelector('.practice-section');
+// Spelling Practice App - Clean Modern Version
+// --- Configurable word list (for demo, use localStorage or hardcoded) ---
+const defaultWords = ["want", "went", "what", "should", "could"];
+function getWords() {
+    return JSON.parse(localStorage.getItem('spellingWords') || JSON.stringify(defaultWords));
+}
+function setWords(words) {
+    localStorage.setItem('spellingWords', JSON.stringify(words));
+}
+
+// --- Elements ---
+const practiceSection = document.querySelector('.practice-card');
 const speakButton = document.getElementById('speakButton');
-const answerInput = document.getElementById('answerInput');
 const checkButton = document.getElementById('checkButton');
-const resultMessage = document.querySelector('.result-message');
+const resultMessage = document.getElementById('resultMessage');
 const prevButton = document.getElementById('prevButton');
 const nextButton = document.getElementById('nextButton');
 const currentWordNumber = document.getElementById('currentWordNumber');
 const totalWords = document.getElementById('totalWords');
 const progressBar = document.getElementById('progressBar');
 const letterHint = document.getElementById('letterHint');
-const allWordsBtn = document.getElementById('allWordsBtn');
 const modalOverlay = document.getElementById('modalOverlay');
 const modalBody = document.getElementById('modalBody');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
+// --- State ---
 let words = [];
 let currentWordIndex = 0;
 let feedbackTimeout;
 let userAnswers = [];
 let quizComplete = false;
 let lastQuizComplete = false;
-let originalWords = [];
-let selectedVoice = null;
+let letterInputs = [];
 let hintUsed = [];
 let userName = '';
-let letterInputs = [];
+let selectedVoice = null;
 
+// --- Name Prompt ---
+function promptUserName() {
+    userName = prompt('Please enter your name:')?.trim() || 'unknown';
+}
+promptUserName();
+
+// --- Voice Selection ---
 function setBritishVoice() {
     const voices = speechSynthesis.getVoices();
-    // Prefer female British voices
     let britishFemale = voices.find(v => v.lang === 'en-GB' && v.name.toLowerCase().includes('female'));
-    if (!britishFemale) {
-        // Fallback: any British English voice
-        britishFemale = voices.find(v => v.lang === 'en-GB');
-    }
-    if (!britishFemale) {
-        // Fallback: any voice with 'UK' in the name
-        britishFemale = voices.find(v => v.name.toLowerCase().includes('uk'));
-    }
+    if (!britishFemale) britishFemale = voices.find(v => v.lang === 'en-GB');
+    if (!britishFemale) britishFemale = voices.find(v => v.name.toLowerCase().includes('uk'));
     selectedVoice = britishFemale || voices[0];
 }
-
-// Set the voice when voices are loaded
 if (typeof speechSynthesis !== 'undefined') {
     speechSynthesis.onvoiceschanged = setBritishVoice;
     setBritishVoice();
 }
-
-// Function to speak the word
 function speakWord(word) {
     const utterance = new SpeechSynthesisUtterance(word);
-    utterance.rate = 0.8; // Slightly slower speed for better clarity
+    utterance.rate = 0.8;
     if (selectedVoice) utterance.voice = selectedVoice;
     speechSynthesis.speak(utterance);
 }
 
-// Function to update the display
-function updateDisplay() {
-    if (words.length === 0) {
-        practiceSection.innerHTML = '<p class="no-words">No words available. Please add words in the admin page.</p>';
-        return;
-    }
-
-    currentWordNumber.textContent = currentWordIndex + 1;
-    totalWords.textContent = words.length;
-    answerInput.value = '';
-    resultMessage.innerHTML = '';
-    resultMessage.className = 'result-message';
-    speakWord(words[currentWordIndex]);
-    updateLetterHint();
-    
-    // Update progress bar
-    if (progressBar) {
-        const percent = ((currentWordIndex + 1) / words.length) * 100;
-        progressBar.style.width = percent + '%';
-    }
-    
-    // Update navigation buttons
-    prevButton.disabled = currentWordIndex === 0 || quizComplete;
-    nextButton.disabled = currentWordIndex === words.length - 1 || quizComplete;
-    // Focus input for user
-    answerInput.focus();
-}
-
-// Load words from Firestore
-async function loadWords() {
-    try {
-        const doc = await db.collection('spelling').doc('wordlist').get();
-        if (doc.exists) {
-            originalWords = doc.data().words || [];
-            startNewRound();
-        } else {
-            practiceSection.innerHTML = '<p>No words found. Please add words in the admin page.</p>';
-        }
-    } catch (error) {
-        practiceSection.innerHTML = '<p>Error loading words from Firebase.</p>';
-        console.error(error);
-    }
-}
-
-// Speak the word when the speak button is clicked
-speakButton.addEventListener('click', () => {
-    if (words.length > 0) {
-        speakWord(words[currentWordIndex]);
-    }
-});
-
-// Check the answer when the check button is clicked
-checkButton.addEventListener('click', () => {
-    if (words.length === 0 || quizComplete) return;
-    // Combine letters from all boxes
-    let userAnswer = letterInputs.map((box, idx) => box.value ? box.value.toLowerCase() : '').join('');
-    const correctWord = words[currentWordIndex];
-    // Track all attempts for each word
-    if (!userAnswers[currentWordIndex]) {
-        userAnswers[currentWordIndex] = { attempts: [], correct: false };
-    }
-    userAnswers[currentWordIndex].attempts.push(userAnswer);
-    let isCorrect = userAnswer === correctWord;
-    if (isCorrect) {
-        userAnswers[currentWordIndex].correct = true;
-    }
-    if (isCorrect && userAnswers[currentWordIndex].correct) {
-        resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
-        resultMessage.className = 'result-message correct';
-        letterInputs.forEach(box => box.value = '');
-        letterInputs.forEach(box => box.disabled = false);
-        letterInputs[0].focus();
-        answerInput?.blur();
-        if (feedbackTimeout) clearTimeout(feedbackTimeout);
-        feedbackTimeout = setTimeout(() => {
-            resultMessage.innerHTML = '';
-            resultMessage.className = 'result-message';
-            moveToNextWord();
-            if (!quizComplete && words[currentWordIndex]) {
-                speakWord(words[currentWordIndex]);
-            }
-        }, 2000);
-    } else if (!isCorrect) {
-        resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
-        resultMessage.className = 'result-message incorrect';
-        letterInputs.forEach(box => box.value = '');
-        letterInputs[0].focus();
-        if (feedbackTimeout) clearTimeout(feedbackTimeout);
-        feedbackTimeout = setTimeout(() => {
-            resultMessage.innerHTML = '';
-            resultMessage.className = 'result-message';
-        }, 3000);
-    }
-});
-
-// Navigation buttons
-prevButton.addEventListener('click', () => {
-    if (currentWordIndex > 0 && !quizComplete) {
-        currentWordIndex--;
-        updateDisplay();
-    }
-});
-
-nextButton.addEventListener('click', () => {
-    if (currentWordIndex < words.length - 1 && !quizComplete) {
-        currentWordIndex++;
-        updateDisplay();
-    }
-});
-
-// Allow checking answer when Enter key is pressed
-answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        checkButton.click();
-    }
-});
-
-// Load words when the page loads
-loadWords();
-
+// --- UI Update Functions ---
 function updateLetterHint() {
     if (!words.length) {
         letterHint.innerHTML = '';
@@ -196,16 +81,13 @@ function updateLetterHint() {
         box.style.width = '44px';
         box.style.height = '44px';
         box.addEventListener('input', function() {
-            // Move to next box on input
             if (box.value.length === 1 && i < wordLength - 1) {
                 letterInputs[i + 1].focus();
             }
         });
         box.addEventListener('click', function(e) {
             if (!box.disabled) return;
-            // If already a hint, do nothing
             if (box.value === words[currentWordIndex][i]) return;
-            // Show the correct letter as a hint
             box.value = words[currentWordIndex][i];
             box.disabled = true;
             hintUsed[currentWordIndex] = true;
@@ -214,39 +96,133 @@ function updateLetterHint() {
         letterHint.appendChild(box);
     }
 }
+function updateDisplay() {
+    if (words.length === 0) {
+        practiceSection.innerHTML = '<p class="no-words">No words available. Please add words in the teacher dashboard.</p>';
+        return;
+    }
+    currentWordNumber.textContent = currentWordIndex + 1;
+    totalWords.textContent = words.length;
+    resultMessage.innerHTML = '';
+    resultMessage.className = 'result-message';
+    updateLetterHint();
+    if (progressBar) {
+        const percent = ((currentWordIndex + 1) / words.length) * 100;
+        progressBar.style.width = percent + '%';
+    }
+    prevButton.disabled = currentWordIndex === 0 || quizComplete;
+    nextButton.disabled = currentWordIndex === words.length - 1 || quizComplete;
+    letterInputs[0]?.focus();
+}
+function resetQuizState() {
+    userAnswers = [];
+    currentWordIndex = 0;
+    quizComplete = false;
+    hintUsed = [];
+}
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+function startNewRound() {
+    words = getWords();
+    if (words.length > 1) shuffleArray(words);
+    resetQuizState();
+    updateDisplay();
+}
+function resetQuiz() {
+    startNewRound();
+}
+function moveToNextWord() {
+    if (currentWordIndex < words.length - 1) {
+        currentWordIndex++;
+            updateDisplay();
+        } else {
+        quizComplete = true;
+        showEndOfQuizFeedback();
+    }
+}
 
+// --- Event Listeners ---
+speakButton.addEventListener('click', () => {
+    if (words.length > 0) speakWord(words[currentWordIndex]);
+});
+checkButton.addEventListener('click', () => {
+    if (words.length === 0 || quizComplete) return;
+    let userAnswer = letterInputs.map((box, idx) => box.value ? box.value.toLowerCase() : '').join('');
+    const correctWord = words[currentWordIndex];
+    if (!userAnswers[currentWordIndex]) {
+        userAnswers[currentWordIndex] = { attempts: [], correct: false };
+    }
+    userAnswers[currentWordIndex].attempts.push(userAnswer);
+    let isCorrect = userAnswer === correctWord;
+    if (isCorrect) userAnswers[currentWordIndex].correct = true;
+    if (isCorrect && userAnswers[currentWordIndex].correct) {
+        resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
+        resultMessage.className = 'result-message correct';
+        letterInputs.forEach(box => box.value = '');
+        letterInputs.forEach(box => box.disabled = false);
+        letterInputs[0].focus();
+        if (feedbackTimeout) clearTimeout(feedbackTimeout);
+        feedbackTimeout = setTimeout(() => {
+            resultMessage.innerHTML = '';
+            resultMessage.className = 'result-message';
+            moveToNextWord();
+            if (!quizComplete && words[currentWordIndex]) speakWord(words[currentWordIndex]);
+        }, 2000);
+    } else if (!isCorrect) {
+        resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
+        resultMessage.className = 'result-message incorrect';
+        letterInputs.forEach(box => box.value = '');
+        letterInputs[0].focus();
+        if (feedbackTimeout) clearTimeout(feedbackTimeout);
+        feedbackTimeout = setTimeout(() => {
+            resultMessage.innerHTML = '';
+            resultMessage.className = 'result-message';
+        }, 3000);
+    }
+});
+prevButton.addEventListener('click', () => {
+    if (currentWordIndex > 0 && !quizComplete) {
+        currentWordIndex--;
+        updateDisplay();
+    }
+});
+nextButton.addEventListener('click', () => {
+    if (currentWordIndex < words.length - 1 && !quizComplete) {
+        currentWordIndex++;
+        updateDisplay();
+    }
+});
+// Enter key on last box triggers check
+letterHint.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') checkButton.click();
+});
+// --- Modal/Feedback ---
 function showModal(contentHtml) {
     modalBody.innerHTML = contentHtml;
     modalOverlay.style.display = 'flex';
 }
-
 function closeModal() {
     modalOverlay.style.display = 'none';
 }
-
-allWordsBtn.addEventListener('click', () => {
-    if (!words.length) return;
-    showModal('<h2>All Words</h2><ul style="list-style:none;padding:0;">' + words.map(w => `<li style='font-size:1.2em;margin:8px 0;'>${w}</li>`).join('') + '</ul>');
-});
-
 closeModalBtn.addEventListener('click', () => {
     closeModal();
     if (lastQuizComplete) {
         lastQuizComplete = false;
         setTimeout(() => {
             resetQuiz();
-            // Ensure the first word and sound are in sync
             setTimeout(() => {
                 speakWord(words[0]);
             }, 200);
         }, 100);
     }
 });
-
 modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModal();
 });
-
 function showEndOfQuizFeedback() {
     let allPerfect = true;
     for (let i = 0; i < words.length; i++) {
@@ -272,7 +248,6 @@ function showEndOfQuizFeedback() {
         const wrongAttempts = attempts.filter(a => a !== correctWord);
         const correctAttempts = attempts.some(a => a === correctWord) ? 1 : 0;
         html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
-        // Show ticks and crosses
         if (correctAttempts) {
             html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;'>`;
             for (let t = 0; t < correctAttempts; t++) html += '✅';
@@ -283,7 +258,6 @@ function showEndOfQuizFeedback() {
             for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
             html += `</span>`;
         }
-        // Show 'H' if hint was used
         if (hintUsed[i]) {
             html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
         }
@@ -300,50 +274,26 @@ function showEndOfQuizFeedback() {
     lastQuizComplete = true;
 }
 
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-}
-
-function startNewRound() {
-    words = [...originalWords];
-    if (words.length > 1) {
-        shuffleArray(words);
-    }
-    resetQuizState();
-    updateDisplay();
-}
-
-function resetQuizState() {
-    userAnswers = [];
-    currentWordIndex = 0;
-    quizComplete = false;
-    hintUsed = [];
-}
-
-function resetQuiz() {
-    startNewRound();
-}
-
-function moveToNextWord() {
-    if (currentWordIndex < words.length - 1) {
-        currentWordIndex++;
+// --- Load Words from Firestore ---
+async function loadWordsFromFirestore() {
+    try {
+        const doc = await window.db.collection('spelling').doc('wordlist').get();
+        if (doc.exists) {
+            words = doc.data().words || [];
+        } else {
+            words = [];
+        }
+        resetQuizState();
         updateDisplay();
-    } else {
-        quizComplete = true;
-        showEndOfQuizFeedback();
+    } catch (error) {
+        console.error('Error loading words:', error);
+        words = [];
+        updateDisplay();
     }
 }
 
-// On page load, reset quiz state
-loadWords();
-resetQuiz();
+// Call loadWordsFromFirestore when the page loads
+loadWordsFromFirestore();
 
-function promptUserName() {
-    userName = prompt('Please enter your name:')?.trim() || 'unknown';
-}
-
-// Prompt for name on page load
-promptUserName(); 
+// --- Init ---
+startNewRound(); 
