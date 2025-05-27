@@ -219,12 +219,12 @@ function showEndOfQuizFeedback() {
         const attempts = entry.attempts || [];
         html += `<li style='margin:10px 0;'><b>${i+1}. ${words[i]}</b>: `;
         if (correct) {
-            html += "<span style='color:#22c55e;font-weight:600;font-size:1.2em;'>✅ Correct</span>";
+            html += "<span style='color:#22c55e;font-weight:600;font-size:1.2em;'><span style='font-size:1.3em;vertical-align:middle;'>✅</span> Correct</span>";
             if (attempts.length > 1) {
                 html += `<br><span style='color:#888;'>Wrong attempts: <b>${attempts.filter(a => a !== words[i]).join(', ')}</b></span>`;
             }
         } else {
-            html += `<span style='color:#ef4444;font-weight:600;font-size:1.2em;'>❌ Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
+            html += `<span style='color:#ef4444;font-weight:600;font-size:1.2em;'><span style='font-size:1.3em;vertical-align:middle;'>❌</span> Incorrect</span> <br><span style='color:#888;'>Your attempts: <b>${attempts.join(', ')}</b></span>`;
         }
         html += '</li>';
     }
