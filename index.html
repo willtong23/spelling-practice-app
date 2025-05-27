@@ -25,23 +25,23 @@
 <body>
     <div class="container">
         <h1>Spelling Practice</h1>
-        
-        <div class="practice-section">
+        <div class="practice-card">
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
             <div class="progress-display">
                 Word <span id="currentWordNumber">1</span> of <span id="totalWords">0</span>
             </div>
-            
             <div class="word-display">
-                <button id="speakButton">🔊 Listen</button>
+                <button id="speakButton" class="listen-btn" aria-label="Listen to the word">
+                    <span class="icon">🔊</span> <span>Listen</span>
+                </button>
             </div>
-            
-            <div class="answer-section">
-                <input type="text" id="answerInput" placeholder="Type the word here">
-                <button id="checkButton">Check</button>
-            </div>
-
-            <div class="result-message"></div>
-
+            <form class="answer-section" autocomplete="off" onsubmit="return false;">
+                <input type="text" id="answerInput" placeholder="Type the word here" autocomplete="off">
+                <button id="checkButton" type="button">Check</button>
+            </form>
+            <div class="result-message" id="resultMessage"></div>
             <div class="navigation-buttons">
                 <button id="prevButton" disabled>← Previous</button>
                 <button id="nextButton" disabled>Next →</button>

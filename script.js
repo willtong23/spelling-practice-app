@@ -8,6 +8,7 @@ const prevButton = document.getElementById('prevButton');
 const nextButton = document.getElementById('nextButton');
 const currentWordNumber = document.getElementById('currentWordNumber');
 const totalWords = document.getElementById('totalWords');
+const progressBar = document.getElementById('progressBar');
 
 let words = [];
 let currentWordIndex = 0;
@@ -30,7 +31,14 @@ function updateDisplay() {
     totalWords.textContent = words.length;
     answerInput.value = '';
     resultMessage.textContent = '';
+    resultMessage.className = 'result-message';
     speakWord(words[currentWordIndex]);
+    
+    // Update progress bar
+    if (progressBar) {
+        const percent = ((currentWordIndex + 1) / words.length) * 100;
+        progressBar.style.width = percent + '%';
+    }
     
     // Update navigation buttons
     prevButton.disabled = currentWordIndex === 0;
@@ -67,10 +75,10 @@ checkButton.addEventListener('click', () => {
     const userAnswer = answerInput.value.trim().toLowerCase();
     
     if (userAnswer === words[currentWordIndex]) {
-        resultMessage.textContent = 'Correct! 🎉';
+        resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
         resultMessage.className = 'result-message correct';
     } else {
-        resultMessage.textContent = `Incorrect. The correct spelling is: ${words[currentWordIndex]}`;
+        resultMessage.innerHTML = '<span style="font-size:1.3em;">❌</span> Incorrect. The correct spelling is: <b>' + words[currentWordIndex] + '</b>';
         resultMessage.className = 'result-message incorrect';
     }
 });
