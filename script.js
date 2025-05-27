@@ -278,16 +278,17 @@ function showEndOfQuizFeedback() {
 async function loadWordsFromFirestore() {
     try {
         const doc = await window.db.collection('spelling').doc('wordlist').get();
-        if (doc.exists) {
-            words = doc.data().words || [];
+        if (doc.exists && doc.data().words && doc.data().words.length > 0) {
+            words = doc.data().words;
         } else {
-            words = [];
+            words = ["want", "went", "what", "should", "could"];
         }
         resetQuizState();
         updateDisplay();
     } catch (error) {
         console.error('Error loading words:', error);
-        words = [];
+        words = ["want", "went", "what", "should", "could"];
+        resetQuizState();
         updateDisplay();
     }
 }
@@ -296,4 +297,4 @@ async function loadWordsFromFirestore() {
 loadWordsFromFirestore();
 
 // --- Init ---
-startNewRound(); 
+// startNewRound(); 
