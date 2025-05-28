@@ -397,24 +397,24 @@
         
         <!-- Students & Classes Tab -->
         <div class="tab-content" id="students">
-            <div class="students-grid">
-                <div class="section-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div class="section-title">Classes</div>
-                        <button class="btn-primary" id="createClassBtn">Create Class</button>
+            <div class="students-classes-container">
+                <div class="classes-section">
+                    <div class="section-header">
+                        <h3>Classes</h3>
+                        <button class="btn btn-primary" onclick="showCreateClassModal()">Add Class</button>
                     </div>
-                    <div id="classesList">
-                        <!-- Classes will be displayed here -->
+                    <div id="classesContainer">
+                        <!-- Classes will be rendered here -->
                     </div>
                 </div>
                 
-                <div class="section-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div class="section-title">Students</div>
-                        <button class="btn-primary" id="addStudentBtn">Add Student</button>
+                <div class="students-section">
+                    <div class="section-header">
+                        <h3>Students</h3>
+                        <button class="btn btn-primary" onclick="showAddStudentModal()">Add Student</button>
                     </div>
-                    <div id="studentsList">
-                        <!-- Students will be displayed here -->
+                    <div id="studentsContainer">
+                        <!-- Students will be rendered here -->
                     </div>
                 </div>
             </div>

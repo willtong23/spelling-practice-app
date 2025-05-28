@@ -24,47 +24,106 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <h1>Spelling Practice</h1>
-        <div class="practice-card">
-            <!-- All Words button at the top -->
-            <div class="top-controls">
-                <button id="allWordsButton" class="all-words-btn" aria-label="Show all words">
-                    <span class="icon">📚</span> <span>All Words</span>
-                </button>
-            </div>
-            
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progressBar"></div>
-            </div>
-            <div class="progress-display">
-                Word <span id="currentWordNumber">1</span> of <span id="totalWords">0</span>
-            </div>
-            
-            <div class="word-display">
-                <button id="speakButton" class="listen-btn" aria-label="Listen to the word">
-                    <span class="icon">🔊</span> <span>Listen</span>
-                </button>
-            </div>
-            
-            <div class="letter-hint" id="letterHint"></div>
-            <form class="answer-section" autocomplete="off" onsubmit="return false;">
-                <button id="checkButton" type="button">Check</button>
-            </form>
-            <div class="result-message" id="resultMessage"></div>
-            <div class="navigation-buttons">
-                <button id="prevButton" disabled>← Previous</button>
-                <button id="nextButton" disabled>Next →</button>
-            </div>
+    <!-- Word Set Selection Panel -->
+    <div class="word-set-panel" id="wordSetPanel">
+        <div class="panel-header">
+            <h3>📚 Choose Word Set</h3>
+            <button class="panel-toggle" id="panelToggle">◀</button>
         </div>
-        <!-- Modal for All Words and End-of-Quiz Feedback -->
-        <div id="modalOverlay" class="modal-overlay" style="display:none;">
-            <div class="modal-content" id="modalContent">
-                <button id="closeModalBtn" class="close-modal-btn">×</button>
-                <div id="modalBody"></div>
+        <div class="panel-content">
+            <div class="current-assignment" id="currentAssignment">
+                <div class="assignment-label">Your Assignment:</div>
+                <div class="assignment-name" id="assignmentName">Loading...</div>
+            </div>
+            
+            <div class="word-set-options">
+                <div class="option-section">
+                    <label class="option-label">
+                        <input type="radio" name="wordSetChoice" value="assignment" id="useAssignment" checked>
+                        <span>Use My Assignment</span>
+                    </label>
+                </div>
+                
+                <div class="option-section">
+                    <label class="option-label">
+                        <input type="radio" name="wordSetChoice" value="custom" id="useCustom">
+                        <span>Choose Different Set</span>
+                    </label>
+                    <select class="word-set-select" id="wordSetSelect" disabled>
+                        <option value="">Loading word sets...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <button class="apply-selection-btn" id="applySelection">Apply Selection</button>
+            
+            <div class="current-set-info" id="currentSetInfo">
+                <div class="info-label">Current Set:</div>
+                <div class="info-name" id="currentSetName">Loading...</div>
+                <div class="info-count" id="currentSetCount">0 words</div>
             </div>
         </div>
     </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content" id="mainContent">
+        <div class="container">
+            <div class="header">
+                <h1 class="title">Spelling Practice</h1>
+                <a href="teacher.html" class="teacher-link">Teacher Dashboard</a>
+            </div>
+            
+            <div class="practice-card">
+                <div class="word-counter">
+                    <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressBar"></div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button class="control-btn speak-btn" id="speakButton">🔊 Speak Word</button>
+                    <button class="control-btn" id="allWordsButton">📋 All Words</button>
+                </div>
+                
+                <div class="letter-hint" id="letterHint">
+                    <!-- Letter input boxes will be generated here -->
+                </div>
+                
+                <div class="hint-instruction">
+                    Press <strong>SPACE</strong> on any box to reveal that letter
+                </div>
+                
+                <div class="result-message" id="resultMessage"></div>
+                
+                <div class="action-controls">
+                    <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
+                </div>
+                
+                <div class="navigation">
+                    <button class="nav-btn" id="prevButton" disabled>← Previous</button>
+                    <button class="nav-btn" id="nextButton">Next →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for displaying all words -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>All Words</h2>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html> 

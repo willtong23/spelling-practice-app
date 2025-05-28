@@ -125,7 +125,7 @@ async function createDefaultWordSet() {
         const defaultSet = {
             name: 'Basic Words',
             description: 'Default word set for spelling practice',
-            words: words,
+            words,
             difficulty: 'beginner',
             createdAt: new Date(),
             createdBy: 'system'
@@ -209,59 +209,162 @@ function renderStudentsAndClasses() {
 }
 
 function renderClasses() {
-    const container = document.getElementById('classesList');
+    const container = document.getElementById('classesContainer');
     if (!container) return;
     
     if (classes.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #64748b;">No classes created yet.</p>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>No classes created yet.</p>
+                <button class="btn btn-primary" onclick="showCreateClassModal()">Create First Class</button>
+            </div>
+        `;
         return;
     }
     
-    container.innerHTML = classes.map(cls => {
-        const studentCount = students.filter(s => s.classId === cls.id).length;
-        return `
-            <div class="class-item">
-                <div class="class-info">
-                    <div class="class-name">${cls.name}</div>
-                    <div class="class-count">${studentCount} students</div>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-small btn-edit" onclick="editClass('${cls.id}')">Edit</button>
-                    <button class="btn-small btn-delete" onclick="deleteClass('${cls.id}')">Delete</button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    container.innerHTML = `
+        <div class="section-header">
+            <h3>Classes</h3>
+            <button class="btn btn-primary" onclick="showCreateClassModal()">Add Class</button>
+        </div>
+        <div class="classes-list">
+            ${classes.map(cls => {
+                const studentsInClass = students.filter(s => s.classId === cls.id);
+                const classAssignments = assignments.filter(a => a.classId === cls.id);
+                const defaultWordSet = wordSets.find(ws => ws.id === cls.defaultWordSetId);
+                
+                return `
+                    <div class="class-card">
+                        <div class="class-header">
+                            <div class="class-info">
+                                <h4>${cls.name}</h4>
+                                <p>${cls.description || 'No description'}</p>
+                                <div class="class-stats">
+                                    <span class="stat-item">${studentsInClass.length} students</span>
+                                    <span class="stat-item">${classAssignments.length} assignments</span>
+                                </div>
+                            </div>
+                            <div class="class-actions">
+                                <button class="btn-small btn-edit" onclick="editClass('${cls.id}')">Edit</button>
+                                <button class="btn-small btn-delete" onclick="deleteClass('${cls.id}')">Delete</button>
+                            </div>
+                        </div>
+                        
+                        <div class="default-word-set-section">
+                            <div class="default-set-header">
+                                <span class="default-set-label">Default Word Set:</span>
+                                <span class="default-set-name">${defaultWordSet ? defaultWordSet.name : 'None set'}</span>
+                            </div>
+                            <div class="default-set-controls">
+                                <select class="default-set-select" id="classDefaultSet_${cls.id}">
+                                    <option value="">No default set</option>
+                                    ${wordSets.map(ws => `
+                                        <option value="${ws.id}" ${ws.id === cls.defaultWordSetId ? 'selected' : ''}>
+                                            ${ws.name} (${ws.words.length} words)
+                                        </option>
+                                    `).join('')}
+                                </select>
+                                <button class="btn-small btn-primary" onclick="setClassDefaultWordSet('${cls.id}')">
+                                    Set Default
+                                </button>
+                            </div>
+                        </div>
+                        
+                        ${studentsInClass.length > 0 ? `
+                            <div class="class-students">
+                                <h5>Students in this class:</h5>
+                                <div class="student-tags">
+                                    ${studentsInClass.map(student => {
+                                        const studentAssignments = assignments.filter(a => a.studentId === student.id);
+                                        return `<span class="student-tag ${studentAssignments.length > 0 ? 'has-assignment' : ''}">${student.name}</span>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
 }
 
 function renderStudents() {
-    const container = document.getElementById('studentsList');
+    const container = document.getElementById('studentsContainer');
     if (!container) return;
     
     if (students.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: #64748b;">No students added yet.</p>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <p>No students added yet.</p>
+                <button class="btn btn-primary" onclick="showAddStudentModal()">Add First Student</button>
+            </div>
+        `;
         return;
     }
     
-    container.innerHTML = students.map(student => {
-        const studentClass = classes.find(c => c.id === student.classId);
-        const assignment = assignments.find(a => a.studentId === student.id);
-        const assignedSet = assignment ? wordSets.find(ws => ws.id === assignment.wordSetId) : null;
-        
-        return `
-            <div class="student-item">
-                <div class="student-info">
-                    <div class="student-name">${student.name}</div>
-                    <div class="student-class">Class: ${studentClass ? studentClass.name : 'No class assigned'}</div>
-                    ${assignedSet ? `<div class="assigned-set">Assigned: ${assignedSet.name}</div>` : ''}
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-small btn-edit" onclick="editStudent('${student.id}')">Edit</button>
-                    <button class="btn-small btn-delete" onclick="deleteStudent('${student.id}')">Delete</button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    container.innerHTML = `
+        <div class="section-header">
+            <h3>Students</h3>
+            <button class="btn btn-primary" onclick="showAddStudentModal()">Add Student</button>
+        </div>
+        <div class="students-list">
+            ${students.map(student => {
+                const studentClass = classes.find(c => c.id === student.classId);
+                const studentAssignments = assignments.filter(a => a.studentId === student.id);
+                const defaultWordSet = wordSets.find(ws => ws.id === student.defaultWordSetId);
+                
+                return `
+                    <div class="student-card">
+                        <div class="student-header">
+                            <div class="student-info">
+                                <h4>${student.name}</h4>
+                                <p>Class: ${studentClass ? studentClass.name : 'No class assigned'}</p>
+                                <div class="student-stats">
+                                    <span class="stat-item">${studentAssignments.length} assignments</span>
+                                </div>
+                            </div>
+                            <div class="student-actions">
+                                <button class="btn-small btn-edit" onclick="editStudent('${student.id}')">Edit</button>
+                                <button class="btn-small btn-delete" onclick="deleteStudent('${student.id}')">Delete</button>
+                            </div>
+                        </div>
+                        
+                        <div class="default-word-set-section">
+                            <div class="default-set-header">
+                                <span class="default-set-label">Default Word Set:</span>
+                                <span class="default-set-name">${defaultWordSet ? defaultWordSet.name : 'None set'}</span>
+                            </div>
+                            <div class="default-set-controls">
+                                <select class="default-set-select" id="studentDefaultSet_${student.id}">
+                                    <option value="">No default set</option>
+                                    ${wordSets.map(ws => `
+                                        <option value="${ws.id}" ${ws.id === student.defaultWordSetId ? 'selected' : ''}>
+                                            ${ws.name} (${ws.words.length} words)
+                                        </option>
+                                    `).join('')}
+                                </select>
+                                <button class="btn-small btn-primary" onclick="setStudentDefaultWordSet('${student.id}')">
+                                    Set Default
+                                </button>
+                            </div>
+                        </div>
+                        
+                        ${studentAssignments.length > 0 ? `
+                            <div class="student-assignments">
+                                <h5>Current assignments:</h5>
+                                <div class="assignment-tags">
+                                    ${studentAssignments.map(assignment => {
+                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+                                        return `<span class="assignment-tag">${wordSet ? wordSet.name : 'Unknown set'}</span>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
 }
 
 // Assignments Management
@@ -1909,4 +2012,63 @@ function generateInsightsFromAnalysis(analysis, filterType, filterValue) {
     }
     
     return insights;
+}
+
+// Set default word set for a class
+async function setClassDefaultWordSet(classId) {
+    try {
+        const selectElement = document.getElementById(`classDefaultSet_${classId}`);
+        const wordSetId = selectElement.value;
+        
+        // Update the class document
+        await db.collection('classes').doc(classId).update({
+            defaultWordSetId: wordSetId || null
+        });
+        
+        // Update local data
+        const classIndex = classes.findIndex(c => c.id === classId);
+        if (classIndex !== -1) {
+            classes[classIndex].defaultWordSetId = wordSetId || null;
+        }
+        
+        const wordSetName = wordSetId ? wordSets.find(ws => ws.id === wordSetId)?.name : 'None';
+        showNotification(`Default word set for class updated to: ${wordSetName}`, 'success');
+        
+        // Re-render to show the updated default
+        renderStudentsAndClasses();
+        
+    } catch (error) {
+        console.error('Error setting class default word set:', error);
+        showNotification('Error updating class default word set', 'error');
+    }
+}
+
+// Set default word set for a student
+async function setStudentDefaultWordSet(studentId) {
+    try {
+        const selectElement = document.getElementById(`studentDefaultSet_${studentId}`);
+        const wordSetId = selectElement.value;
+        
+        // Update the student document
+        await db.collection('students').doc(studentId).update({
+            defaultWordSetId: wordSetId || null
+        });
+        
+        // Update local data
+        const studentIndex = students.findIndex(s => s.id === studentId);
+        if (studentIndex !== -1) {
+            students[studentIndex].defaultWordSetId = wordSetId || null;
+        }
+        
+        const wordSetName = wordSetId ? wordSets.find(ws => ws.id === wordSetId)?.name : 'None';
+        const studentName = students.find(s => s.id === studentId)?.name;
+        showNotification(`Default word set for ${studentName} updated to: ${wordSetName}`, 'success');
+        
+        // Re-render to show the updated default
+        renderStudentsAndClasses();
+        
+    } catch (error) {
+        console.error('Error setting student default word set:', error);
+        showNotification('Error updating student default word set', 'error');
+    }
 } 

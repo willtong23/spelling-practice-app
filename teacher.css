@@ -1,0 +1,209 @@
+/* Existing styles remain unchanged */
+
+/* Default Word Set Controls */
+.default-word-set-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 12px 0;
+}
+
+.default-set-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.default-set-label {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.default-set-name {
+    font-size: 0.9rem;
+    color: #2563eb;
+    font-weight: 600;
+    background: #eff6ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.default-set-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.default-set-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    color: #374151;
+}
+
+.default-set-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Enhanced Class and Student Cards */
+.class-card, .student-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.class-card:hover, .student-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.class-header, .student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.class-info h4, .student-info h4 {
+    margin: 0 0 8px 0;
+    color: #1f2937;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.class-info p, .student-info p {
+    margin: 0 0 8px 0;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.class-stats, .student-stats {
+    display: flex;
+    gap: 16px;
+}
+
+.stat-item {
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.class-actions, .student-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Student and Assignment Tags */
+.class-students, .student-assignments {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.class-students h5, .student-assignments h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 600;
+}
+
+.student-tags, .assignment-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.student-tag, .assignment-tag {
+    background: #e0e7ff;
+    color: #3730a3;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.student-tag.has-assignment {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.assignment-tag {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+/* Section Headers */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+/* Empty States */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6b7280;
+}
+
+.empty-state p {
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+/* Lists */
+.classes-list, .students-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .class-header, .student-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .class-actions, .student-actions {
+        align-self: flex-start;
+    }
+    
+    .default-set-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .default-set-controls .btn-small {
+        width: 100%;
+    }
+    
+    .class-stats, .student-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+} 
