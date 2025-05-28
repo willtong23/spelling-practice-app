@@ -21,6 +21,17 @@ A comprehensive spelling practice application with advanced teacher dashboard fe
 - **Real-time Analytics**: Track student progress and performance
 - **Detailed Reporting**: View quiz results with wrong attempts and hint usage
 
+### Voice Input 🎤
+- **Voice Input Button**: Click the "🎤 Voice Input" button to start voice recognition
+- **Hands-free Spelling**: Speak letters one by one to fill in the spelling boxes
+- **Automatic Detection**: The app recognizes various ways of saying letters:
+  - Single letters: "a", "b", "c"
+  - Phonetic: "ay", "bee", "see"
+  - NATO phonetic: "alpha", "bravo", "charlie"
+- **Auto-complete**: When all letters are filled, the app automatically checks your spelling
+- **Visual Feedback**: Letters appear in green when successfully recognized
+- **Stop Listening**: Click "🔴 Stop Voice" or the button automatically stops when word is complete
+
 ## 🏗️ Architecture
 
 ### Database Collections

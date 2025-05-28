@@ -690,7 +690,12 @@ function updateDisplay() {
         practiceSection.innerHTML = '<p class="no-words">No words available. Please check with your teacher.</p>';
         return;
     }
-    
+
+    // Stop voice input when changing words
+    if (isVoiceInputActive) {
+        stopVoiceInput();
+    }
+
     // Ensure currentWordIndex is within bounds
     if (currentWordIndex < 0) currentWordIndex = 0;
     if (currentWordIndex >= words.length) currentWordIndex = words.length - 1;
@@ -720,9 +725,20 @@ function updateDisplay() {
 
 function resetQuizState() {
     userAnswers = [];
+    hintUsed = [];
     currentWordIndex = 0;
     quizComplete = false;
-    hintUsed = [];
+    lastQuizComplete = false;
+    
+    // Stop voice input when resetting quiz
+    if (isVoiceInputActive) {
+        stopVoiceInput();
+    }
+    
+    for (let i = 0; i < words.length; i++) {
+        userAnswers[i] = { attempts: [], correct: false };
+        hintUsed[i] = false;
+    }
 }
 
 function shuffleArray(array) {
@@ -858,7 +874,14 @@ allWordsButton.addEventListener('click', showAllWords);
 // Hint button to show hint instruction
 if (hintButton) {
     hintButton.addEventListener('click', () => {
-        showNotification('Press SPACE on any letter box to reveal that letter', 'info');
+        let message = 'Press SPACE on any letter box to reveal that letter';
+        
+        // Add voice input instructions if available
+        if (recognition) {
+            message += '\n\nOr use 🎤 Voice Input:\n• Click the Voice Input button\n• Speak letters clearly one by one\n• Say "bee" for B, "see" for C, etc.';
+        }
+        
+        showNotification(message, 'info');
     });
 }
 
@@ -883,6 +906,15 @@ if (alphabetsButton) {
     });
 } else {
     console.log('alphabetsButton not found!');
+}
+
+// Voice Input button to start/stop voice recognition
+if (voiceInputButton) {
+    voiceInputButton.addEventListener('click', () => {
+        toggleVoiceInput();
+    });
+} else {
+    console.log('voiceInputButton not found!');
 }
 
 // Function to clear all letter boxes
@@ -1525,6 +1557,280 @@ function handleAlphabetKeyClick(event) {
                 event.target.style.background = '';
                 event.target.style.color = '';
             }, 200);
+        }
+    }
+}
+
+// --- Voice Input Functionality ---
+let isVoiceInputActive = false;
+let recognition = null;
+let voiceInputButton = null;
+
+// Initialize voice input when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    voiceInputButton = document.getElementById('voiceInputButton');
+    
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.log('Speech recognition not supported');
+        if (voiceInputButton) {
+            voiceInputButton.style.display = 'none';
+            // Show a tooltip or message that voice input is not supported
+            voiceInputButton.title = 'Voice input not supported in this browser';
+        }
+        return;
+    }
+    
+    // Initialize speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    
+    // Configure speech recognition
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+    
+    // Handle speech recognition results
+    recognition.onresult = function(event) {
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            }
+        }
+        
+        if (finalTranscript) {
+            processVoiceInput(finalTranscript.toLowerCase().trim());
+        }
+    };
+    
+    // Handle speech recognition errors
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'no-speech') {
+            showNotification('No speech detected. Try speaking louder.', 'warning');
+        } else if (event.error === 'not-allowed') {
+            showNotification('Microphone access denied. Please allow microphone access.', 'error');
+        } else if (event.error === 'network') {
+            showNotification('Network error. Please check your internet connection.', 'error');
+        } else {
+            showNotification('Voice recognition error. Please try again.', 'error');
+        }
+        stopVoiceInput();
+    };
+    
+    // Handle speech recognition start
+    recognition.onstart = function() {
+        console.log('Speech recognition started');
+    };
+    
+    // Handle speech recognition end
+    recognition.onend = function() {
+        console.log('Speech recognition ended');
+        if (isVoiceInputActive) {
+            // Restart recognition if it's still supposed to be active
+            setTimeout(() => {
+                if (isVoiceInputActive && recognition) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.log('Recognition restart failed:', e);
+                        stopVoiceInput();
+                    }
+                }
+            }, 100);
+        }
+    };
+});
+
+// Function to toggle voice input on/off
+function toggleVoiceInput() {
+    if (!recognition) {
+        showNotification('Voice input not supported in this browser', 'error');
+        return;
+    }
+    
+    if (isVoiceInputActive) {
+        stopVoiceInput();
+    } else {
+        startVoiceInput();
+    }
+}
+
+// Function to start voice input
+function startVoiceInput() {
+    if (!recognition || !letterInputs || letterInputs.length === 0) {
+        showNotification('No word to spell or voice input not available', 'warning');
+        return;
+    }
+    
+    // Check if there are any empty boxes
+    const hasEmptyBoxes = letterInputs.some(box => box.value === '');
+    if (!hasEmptyBoxes) {
+        showNotification('All letters are already filled! Clear some letters first.', 'warning');
+        return;
+    }
+    
+    try {
+        isVoiceInputActive = true;
+        recognition.start();
+        
+        // Update button appearance
+        if (voiceInputButton) {
+            voiceInputButton.classList.add('listening');
+            voiceInputButton.textContent = '🔴 Stop Voice';
+        }
+        
+        // Show helpful instructions
+        const emptyCount = letterInputs.filter(box => box.value === '').length;
+        showNotification(`Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
+        console.log('Voice input started');
+    } catch (error) {
+        console.error('Error starting voice input:', error);
+        if (error.name === 'InvalidStateError') {
+            showNotification('Voice input is already running. Please wait.', 'warning');
+        } else {
+            showNotification('Failed to start voice input. Please try again.', 'error');
+        }
+        isVoiceInputActive = false;
+    }
+}
+
+// Function to stop voice input
+function stopVoiceInput() {
+    if (recognition) {
+        isVoiceInputActive = false;
+        recognition.stop();
+        
+        // Update button appearance
+        if (voiceInputButton) {
+            voiceInputButton.classList.remove('listening');
+            voiceInputButton.textContent = '🎤 Voice Input';
+        }
+        
+        showNotification('Voice input stopped', 'info');
+        console.log('Voice input stopped');
+    }
+}
+
+// Function to process voice input and convert to letters
+function processVoiceInput(transcript) {
+    console.log('Processing voice input:', transcript);
+    
+    // Clean up the transcript and extract letters
+    const words = transcript.split(/\s+/);
+    
+    for (const word of words) {
+        // Check if it's a single letter (a-z)
+        if (word.length === 1 && /^[a-z]$/.test(word)) {
+            inputLetterToBox(word);
+        } else {
+            // Try to extract letters from common speech patterns
+            const letter = extractLetterFromSpeech(word);
+            if (letter) {
+                inputLetterToBox(letter);
+            }
+        }
+    }
+}
+
+// Function to extract letter from speech patterns
+function extractLetterFromSpeech(word) {
+    // Common ways people might say letters
+    const letterMappings = {
+        'ay': 'a', 'eh': 'a', 'alpha': 'a',
+        'bee': 'b', 'be': 'b', 'bravo': 'b',
+        'see': 'c', 'sea': 'c', 'charlie': 'c',
+        'dee': 'd', 'delta': 'd',
+        'ee': 'e', 'echo': 'e',
+        'eff': 'f', 'foxtrot': 'f',
+        'gee': 'g', 'golf': 'g',
+        'aitch': 'h', 'hotel': 'h',
+        'eye': 'i', 'india': 'i',
+        'jay': 'j', 'juliet': 'j',
+        'kay': 'k', 'kilo': 'k',
+        'ell': 'l', 'lima': 'l',
+        'em': 'm', 'mike': 'm',
+        'en': 'n', 'november': 'n',
+        'oh': 'o', 'oscar': 'o',
+        'pee': 'p', 'papa': 'p',
+        'cue': 'q', 'queue': 'q', 'quebec': 'q',
+        'are': 'r', 'romeo': 'r',
+        'ess': 's', 'sierra': 's',
+        'tee': 't', 'tea': 't', 'tango': 't',
+        'you': 'u', 'uniform': 'u',
+        'vee': 'v', 'victor': 'v',
+        'double': 'w', 'whiskey': 'w',
+        'ex': 'x', 'xray': 'x',
+        'why': 'y', 'yankee': 'y',
+        'zee': 'z', 'zed': 'z', 'zulu': 'z'
+    };
+    
+    return letterMappings[word.toLowerCase()] || null;
+}
+
+// Function to input a letter to the appropriate box
+function inputLetterToBox(letter) {
+    if (!letterInputs || letterInputs.length === 0) {
+        return;
+    }
+    
+    // Find the first empty box
+    let targetBox = letterInputs.find(box => box.value === '');
+    
+    if (!targetBox) {
+        // If no empty boxes, check if all boxes are filled
+        const allFilled = letterInputs.every(box => box.value !== '');
+        if (allFilled) {
+            // All boxes are filled, stop voice input and check spelling
+            stopVoiceInput();
+            showNotification('All letters filled! Checking spelling...', 'success');
+            setTimeout(() => {
+                checkSpelling();
+            }, 500);
+            return;
+        }
+        // If not all filled but no empty box found, use the first box
+        targetBox = letterInputs[0];
+    }
+    
+    if (targetBox) {
+        // Input the letter
+        targetBox.value = letter;
+        targetBox.disabled = false;
+        
+        // Trigger the input event to handle auto-advance
+        const inputEvent = new Event('input', { bubbles: true });
+        targetBox.dispatchEvent(inputEvent);
+        
+        // Visual feedback
+        targetBox.style.background = '#e7fbe9';
+        targetBox.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            targetBox.style.background = '';
+            targetBox.style.transform = '';
+        }, 300);
+        
+        console.log(`Voice input: "${letter}" added to box`);
+        
+        // Show feedback about recognized letter
+        const remainingEmpty = letterInputs.filter(box => box.value === '').length;
+        if (remainingEmpty > 0) {
+            showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more letter${remainingEmpty > 1 ? 's' : ''} needed`, 'success');
+        }
+        
+        // Check if all boxes are now filled
+        const allFilled = letterInputs.every(box => box.value !== '');
+        if (allFilled) {
+            // All boxes filled, stop voice input and check spelling
+            stopVoiceInput();
+            showNotification('All letters filled! Checking spelling...', 'success');
+            setTimeout(() => {
+                checkSpelling();
+            }, 500);
         }
     }
 } 
