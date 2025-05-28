@@ -1769,13 +1769,24 @@ function renderFilteredAnalyticsTable() {
             let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
             let hintStr = w.hint ? ' H' : '';
             
-            // Add indicator if they eventually got it right but not on first try
-            let statusStr = '';
-            if (!isFirstTryCorrect && attempts.includes(w.word)) {
-                statusStr = ' (eventually correct)';
+            // Determine color based on status
+            let color = '#000000'; // default black
+            if (!isFirstTryCorrect) {
+                color = '#ef4444'; // red for incorrect words
+            } else if (w.hint) {
+                color = '#3b82f6'; // blue for words with hints
             }
             
-            return `${w.word}${wrongStr}${hintStr}${statusStr}`;
+            return `<span style="color: ${color};">${w.word}${wrongStr}${hintStr}</span>`;
+        }).join(', ');
+        
+        // Create plain text version for tooltip
+        const wordDetailsPlain = words.map(w => {
+            const attempts = w.attempts || [];
+            let wrongs = attempts.filter(a => a !== w.word);
+            let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
+            let hintStr = w.hint ? ' H' : '';
+            return `${w.word}${wrongStr}${hintStr}`;
         }).join(', ');
         
         return `
@@ -1788,7 +1799,7 @@ function renderFilteredAnalyticsTable() {
                         ${score}% (${firstTryCorrect}/${total} first-try)
                     </span>
                 </td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetails}">
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetailsPlain}">
                     ${wordDetails}
                 </td>
                 <td>
