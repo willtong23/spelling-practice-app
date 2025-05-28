@@ -1490,9 +1490,6 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, checking for user name...');
     
-    // Clear stored name on page refresh to always prompt for name
-    localStorage.removeItem('userName');
-    
     // Check if name is already stored
     const storedName = localStorage.getItem('userName');
     if (storedName && storedName !== 'unknown' && storedName.trim()) {
