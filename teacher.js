@@ -246,6 +246,7 @@ function renderClasses() {
                             </div>
                             <div class="class-actions">
                                 <button class="btn-small btn-edit" onclick="editClass('${cls.id}')">Edit</button>
+                                <button class="btn-small btn-secondary" onclick="syncClassAssignments('${cls.id}')" title="Ensure all students have proper assignments">Sync Assignments</button>
                                 <button class="btn-small btn-delete" onclick="deleteClass('${cls.id}')">Delete</button>
                             </div>
                         </div>
@@ -1022,27 +1023,59 @@ async function assignToClass() {
         return;
     }
     
+    const className = classes.find(c => c.id === classId)?.name;
+    const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
+    
+    // Show confirmation dialog
+    const confirmMessage = `This will assign "${wordSetName}" to all ${classStudents.length} students in class "${className}" and also set it as their individual default word set.\n\nDo you want to continue?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
     try {
-        // Create assignments for all students in the class
+        let assignmentsCreated = 0;
+        let defaultsUpdated = 0;
+        
+        // Create assignments for all students in the class AND set as their default
         for (const student of classStudents) {
-            // Check if assignment already exists
-            const existingAssignment = assignments.find(a => a.studentId === student.id);
-            if (existingAssignment) {
-                await db.collection('assignments').doc(existingAssignment.id).delete();
-                assignments = assignments.filter(a => a.id !== existingAssignment.id);
+            try {
+                // Check if assignment already exists
+                const existingAssignment = assignments.find(a => a.studentId === student.id);
+                if (existingAssignment) {
+                    await db.collection('assignments').doc(existingAssignment.id).delete();
+                    assignments = assignments.filter(a => a.id !== existingAssignment.id);
+                }
+                
+                // Create new assignment
+                const assignmentData = {
+                    studentId: student.id,
+                    wordSetId,
+                    assignedAt: new Date(),
+                    assignedBy: 'teacher',
+                    type: 'class',
+                    classId
+                };
+                
+                const docRef = await db.collection('assignments').add(assignmentData);
+                assignments.push({ id: docRef.id, ...assignmentData });
+                assignmentsCreated++;
+                
+                // Also set as student's default word set
+                await db.collection('students').doc(student.id).update({
+                    defaultWordSetId: wordSetId
+                });
+                
+                // Update local data
+                const studentIndex = students.findIndex(s => s.id === student.id);
+                if (studentIndex !== -1) {
+                    students[studentIndex].defaultWordSetId = wordSetId;
+                }
+                defaultsUpdated++;
+                
+            } catch (error) {
+                console.error(`Error processing student ${student.name}:`, error);
             }
-            
-            const assignmentData = {
-                studentId: student.id,
-                wordSetId,
-                assignedAt: new Date(),
-                assignedBy: 'teacher',
-                type: 'class',
-                classId
-            };
-            
-            const docRef = await db.collection('assignments').add(assignmentData);
-            assignments.push({ id: docRef.id, ...assignmentData });
         }
         
         // Update the main wordlist (for backward compatibility)
@@ -1056,7 +1089,12 @@ async function assignToClass() {
         
         renderAssignments();
         renderStudentsAndClasses();
-        showNotification(`Assigned word set to ${classStudents.length} students in the class!`, 'success');
+        
+        if (assignmentsCreated === classStudents.length && defaultsUpdated === classStudents.length) {
+            showNotification(`Successfully assigned "${wordSetName}" to ${assignmentsCreated} students and set as default for ${defaultsUpdated} students!`, 'success');
+        } else {
+            showNotification(`Partially completed: ${assignmentsCreated} assignments created, ${defaultsUpdated} defaults updated out of ${classStudents.length} students`, 'warning');
+        }
         
         // Clear selections
         document.getElementById('assignClassSelect').value = '';
@@ -2115,5 +2153,196 @@ async function setStudentDefaultWordSet(studentId) {
     } catch (error) {
         console.error('Error setting student default word set:', error);
         showNotification('Error updating student default word set', 'error');
+    }
+}
+
+// Sync class assignments - ensure all students have proper word sets
+async function syncClassAssignments(classId) {
+    try {
+        const className = classes.find(c => c.id === classId)?.name;
+        const classData = classes.find(c => c.id === classId);
+        const studentsInClass = students.filter(s => s.classId === classId);
+        
+        if (studentsInClass.length === 0) {
+            showNotification(`No students found in class "${className}"`, 'warning');
+            return;
+        }
+        
+        let studentsWithoutAssignments = [];
+        let studentsWithoutDefaults = [];
+        
+        // Check each student's assignment status
+        for (const student of studentsInClass) {
+            // Check if student has individual assignment
+            const hasAssignment = assignments.some(a => a.studentId === student.id);
+            if (!hasAssignment) {
+                studentsWithoutAssignments.push(student);
+            }
+            
+            // Check if student has default word set
+            if (!student.defaultWordSetId) {
+                studentsWithoutDefaults.push(student);
+            }
+        }
+        
+        let message = `Class "${className}" Assignment Status:\\n`;
+        message += `Total students: ${studentsInClass.length}\\n`;
+        message += `Students without individual assignments: ${studentsWithoutAssignments.length}\\n`;
+        message += `Students without default word sets: ${studentsWithoutDefaults.length}\\n\\n`;
+        
+        if (studentsWithoutAssignments.length === 0 && studentsWithoutDefaults.length === 0) {
+            message += `All students have proper assignments and defaults!`;
+            showNotification(message, 'success');
+            return;
+        }
+        
+        // If class has a default word set, offer to apply it
+        if (classData.defaultWordSetId) {
+            const classDefaultWordSet = wordSets.find(ws => ws.id === classData.defaultWordSetId);
+            message += `Class default word set: "${classDefaultWordSet?.name}"\\n\\n`;
+            message += `Would you like to:\\n`;
+            message += `1. Create assignments for students without individual assignments\\n`;
+            message += `2. Set default word sets for students without defaults\\n`;
+            message += `3. Both (recommended)`;
+            
+            const choice = prompt(message + "\\n\\nEnter 1, 2, or 3:");
+            
+            if (choice === '1' || choice === '3') {
+                // Create assignments for students without them
+                let assignmentsCreated = 0;
+                for (const student of studentsWithoutAssignments) {
+                    try {
+                        const assignmentData = {
+                            studentId: student.id,
+                            wordSetId: classData.defaultWordSetId,
+                            assignedAt: new Date(),
+                            assignedBy: 'teacher',
+                            type: 'class_sync',
+                            classId
+                        };
+                        
+                        const docRef = await db.collection('assignments').add(assignmentData);
+                        assignments.push({ id: docRef.id, ...assignmentData });
+                        assignmentsCreated++;
+                    } catch (error) {
+                        console.error(`Error creating assignment for ${student.name}:`, error);
+                    }
+                }
+                showNotification(`Created ${assignmentsCreated} new assignments`, 'success');
+            }
+            
+            if (choice === '2' || choice === '3') {
+                // Set defaults for students without them
+                let defaultsSet = 0;
+                for (const student of studentsWithoutDefaults) {
+                    try {
+                        await db.collection('students').doc(student.id).update({
+                            defaultWordSetId: classData.defaultWordSetId
+                        });
+                        
+                        // Update local data
+                        const studentIndex = students.findIndex(s => s.id === student.id);
+                        if (studentIndex !== -1) {
+                            students[studentIndex].defaultWordSetId = classData.defaultWordSetId;
+                        }
+                        defaultsSet++;
+                    } catch (error) {
+                        console.error(`Error setting default for ${student.name}:`, error);
+                    }
+                }
+                showNotification(`Set defaults for ${defaultsSet} students`, 'success');
+            }
+            
+            if (choice === '1' || choice === '2' || choice === '3') {
+                renderAssignments();
+                renderStudentsAndClasses();
+            }
+            
+        } else {
+            message += `Class has no default word set.\\n\\n`;
+            message += `Please set a default word set for the class first, then run sync again.`;
+            showNotification(message, 'warning');
+        }
+        
+    } catch (error) {
+        console.error('Error syncing class assignments:', error);
+        showNotification('Error syncing class assignments', 'error');
+    }
+}
+
+// Check assignment status across all classes
+async function checkAllClassAssignments() {
+    try {
+        let totalStudents = 0;
+        let studentsWithoutAssignments = 0;
+        let studentsWithoutDefaults = 0;
+        let classesWithoutDefaults = 0;
+        let issueDetails = [];
+        
+        for (const cls of classes) {
+            const studentsInClass = students.filter(s => s.classId === cls.id);
+            totalStudents += studentsInClass.length;
+            
+            if (!cls.defaultWordSetId) {
+                classesWithoutDefaults++;
+                issueDetails.push(`Class "${cls.name}" has no default word set`);
+            }
+            
+            for (const student of studentsInClass) {
+                const hasAssignment = assignments.some(a => a.studentId === student.id);
+                if (!hasAssignment) {
+                    studentsWithoutAssignments++;
+                    issueDetails.push(`${student.name} (${cls.name}) has no individual assignment`);
+                }
+                
+                if (!student.defaultWordSetId) {
+                    studentsWithoutDefaults++;
+                    issueDetails.push(`${student.name} (${cls.name}) has no default word set`);
+                }
+            }
+        }
+        
+        // Also check students not in any class
+        const studentsWithoutClass = students.filter(s => !s.classId);
+        for (const student of studentsWithoutClass) {
+            totalStudents++;
+            const hasAssignment = assignments.some(a => a.studentId === student.id);
+            if (!hasAssignment) {
+                studentsWithoutAssignments++;
+                issueDetails.push(`${student.name} (no class) has no individual assignment`);
+            }
+            
+            if (!student.defaultWordSetId) {
+                studentsWithoutDefaults++;
+                issueDetails.push(`${student.name} (no class) has no default word set`);
+            }
+        }
+        
+        let report = `=== ASSIGNMENT STATUS REPORT ===\\n\\n`;
+        report += `Total Students: ${totalStudents}\\n`;
+        report += `Classes without default word sets: ${classesWithoutDefaults}\\n`;
+        report += `Students without individual assignments: ${studentsWithoutAssignments}\\n`;
+        report += `Students without default word sets: ${studentsWithoutDefaults}\\n\\n`;
+        
+        if (issueDetails.length === 0) {
+            report += `✅ All students have proper assignments and defaults!`;
+            showNotification(report, 'success');
+        } else {
+            report += `⚠️ Issues found:\\n\\n`;
+            report += issueDetails.slice(0, 10).join('\\n');
+            if (issueDetails.length > 10) {
+                report += `\\n... and ${issueDetails.length - 10} more issues`;
+            }
+            report += `\\n\\nRecommendations:\\n`;
+            report += `1. Set default word sets for classes without them\\n`;
+            report += `2. Use "Sync Assignments" button on each class\\n`;
+            report += `3. Manually assign word sets to individual students as needed`;
+            
+            showModal('Assignment Status Report', `<pre style="white-space: pre-wrap; font-family: monospace; font-size: 0.9rem;">${report}</pre>`);
+        }
+        
+    } catch (error) {
+        console.error('Error checking class assignments:', error);
+        showNotification('Error checking class assignments', 'error');
     }
 } 
