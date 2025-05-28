@@ -43,18 +43,20 @@ body {
 /* Celebration Animation Styles */
 .celebration-area {
     position: relative;
-    width: 120px;
-    height: 60px;
+    width: 100%;
+    height: 80px;
     overflow: visible;
     pointer-events: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
 }
 
 .celebration-animation {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    position: relative;
+    width: 200px;
+    height: 80px;
     opacity: 0;
     transform: scale(0.5);
     transition: all 0.3s ease;
@@ -853,8 +855,13 @@ h1 {
     }
     
     .celebration-area {
-        width: 100px;
-        height: 50px;
+        height: 60px;
+        margin: 10px 0;
+    }
+    
+    .celebration-animation {
+        width: 150px;
+        height: 60px;
     }
     
     .star {
@@ -978,8 +985,13 @@ h1 {
     }
     
     .celebration-area {
-        width: 80px;
-        height: 40px;
+        height: 50px;
+        margin: 8px 0;
+    }
+    
+    .celebration-animation {
+        width: 120px;
+        height: 50px;
     }
     
     .star {
