@@ -192,6 +192,16 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // Tab functionality
 function initializeTabs() {
+    // Select DOM elements when function is called (after DOM is ready)
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    console.log('Initializing tabs...', 'Found', tabBtns.length, 'tab buttons and', tabContents.length, 'tab contents');
+    
+    if (tabBtns.length === 0) {
+        console.error('No tab buttons found! Check HTML structure.');
+        return;
+    }
     tabBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const targetTab = btn.dataset.tab;
