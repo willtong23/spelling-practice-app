@@ -15,12 +15,36 @@ const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
 const closeModalBtn = document.getElementById('closeModalBtn');
 
-// Initialize the dashboard
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('=== TEACHER DASHBOARD INITIALIZING ===');
+    
+    // Test Firebase connection first
+    const connectionOk = await testFirebaseConnection();
+    if (!connectionOk) {
+        showNotification('Failed to connect to Firebase database. Please check your internet connection.', 'error');
+        return;
+    }
+    
+    // Check password
+    const password = prompt('Enter teacher password:');
+    if (password !== '9739') {
+        alert('Incorrect password');
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    // Initialize tabs
     initializeTabs();
-    loadAllData();
+    
+    // Load all data
+    await loadAllData();
+    
+    // Setup event listeners and analytics
     setupEventListeners();
     initializeAnalyticsFilters();
+    
+    console.log('=== TEACHER DASHBOARD INITIALIZED ===');
 });
 
 // Tab functionality
@@ -60,16 +84,67 @@ function initializeTabs() {
     });
 }
 
+// Test Firebase connection
+async function testFirebaseConnection() {
+    console.log('=== TESTING FIREBASE CONNECTION ===');
+    try {
+        console.log('Firebase app:', firebase.app());
+        console.log('Firebase db:', window.db);
+        
+        // Try a simple read operation
+        const testSnapshot = await window.db.collection('results').limit(1).get();
+        console.log('Test query successful. Size:', testSnapshot.size);
+        
+        // Try to get all collections
+        const collections = ['results', 'wordSets', 'students', 'classes', 'assignments'];
+        for (const collectionName of collections) {
+            try {
+                const snapshot = await window.db.collection(collectionName).limit(1).get();
+                console.log(`Collection '${collectionName}' accessible. Size:`, snapshot.size);
+            } catch (error) {
+                console.error(`Error accessing collection '${collectionName}':`, error);
+            }
+        }
+        
+        console.log('=== FIREBASE CONNECTION TEST COMPLETE ===');
+        return true;
+    } catch (error) {
+        console.error('=== FIREBASE CONNECTION TEST FAILED ===');
+        console.error('Error:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        return false;
+    }
+}
+
 // Load all data from Firebase
 async function loadAllData() {
+    console.log('=== LOADING ALL DATA ===');
+    console.log('Firebase db available:', !!window.db);
+    console.log('Firebase app:', firebase.app());
+    
     try {
-        await Promise.all([
-            loadWordSets(),
-            loadStudents(),
-            loadClasses(),
-            loadAssignments(),
-            loadQuizResults()
-        ]);
+        console.log('Loading word sets...');
+        await loadWordSets();
+        console.log('Word sets loaded:', wordSets.length);
+        
+        console.log('Loading students...');
+        await loadStudents();
+        console.log('Students loaded:', students.length);
+        
+        console.log('Loading classes...');
+        await loadClasses();
+        console.log('Classes loaded:', classes.length);
+        
+        console.log('Loading assignments...');
+        await loadAssignments();
+        console.log('Assignments loaded:', assignments.length);
+        
+        console.log('Loading quiz results...');
+        await loadQuizResults();
+        console.log('Quiz results loaded:', quizResults.length);
+        
+        console.log('=== ALL DATA LOADED SUCCESSFULLY ===');
         
         // Render the active tab
         const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
@@ -88,15 +163,18 @@ async function loadAllData() {
                 break;
         }
     } catch (error) {
-        console.error('Error loading data:', error);
-        showNotification('Error loading data from database', 'error');
+        console.error('=== ERROR LOADING DATA ===');
+        console.error('Error details:', error);
+        console.error('Error message:', error.message);
+        console.error('Error code:', error.code);
+        showNotification('Error loading data from database: ' + error.message, 'error');
     }
 }
 
 // Word Sets Management
 async function loadWordSets() {
     try {
-        const snapshot = await db.collection('wordSets').get();
+        const snapshot = await window.db.collection('wordSets').get();
         wordSets = [];
         snapshot.forEach(doc => {
             wordSets.push({ id: doc.id, ...doc.data() });
@@ -115,7 +193,7 @@ async function loadWordSets() {
 async function createDefaultWordSet() {
     try {
         // Try to get the old wordlist
-        const doc = await db.collection('spelling').doc('wordlist').get();
+        const doc = await window.db.collection('spelling').doc('wordlist').get();
         let words = ['want', 'went', 'what', 'should', 'could']; // default fallback
         
         if (doc.exists && doc.data().words) {
@@ -131,11 +209,11 @@ async function createDefaultWordSet() {
             createdBy: 'system'
         };
         
-        const docRef = await db.collection('wordSets').add(defaultSet);
+        const docRef = await window.db.collection('wordSets').add(defaultSet);
         wordSets.push({ id: docRef.id, ...defaultSet });
         
         // Update the main wordlist to point to this set
-        await db.collection('spelling').doc('wordlist').set({ 
+        await window.db.collection('spelling').doc('wordlist').set({ 
             words: words,
             activeSetId: docRef.id 
         });
@@ -179,7 +257,7 @@ function renderWordSets() {
 // Students and Classes Management
 async function loadStudents() {
     try {
-        const snapshot = await db.collection('students').get();
+        const snapshot = await window.db.collection('students').get();
         students = [];
         snapshot.forEach(doc => {
             students.push({ id: doc.id, ...doc.data() });
@@ -192,7 +270,7 @@ async function loadStudents() {
 
 async function loadClasses() {
     try {
-        const snapshot = await db.collection('classes').get();
+        const snapshot = await window.db.collection('classes').get();
         classes = [];
         snapshot.forEach(doc => {
             classes.push({ id: doc.id, ...doc.data() });
@@ -371,7 +449,7 @@ function renderStudents() {
 // Assignments Management
 async function loadAssignments() {
     try {
-        const snapshot = await db.collection('assignments').get();
+        const snapshot = await window.db.collection('assignments').get();
         assignments = [];
         snapshot.forEach(doc => {
             assignments.push({ id: doc.id, ...doc.data() });
@@ -487,14 +565,26 @@ function renderAssignmentsTable() {
 // Analytics
 async function loadQuizResults() {
     try {
-        const snapshot = await db.collection('results').orderBy('date', 'desc').get();
+        console.log('Attempting to load quiz results from Firebase...');
+        console.log('Database reference:', window.db);
+        
+        const snapshot = await window.db.collection('results').orderBy('date', 'desc').get();
+        console.log('Firebase query completed. Snapshot size:', snapshot.size);
+        
         quizResults = [];
         snapshot.forEach(doc => {
-            quizResults.push({ id: doc.id, ...doc.data() });
+            const data = doc.data();
+            console.log('Quiz result document:', doc.id, data);
+            quizResults.push({ id: doc.id, ...data });
         });
+        
+        console.log('Quiz results loaded successfully:', quizResults.length);
     } catch (error) {
         console.error('Error loading quiz results:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
         quizResults = [];
+        throw error; // Re-throw to be caught by loadAllData
     }
 }
 
@@ -511,6 +601,16 @@ function renderAnalytics() {
     
     // Show default insights
     generateInsights();
+    
+    // Add test data button for demonstration
+    if (quizResults.length === 0) {
+        const testDataBtn = document.createElement('button');
+        testDataBtn.className = 'btn-secondary';
+        testDataBtn.textContent = '🧪 Add Test Data';
+        testDataBtn.style.marginLeft = '12px';
+        testDataBtn.onclick = addTestData;
+        document.querySelector('#analytics .section-card .section-title').parentNode.querySelector('div').appendChild(testDataBtn);
+    }
 }
 
 // Event Listeners
@@ -615,7 +715,7 @@ async function createWordSet() {
             createdBy: 'teacher'
         };
         
-        const docRef = await db.collection('wordSets').add(wordSet);
+        const docRef = await window.db.collection('wordSets').add(wordSet);
         wordSets.push({ id: docRef.id, ...wordSet });
         
         closeModal();
@@ -687,7 +787,7 @@ async function updateWordSet(setId) {
             updatedAt: new Date()
         };
         
-        await db.collection('wordSets').doc(setId).update(updates);
+        await window.db.collection('wordSets').doc(setId).update(updates);
         
         // Update local array
         const index = wordSets.findIndex(ws => ws.id === setId);
@@ -696,9 +796,9 @@ async function updateWordSet(setId) {
         }
         
         // If this is the active set, update the main wordlist
-        const spellingDoc = await db.collection('spelling').doc('wordlist').get();
+        const spellingDoc = await window.db.collection('spelling').doc('wordlist').get();
         if (spellingDoc.exists && spellingDoc.data().activeSetId === setId) {
-            await db.collection('spelling').doc('wordlist').update({ words });
+            await window.db.collection('spelling').doc('wordlist').update({ words });
         }
         
         closeModal();
@@ -716,13 +816,13 @@ async function deleteWordSet(setId) {
     }
     
     try {
-        await db.collection('wordSets').doc(setId).delete();
+        await window.db.collection('wordSets').doc(setId).delete();
         wordSets = wordSets.filter(ws => ws.id !== setId);
         
         // Remove any assignments using this word set
         const assignmentsToDelete = assignments.filter(a => a.wordSetId === setId);
         for (const assignment of assignmentsToDelete) {
-            await db.collection('assignments').doc(assignment.id).delete();
+            await window.db.collection('assignments').doc(assignment.id).delete();
         }
         assignments = assignments.filter(a => a.wordSetId !== setId);
         
@@ -770,7 +870,7 @@ async function createClass() {
             createdBy: 'teacher'
         };
         
-        const docRef = await db.collection('classes').add(classData);
+        const docRef = await window.db.collection('classes').add(classData);
         classes.push({ id: docRef.id, ...classData });
         
         closeModal();
@@ -823,7 +923,7 @@ async function updateClass(classId) {
             updatedAt: new Date()
         };
         
-        await db.collection('classes').doc(classId).update(updates);
+        await window.db.collection('classes').doc(classId).update(updates);
         
         // Update local array
         const index = classes.findIndex(c => c.id === classId);
@@ -881,7 +981,7 @@ async function addStudent() {
             createdBy: 'teacher'
         };
         
-        const docRef = await db.collection('students').add(studentData);
+        const docRef = await window.db.collection('students').add(studentData);
         students.push({ id: docRef.id, ...studentData });
         
         closeModal();
@@ -941,7 +1041,7 @@ async function updateStudent(studentId) {
             updatedAt: new Date()
         };
         
-        await db.collection('students').doc(studentId).update(updates);
+        await window.db.collection('students').doc(studentId).update(updates);
         
         // Update local array
         const index = students.findIndex(s => s.id === studentId);
@@ -976,7 +1076,7 @@ async function assignToStudent() {
             return;
         }
         // Delete existing assignment
-        await db.collection('assignments').doc(existingAssignment.id).delete();
+        await window.db.collection('assignments').doc(existingAssignment.id).delete();
         assignments = assignments.filter(a => a.id !== existingAssignment.id);
     }
     
@@ -989,13 +1089,13 @@ async function assignToStudent() {
             type: 'individual'
         };
         
-        const docRef = await db.collection('assignments').add(assignmentData);
+        const docRef = await window.db.collection('assignments').add(assignmentData);
         assignments.push({ id: docRef.id, ...assignmentData });
         
         // Update the main wordlist for this student (for backward compatibility)
         const wordSet = wordSets.find(ws => ws.id === wordSetId);
         if (wordSet) {
-            await db.collection('spelling').doc('wordlist').set({ 
+            await window.db.collection('spelling').doc('wordlist').set({ 
                 words: wordSet.words,
                 activeSetId: wordSetId 
             });
@@ -1049,7 +1149,7 @@ async function assignToClass() {
                 // Check if assignment already exists
                 const existingAssignment = assignments.find(a => a.studentId === student.id);
                 if (existingAssignment) {
-                    await db.collection('assignments').doc(existingAssignment.id).delete();
+                    await window.db.collection('assignments').doc(existingAssignment.id).delete();
                     assignments = assignments.filter(a => a.id !== existingAssignment.id);
                 }
                 
@@ -1063,12 +1163,12 @@ async function assignToClass() {
                     classId
                 };
                 
-                const docRef = await db.collection('assignments').add(assignmentData);
+                const docRef = await window.db.collection('assignments').add(assignmentData);
                 assignments.push({ id: docRef.id, ...assignmentData });
                 assignmentsCreated++;
                 
                 // Also set as student's default word set
-                await db.collection('students').doc(student.id).update({
+                await window.db.collection('students').doc(student.id).update({
                     defaultWordSetId: wordSetId
                 });
                 
@@ -1087,7 +1187,7 @@ async function assignToClass() {
         // Update the main wordlist (for backward compatibility)
         const wordSet = wordSets.find(ws => ws.id === wordSetId);
         if (wordSet) {
-            await db.collection('spelling').doc('wordlist').set({ 
+            await window.db.collection('spelling').doc('wordlist').set({ 
                 words: wordSet.words,
                 activeSetId: wordSetId 
             });
@@ -1148,13 +1248,13 @@ async function deleteClass(classId) {
     }
     
     try {
-        await db.collection('classes').doc(classId).delete();
+        await window.db.collection('classes').doc(classId).delete();
         classes = classes.filter(c => c.id !== classId);
         
         // Update students to remove class assignment
         const classStudents = students.filter(s => s.classId === classId);
         for (const student of classStudents) {
-            await db.collection('students').doc(student.id).update({ classId: null });
+            await window.db.collection('students').doc(student.id).update({ classId: null });
             student.classId = null;
         }
         
@@ -1172,13 +1272,13 @@ async function deleteStudent(studentId) {
     }
     
     try {
-        await db.collection('students').doc(studentId).delete();
+        await window.db.collection('students').doc(studentId).delete();
         students = students.filter(s => s.id !== studentId);
         
         // Remove any assignments for this student
         const studentAssignments = assignments.filter(a => a.studentId === studentId);
         for (const assignment of studentAssignments) {
-            await db.collection('assignments').doc(assignment.id).delete();
+            await window.db.collection('assignments').doc(assignment.id).delete();
         }
         assignments = assignments.filter(a => a.studentId !== studentId);
         
@@ -1197,7 +1297,7 @@ async function deleteAssignment(assignmentId) {
     }
     
     try {
-        await db.collection('assignments').doc(assignmentId).delete();
+        await window.db.collection('assignments').doc(assignmentId).delete();
         assignments = assignments.filter(a => a.id !== assignmentId);
         
         renderAssignments();
@@ -1215,7 +1315,7 @@ async function deleteQuizResult(resultId) {
     }
     
     try {
-        await db.collection('results').doc(resultId).delete();
+        await window.db.collection('results').doc(resultId).delete();
         quizResults = quizResults.filter(r => r.id !== resultId);
         
         renderAnalytics();
@@ -1234,7 +1334,7 @@ async function deleteAllResults() {
     try {
         const batch = db.batch();
         quizResults.forEach(result => {
-            batch.delete(db.collection('results').doc(result.id));
+            batch.delete(window.db.collection('results').doc(result.id));
         });
         await batch.commit();
         
@@ -1296,12 +1396,12 @@ async function cleanupWordSets() {
             
             for (const set of problematicSets) {
                 console.log(`Deleting problematic word set: ${set.name} with words:`, set.words);
-                await db.collection('wordSets').doc(set.id).delete();
+                await window.db.collection('wordSets').doc(set.id).delete();
                 
                 // Remove any assignments using this word set
                 const assignmentsToDelete = assignments.filter(a => a.wordSetId === set.id);
                 for (const assignment of assignmentsToDelete) {
-                    await db.collection('assignments').doc(assignment.id).delete();
+                    await window.db.collection('assignments').doc(assignment.id).delete();
                 }
             }
             
@@ -2226,7 +2326,7 @@ async function setClassDefaultWordSet(classId) {
         }
         
         // Update the class document
-        await db.collection('classes').doc(classId).update({
+        await window.db.collection('classes').doc(classId).update({
             defaultWordSetId: wordSetId || null
         });
         
@@ -2244,7 +2344,7 @@ async function setClassDefaultWordSet(classId) {
             // Update each student's default word set
             for (const student of studentsInClass) {
                 try {
-                    await db.collection('students').doc(student.id).update({
+                    await window.db.collection('students').doc(student.id).update({
                         defaultWordSetId: wordSetId || null
                     });
                     
@@ -2283,7 +2383,7 @@ async function setStudentDefaultWordSet(studentId) {
         const wordSetId = selectElement.value;
         
         // Update the student document
-        await db.collection('students').doc(studentId).update({
+        await window.db.collection('students').doc(studentId).update({
             defaultWordSetId: wordSetId || null
         });
         
@@ -2371,7 +2471,7 @@ async function syncClassAssignments(classId) {
                             classId
                         };
                         
-                        const docRef = await db.collection('assignments').add(assignmentData);
+                        const docRef = await window.db.collection('assignments').add(assignmentData);
                         assignments.push({ id: docRef.id, ...assignmentData });
                         assignmentsCreated++;
                     } catch (error) {
@@ -2386,7 +2486,7 @@ async function syncClassAssignments(classId) {
                 let defaultsSet = 0;
                 for (const student of studentsWithoutDefaults) {
                     try {
-                        await db.collection('students').doc(student.id).update({
+                        await window.db.collection('students').doc(student.id).update({
                             defaultWordSetId: classData.defaultWordSetId
                         });
                         
