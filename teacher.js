@@ -1525,41 +1525,49 @@ function updateFilteredAnalytics() {
     // Update student count label
     const studentsLabel = document.getElementById('filteredStudentsLabel');
     if (filterType === 'student') {
-        studentsLabel.textContent = 'Student';
-        document.getElementById('filteredStudents').textContent = filterValue ? '1' : '0';
+        if (studentsLabel) studentsLabel.textContent = 'Student';
+        const studentsElement = document.getElementById('filteredStudents');
+        if (studentsElement) studentsElement.textContent = filterValue ? '1' : '0';
     } else if (filterType === 'class') {
-        studentsLabel.textContent = 'Students in Class';
+        if (studentsLabel) studentsLabel.textContent = 'Students in Class';
         const classStudents = students.filter(s => s.classId === filterValue);
-        document.getElementById('filteredStudents').textContent = classStudents.length;
+        const studentsElement = document.getElementById('filteredStudents');
+        if (studentsElement) studentsElement.textContent = classStudents.length;
     } else {
-        studentsLabel.textContent = 'Total Students';
+        if (studentsLabel) studentsLabel.textContent = 'Total Students';
         const uniqueStudents = [...new Set(filteredResults.map(r => r.user))].length;
-        document.getElementById('filteredStudents').textContent = uniqueStudents;
+        const studentsElement = document.getElementById('filteredStudents');
+        if (studentsElement) studentsElement.textContent = uniqueStudents;
     }
     
     // Update quiz count
-    document.getElementById('filteredQuizzes').textContent = filteredResults.length;
+    const quizzesElement = document.getElementById('filteredQuizzes');
+    if (quizzesElement) quizzesElement.textContent = filteredResults.length;
     
     // Calculate average first-try score
-    if (filteredResults.length > 0) {
-        const totalScore = filteredResults.reduce((sum, result) => {
-            const words = result.words || [];
-            const firstTryCorrect = words.filter(w => {
-                const attempts = w.attempts || [];
-                return attempts.length > 0 && attempts[0] === w.word;
-            }).length;
-            const total = words.length;
-            return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
-        }, 0);
-        const averageScore = Math.round(totalScore / filteredResults.length);
-        document.getElementById('filteredAverageScore').textContent = averageScore + '%';
-    } else {
-        document.getElementById('filteredAverageScore').textContent = '0%';
+    const averageScoreElement = document.getElementById('filteredAverageScore');
+    if (averageScoreElement) {
+        if (filteredResults.length > 0) {
+            const totalScore = filteredResults.reduce((sum, result) => {
+                const words = result.words || [];
+                const firstTryCorrect = words.filter(w => {
+                    const attempts = w.attempts || [];
+                    return attempts.length > 0 && attempts[0] === w.word;
+                }).length;
+                const total = words.length;
+                return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
+            }, 0);
+            const averageScore = Math.round(totalScore / filteredResults.length);
+            averageScoreElement.textContent = averageScore + '%';
+        } else {
+            averageScoreElement.textContent = '0%';
+        }
     }
     
     // Count unique word sets practiced
     const uniqueWordSets = [...new Set(filteredResults.map(r => r.wordSetId).filter(id => id))].length;
-    document.getElementById('filteredWordSets').textContent = uniqueWordSets;
+    const wordSetsElement = document.getElementById('filteredWordSets');
+    if (wordSetsElement) wordSetsElement.textContent = uniqueWordSets;
 }
 
 function generateInsights() {
