@@ -159,8 +159,8 @@ function renderWordSets() {
                 <div class="word-set-count">${set.words.length} words</div>
             </div>
             <div class="word-set-words">
-                ${set.words.slice(0, 8).map(word => `<span class="word-tag">${word}</span>`).join('')}
-                ${set.words.length > 8 ? `<span class="word-tag">+${set.words.length - 8} more</span>` : ''}
+                ${set.words.slice(0, 10).map(word => `<span class="word-tag">${word}</span>`).join('')}
+                ${set.words.length > 10 ? `<span class="word-tag">+${set.words.length - 10} more</span>` : ''}
             </div>
             <div style="margin-bottom: 12px; color: #64748b; font-size: 0.9rem;">
                 ${set.description || 'No description'}
