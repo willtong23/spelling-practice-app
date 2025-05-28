@@ -165,6 +165,40 @@
         </div>
     </div>
 
+    <!-- Password Modal for Teacher Access -->
+    <div id="passwordModal" class="password-modal-overlay" style="display: none;">
+        <div class="password-modal">
+            <div class="password-modal-header">
+                <img src="logo.png" alt="Logo" class="password-modal-logo">
+                <h2>Teacher Dashboard Access</h2>
+                <p>Please enter your teacher password to continue</p>
+            </div>
+            
+            <div class="password-modal-body">
+                <div class="password-input-container">
+                    <input type="password" id="teacherPasswordInput" placeholder="Enter password" maxlength="20">
+                    <button type="button" id="togglePasswordVisibility" class="password-toggle">
+                        <span class="password-toggle-icon">👁️</span>
+                    </button>
+                </div>
+                
+                <div class="password-modal-actions">
+                    <button id="cancelPasswordBtn" class="btn-cancel">Cancel</button>
+                    <button id="submitPasswordBtn" class="btn-submit">Access Dashboard</button>
+                </div>
+                
+                <div id="passwordError" class="password-error" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <span class="error-text">Incorrect password. Please try again.</span>
+                </div>
+            </div>
+            
+            <div class="password-modal-footer">
+                <p>🔒 Secure access for authorized teachers only</p>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html> 

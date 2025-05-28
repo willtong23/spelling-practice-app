@@ -26,33 +26,168 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
     
-    // Check password
+    // Check password with professional modal
     const urlParams = new URLSearchParams(window.location.search);
     const isAlreadyAuthenticated = urlParams.get('auth') === 'verified';
     
     if (!isAlreadyAuthenticated) {
-        const password = prompt('Enter teacher password:');
-        if (password !== '9739') {
-            alert('Incorrect password');
-            window.location.href = 'index.html';
-            return;
-        }
+        showTeacherPasswordModal();
     } else {
         // Clean up the URL parameter after successful authentication
         window.history.replaceState({}, document.title, window.location.pathname);
+        initializeDashboard();
     }
     
-    // Initialize tabs
-    initializeTabs();
+    // Teacher password modal functionality
+    function showTeacherPasswordModal() {
+        const passwordModal = document.getElementById('teacherPasswordModal');
+        const passwordInput = document.getElementById('teacherDashboardPasswordInput');
+        const togglePasswordVisibility = document.getElementById('toggleTeacherPasswordVisibility');
+        const cancelBtn = document.getElementById('cancelTeacherPasswordBtn');
+        const submitBtn = document.getElementById('submitTeacherPasswordBtn');
+        const passwordError = document.getElementById('teacherPasswordError');
+        
+        passwordModal.style.display = 'flex';
+        passwordInput.value = '';
+        passwordError.style.display = 'none';
+        passwordInput.focus();
+        
+        // Add escape key listener
+        document.addEventListener('keydown', handleEscapeKey);
+        
+        // Toggle password visibility
+        togglePasswordVisibility.addEventListener('click', function() {
+            const icon = document.querySelector('#toggleTeacherPasswordVisibility .password-toggle-icon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.textContent = '🙈';
+            } else {
+                passwordInput.type = 'password';
+                icon.textContent = '👁️';
+            }
+        });
+        
+        // Cancel button - redirect to student page
+        cancelBtn.addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+        
+        // Submit button
+        submitBtn.addEventListener('click', function() {
+            handleTeacherPasswordSubmit();
+        });
+        
+        // Enter key support
+        passwordInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleTeacherPasswordSubmit();
+            }
+        });
+        
+        // Handle password submission
+        function handleTeacherPasswordSubmit() {
+            const password = passwordInput.value.trim();
+            
+            if (!password) {
+                showTeacherPasswordError('Please enter a password');
+                return;
+            }
+            
+            // Add loading state
+            submitBtn.classList.add('loading');
+            submitBtn.textContent = '';
+            
+            // Simulate a brief loading delay for better UX
+            setTimeout(() => {
+                if (password === '9739') {
+                    // Correct password - show success and initialize dashboard
+                    showTeacherPasswordSuccess();
+                    setTimeout(() => {
+                        hideTeacherPasswordModal();
+                        initializeDashboard();
+                    }, 1000);
+                } else {
+                    // Wrong password - show error
+                    showTeacherPasswordError('Incorrect password. Please try again.');
+                    submitBtn.classList.remove('loading');
+                    submitBtn.textContent = 'Access Dashboard';
+                    
+                    // Clear the input and focus it
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            }, 800);
+        }
+        
+        // Show password error
+        function showTeacherPasswordError(message) {
+            const errorText = passwordError.querySelector('.error-text');
+            if (errorText) {
+                errorText.textContent = message;
+            }
+            passwordError.style.display = 'flex';
+            
+            // Add shake animation to the modal
+            const modal = document.querySelector('.teacher-modal');
+            modal.style.animation = 'none';
+            setTimeout(() => {
+                modal.style.animation = 'shake 0.5s ease-in-out';
+            }, 10);
+        }
+        
+        // Show password success
+        function showTeacherPasswordSuccess() {
+            passwordError.style.display = 'none';
+            submitBtn.classList.remove('loading');
+            submitBtn.classList.add('success');
+            submitBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+            submitBtn.textContent = '✅ Access Granted!';
+            
+            // Show success notification
+            showNotification('✅ Welcome to Teacher Dashboard!', 'success');
+        }
+        
+        // Hide password modal
+        function hideTeacherPasswordModal() {
+            passwordModal.style.display = 'none';
+            document.removeEventListener('keydown', handleEscapeKey);
+        }
+        
+        // Handle escape key
+        function handleEscapeKey(e) {
+            if (e.key === 'Escape') {
+                window.location.href = 'index.html';
+            }
+        }
+        
+        // Click outside modal to redirect to student page
+        passwordModal.addEventListener('click', function(e) {
+            if (e.target === passwordModal) {
+                window.location.href = 'index.html';
+            }
+        });
+    }
     
-    // Load all data
-    await loadAllData();
-    
-    // Setup event listeners and analytics
-    setupEventListeners();
-    initializeAnalyticsFilters();
-    
-    console.log('=== TEACHER DASHBOARD INITIALIZED ===');
+    // Initialize dashboard after successful authentication
+    async function initializeDashboard() {
+        console.log('Initializing teacher dashboard...');
+        
+        // Initialize tabs
+        initializeTabs();
+        
+        // Load all data
+        await loadAllData();
+        
+        // Set up event listeners
+        setupEventListeners();
+        
+        // Initialize analytics filters
+        initializeAnalyticsFilters();
+        
+        console.log('=== TEACHER DASHBOARD INITIALIZED ===');
+    }
 });
 
 // Tab functionality
