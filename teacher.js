@@ -1327,11 +1327,34 @@ async function deleteQuizResult(resultId) {
 }
 
 async function deleteAllResults() {
-    if (!confirm('Are you sure you want to delete ALL quiz results? This action cannot be undone!')) {
+    // First confirmation dialog
+    if (!confirm('⚠️ WARNING: This will permanently delete ALL quiz results from ALL students!\n\nThis action cannot be undone. Are you absolutely sure you want to continue?')) {
+        return;
+    }
+    
+    // Second confirmation with password
+    const password = prompt('🔐 To confirm this dangerous action, please enter the teacher password:');
+    
+    if (password !== '9739') {
+        if (password !== null) { // User didn't cancel
+            showNotification('❌ Incorrect password! Delete operation cancelled for security.', 'error');
+        }
+        return;
+    }
+    
+    // Final confirmation with exact text match
+    const confirmText = prompt('⚠️ FINAL CONFIRMATION:\n\nType exactly "DELETE ALL DATA" (without quotes) to proceed:');
+    
+    if (confirmText !== 'DELETE ALL DATA') {
+        if (confirmText !== null) { // User didn't cancel
+            showNotification('❌ Confirmation text does not match. Delete operation cancelled.', 'error');
+        }
         return;
     }
     
     try {
+        showNotification('🗑️ Deleting all quiz results... Please wait.', 'info');
+        
         const batch = db.batch();
         quizResults.forEach(result => {
             batch.delete(window.db.collection('results').doc(result.id));
@@ -1339,11 +1362,18 @@ async function deleteAllResults() {
         await batch.commit();
         
         quizResults = [];
+        filteredResults = [];
         renderAnalytics();
-        showNotification('All quiz results deleted successfully!', 'success');
+        renderFilteredAnalyticsTable();
+        
+        showNotification('✅ All quiz results have been permanently deleted!', 'success');
+        
+        // Log this action for security purposes
+        console.log(`[SECURITY] All quiz results deleted at ${new Date().toISOString()}`);
+        
     } catch (error) {
         console.error('Error deleting all results:', error);
-        showNotification('Error deleting all results', 'error');
+        showNotification('❌ Error deleting all results. Please try again.', 'error');
     }
 }
 
