@@ -139,30 +139,85 @@ async function getWordsFromAssignment(userName) {
     }
 }
 
-// Load available word sets for the selection panel
+// Load available word sets for the selection panel (only assigned sets)
 async function loadAvailableWordSets() {
     try {
-        const snapshot = await window.db.collection('wordSets').get();
+        console.log(`Loading assigned word sets for user: ${userName}`);
         availableWordSets = [];
-        snapshot.forEach(doc => {
-            availableWordSets.push({ id: doc.id, ...doc.data() });
-        });
         
-        // Populate the word set select dropdown
+        // First, try to find if this user has assignments
+        const studentsSnapshot = await window.db.collection('students').where('name', '==', userName).get();
+        
+        if (!studentsSnapshot.empty) {
+            const studentDoc = studentsSnapshot.docs[0];
+            const studentData = studentDoc.data();
+            const studentId = studentDoc.id;
+            
+            // Get individual assignments
+            const assignmentsSnapshot = await window.db.collection('assignments').where('studentId', '==', studentId).get();
+            const assignedWordSetIds = new Set();
+            
+            assignmentsSnapshot.forEach(doc => {
+                assignedWordSetIds.add(doc.data().wordSetId);
+            });
+            
+            // Add student's default word set if exists
+            if (studentData.defaultWordSetId) {
+                assignedWordSetIds.add(studentData.defaultWordSetId);
+            }
+            
+            // Add class default word set if exists
+            if (studentData.classId) {
+                const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
+                if (classDoc.exists && classDoc.data().defaultWordSetId) {
+                    assignedWordSetIds.add(classDoc.data().defaultWordSetId);
+                }
+            }
+            
+            // Load only the assigned word sets
+            if (assignedWordSetIds.size > 0) {
+                for (const wordSetId of assignedWordSetIds) {
+                    try {
+                        const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
+                        if (wordSetDoc.exists) {
+                            availableWordSets.push({ id: wordSetDoc.id, ...wordSetDoc.data() });
+                        }
+                    } catch (error) {
+                        console.error(`Error loading word set ${wordSetId}:`, error);
+                    }
+                }
+            }
+            
+            console.log(`Found ${availableWordSets.length} assigned word sets for ${userName}`);
+        } else {
+            console.log(`Student ${userName} not found in database - no assigned word sets`);
+        }
+        
+        // Populate the word set select dropdown with only assigned sets
         const wordSetSelect = document.getElementById('wordSetSelect');
         if (wordSetSelect) {
             wordSetSelect.innerHTML = '<option value="">Choose a word set...</option>';
-            availableWordSets.forEach(set => {
+            
+            if (availableWordSets.length === 0) {
                 const option = document.createElement('option');
-                option.value = set.id;
-                option.textContent = `${set.name} (${set.words.length} words)`;
+                option.value = '';
+                option.textContent = 'No word sets assigned';
+                option.disabled = true;
                 wordSetSelect.appendChild(option);
-            });
+            } else {
+                availableWordSets.forEach(set => {
+                    const option = document.createElement('option');
+                    option.value = set.id;
+                    option.textContent = `${set.name} (${set.words.length} words)`;
+                    wordSetSelect.appendChild(option);
+                });
+            }
         }
         
-        console.log('Loaded available word sets:', availableWordSets);
+        console.log('Loaded assigned word sets:', availableWordSets);
     } catch (error) {
-        console.error('Error loading available word sets:', error);
+        console.error('Error loading assigned word sets:', error);
+        availableWordSets = [];
     }
 }
 
@@ -249,19 +304,27 @@ async function applyWordSetSelection() {
             // Use assignment
             wordData = await getWordsFromAssignment(userName);
         } else if (useCustom.checked && wordSetSelect.value) {
-            // Use custom selected word set
+            // Use custom selected word set - but only if it's in the assigned sets
             const selectedSetId = wordSetSelect.value;
             const selectedSet = availableWordSets.find(set => set.id === selectedSetId);
             
-            if (selectedSet) {
-                wordData = {
-                    words: selectedSet.words,
-                    setId: selectedSet.id,
-                    setName: selectedSet.name
-                };
-            } else {
-                throw new Error('Selected word set not found');
+            if (!selectedSet) {
+                showNotification('Selected word set is not assigned to you', 'error');
+                return;
             }
+            
+            // Double-check that this word set is actually assigned to the student
+            const isAssigned = await verifyWordSetAssignment(userName, selectedSetId);
+            if (!isAssigned) {
+                showNotification('You do not have permission to access this word set', 'error');
+                return;
+            }
+            
+            wordData = {
+                words: selectedSet.words,
+                setId: selectedSet.id,
+                setName: selectedSet.name
+            };
         } else {
             showNotification('Please select a word set option', 'error');
             return;
@@ -293,6 +356,47 @@ async function applyWordSetSelection() {
     } catch (error) {
         console.error('Error applying word set selection:', error);
         showNotification('Error switching word set. Please try again.', 'error');
+    }
+}
+
+// Verify that a word set is actually assigned to the student
+async function verifyWordSetAssignment(userName, wordSetId) {
+    try {
+        const studentsSnapshot = await window.db.collection('students').where('name', '==', userName).get();
+        
+        if (studentsSnapshot.empty) {
+            return false;
+        }
+        
+        const studentDoc = studentsSnapshot.docs[0];
+        const studentData = studentDoc.data();
+        const studentId = studentDoc.id;
+        
+        // Check individual assignments
+        const assignmentsSnapshot = await window.db.collection('assignments').where('studentId', '==', studentId).get();
+        for (const doc of assignmentsSnapshot.docs) {
+            if (doc.data().wordSetId === wordSetId) {
+                return true;
+            }
+        }
+        
+        // Check student's default word set
+        if (studentData.defaultWordSetId === wordSetId) {
+            return true;
+        }
+        
+        // Check class default word set
+        if (studentData.classId) {
+            const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
+            if (classDoc.exists && classDoc.data().defaultWordSetId === wordSetId) {
+                return true;
+            }
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Error verifying word set assignment:', error);
+        return false;
     }
 }
 
