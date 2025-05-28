@@ -384,6 +384,7 @@ async function applyWordSetSelection() {
         resetQuizState();
         updateDisplay();
         updateWordSetPanel();
+        updatePracticeModeUI();
         
         showNotification(`Switched to "${wordData.setName}" (${words.length} words)`, 'success');
         
@@ -453,6 +454,7 @@ const speakButton = document.getElementById('speakButton');
 const allWordsButton = document.getElementById('allWordsButton');
 const hintButton = document.getElementById('hintButton');
 const clearAllButton = document.getElementById('clearAllButton');
+const exitPracticeButton = document.getElementById('exitPracticeButton');
 const checkButton = document.getElementById('checkButton');
 const resultMessage = document.getElementById('resultMessage');
 const prevButton = document.getElementById('prevButton');
@@ -478,6 +480,10 @@ let userName = '';
 let selectedVoice = null;
 let currentWordSetId = null;
 let currentWordSetName = '';
+let isPracticeMode = false;
+let practiceWords = [];
+let originalWords = [];
+let practiceResults = [];
 
 // --- Name Prompt ---
 function promptUserName() {
@@ -775,6 +781,7 @@ async function resetQuiz() {
     resetQuizState();
     updateDisplay();
     updateWordSetPanel();
+    updatePracticeModeUI();
     console.log('=== RESET QUIZ COMPLETE ===');
     console.log('Final words after reset:', words);
     console.log('Final word count:', words.length);
@@ -853,6 +860,13 @@ if (clearAllButton) {
     });
 }
 
+// Exit Practice button to return to main quiz
+if (exitPracticeButton) {
+    exitPracticeButton.addEventListener('click', () => {
+        exitPracticeMode();
+    });
+}
+
 // Function to clear all letter boxes
 function clearAllLetterBoxes() {
     if (letterInputs && letterInputs.length > 0) {
@@ -918,12 +932,20 @@ closeModalBtn.addEventListener('click', () => {
     closeModal();
     if (lastQuizComplete) {
         lastQuizComplete = false;
-        setTimeout(async () => {
-            await resetQuiz();
+        if (isPracticeMode) {
+            // After practice mode, check if there are still words that need practice
             setTimeout(() => {
-                if (words.length > 0) speakWord(words[0]);
-            }, 200);
-        }, 100);
+                checkForContinuedPractice();
+            }, 100);
+        } else {
+            // After main quiz, start new round
+            setTimeout(async () => {
+                await resetQuiz();
+                setTimeout(() => {
+                    if (words.length > 0) speakWord(words[0]);
+                }, 200);
+            }, 100);
+        }
     }
 });
 
@@ -933,6 +955,8 @@ modalOverlay.addEventListener('click', (e) => {
 
 function showEndOfQuizFeedback() {
     let allPerfectFirstTry = true;
+    let wordsNeedingPractice = [];
+    
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const attempts = entry.attempts || [];
@@ -940,21 +964,31 @@ function showEndOfQuizFeedback() {
         
         // Check if first attempt was correct
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
-        if (!firstTryCorrect) {
+        if (!firstTryCorrect || hintUsed[i]) {
             allPerfectFirstTry = false;
-            break;
+            // Add to practice list if wrong or hint used
+            wordsNeedingPractice.push({
+                word: correctWord,
+                index: i,
+                usedHint: hintUsed[i],
+                gotWrong: !firstTryCorrect
+            });
         }
     }
     
     let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
     
     // Show which word set was used
-    if (currentWordSetName) {
+    if (currentWordSetName && !isPracticeMode) {
         html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
+    } else if (isPracticeMode) {
+        html += `<div style="color:#f59e0b;font-size:0.9rem;margin-bottom:12px;">📚 <strong>Practice Mode Complete!</strong></div>`;
     }
     
-    if (allPerfectFirstTry) {
+    if (allPerfectFirstTry && !isPracticeMode) {
         html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
+    } else if (isPracticeMode) {
+        html += '<div style="color:#3b82f6;font-size:1.2em;font-weight:700;margin-bottom:18px;background:#dbeafe;padding:10px 0;border-radius:8px;">🎯 Practice Session Complete!</div>';
     }
     
     html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
@@ -1008,27 +1042,55 @@ function showEndOfQuizFeedback() {
     }
     html += '</table></div>';
     
-    // Calculate and show first-try score
-    const firstTryCorrectCount = words.filter((word, i) => {
-        const attempts = (userAnswers[i] || {}).attempts || [];
-        return attempts.length > 0 && attempts[0] === word;
-    }).length;
+    // Calculate and show first-try score (only for main quiz, not practice)
+    if (!isPracticeMode) {
+        const firstTryCorrectCount = words.filter((word, i) => {
+            const attempts = (userAnswers[i] || {}).attempts || [];
+            return attempts.length > 0 && attempts[0] === word;
+        }).length;
+        
+        const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
+        
+        html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
+            <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
+        </div>`;
+    }
     
-    const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
-    
-    html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
-        <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
-    </div>`;
+    // Show practice option if there are words that need practice (only for main quiz)
+    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
+        html += `<div style="margin-top:20px;padding:16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;">
+            <h3 style="margin:0 0 12px 0;color:#856404;">🎯 Practice Opportunity!</h3>
+            <p style="margin:0 0 12px 0;color:#856404;">You have <strong>${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''}</strong> that could use more practice:</p>
+            <div style="margin:8px 0;font-weight:600;color:#856404;">`;
+        
+        wordsNeedingPractice.forEach((item, index) => {
+            const reason = item.usedHint && item.gotWrong ? 'hint + wrong' : 
+                         item.usedHint ? 'used hint' : 'got wrong';
+            html += `${item.word} (${reason})`;
+            if (index < wordsNeedingPractice.length - 1) html += ', ';
+        });
+        
+        html += `</div>
+            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px;">
+                🎯 Practice These Words
+            </button>
+            <p style="margin:8px 0 0 0;font-size:0.85em;color:#856404;font-style:italic;">Practice sessions don't affect your quiz records</p>
+        </div>`;
+    }
     
     showModal(html);
     lastQuizComplete = true;
     
-    // Save quiz results to Firebase
-    console.log('About to call saveQuizResults...');
-    console.log('Current userAnswers:', userAnswers);
-    console.log('Current hintUsed:', hintUsed);
-    console.log('Current words:', words);
-    saveQuizResults();
+    // Save quiz results to Firebase (only for main quiz, not practice)
+    if (!isPracticeMode) {
+        console.log('About to call saveQuizResults...');
+        console.log('Current userAnswers:', userAnswers);
+        console.log('Current hintUsed:', hintUsed);
+        console.log('Current words:', words);
+        saveQuizResults();
+    } else {
+        console.log('Practice mode complete - not saving results to Firebase');
+    }
 }
 
 // --- Load Words from Firestore ---
@@ -1052,6 +1114,7 @@ async function loadWordsFromFirestore() {
         resetQuizState();
         updateDisplay();
         updateWordSetPanel();
+        updatePracticeModeUI();
     } catch (error) {
         console.error('Error loading words from Firebase:', error);
         words = ["want", "went", "what", "should", "could"];
@@ -1064,6 +1127,7 @@ async function loadWordsFromFirestore() {
         resetQuizState();
         updateDisplay();
         updateWordSetPanel();
+        updatePracticeModeUI();
     }
 }
 
@@ -1210,4 +1274,146 @@ if (typeof firebase !== 'undefined' && window.db) {
     setTimeout(() => {
         initializeApp();
     }, 1000);
+}
+
+// Function to start practice mode with words that need practice
+function startPracticeMode() {
+    console.log('Starting practice mode...');
+    
+    // Identify words that need practice (wrong or hint used)
+    practiceWords = [];
+    for (let i = 0; i < words.length; i++) {
+        const entry = userAnswers[i] || { attempts: [], correct: false };
+        const attempts = entry.attempts || [];
+        const correctWord = words[i];
+        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        
+        if (!firstTryCorrect || hintUsed[i]) {
+            practiceWords.push(correctWord);
+        }
+    }
+    
+    if (practiceWords.length === 0) {
+        showNotification('No words need practice!', 'success');
+        return;
+    }
+    
+    // Store original words and switch to practice mode
+    originalWords = [...words];
+    words = [...practiceWords];
+    isPracticeMode = true;
+    
+    // Shuffle practice words
+    if (words.length > 1) {
+        shuffleArray(words);
+    }
+    
+    // Reset state for practice
+    resetQuizState();
+    updateDisplay();
+    closeModal();
+    
+    // Update UI to show practice mode
+    updatePracticeModeUI();
+    
+    // Speak first word
+    setTimeout(() => {
+        if (words.length > 0) speakWord(words[0]);
+    }, 500);
+    
+    showNotification(`Starting practice with ${words.length} word${words.length > 1 ? 's' : ''}!`, 'info');
+}
+
+// Function to update UI for practice mode
+function updatePracticeModeUI() {
+    const title = document.querySelector('.title');
+    const exitButton = document.getElementById('exitPracticeButton');
+    
+    if (title && isPracticeMode) {
+        title.textContent = '🎯 Practice Mode';
+        title.style.color = '#f59e0b';
+    } else if (title && !isPracticeMode) {
+        title.textContent = 'Spelling Practice';
+        title.style.color = '#2563eb';
+    }
+    
+    // Show/hide exit practice button
+    if (exitButton) {
+        exitButton.style.display = isPracticeMode ? 'inline-block' : 'none';
+    }
+}
+
+// Function to exit practice mode
+function exitPracticeMode() {
+    console.log('Exiting practice mode...');
+    
+    // Restore original words
+    words = [...originalWords];
+    isPracticeMode = false;
+    practiceWords = [];
+    
+    // Reset state
+    resetQuizState();
+    updateDisplay();
+    updatePracticeModeUI();
+    
+    showNotification('Returned to main quiz', 'info');
+}
+
+// Function to check if student wants to continue practicing
+function checkForContinuedPractice() {
+    // Check if there are still words that need practice in this practice session
+    let stillNeedPractice = [];
+    for (let i = 0; i < words.length; i++) {
+        const entry = userAnswers[i] || { attempts: [], correct: false };
+        const attempts = entry.attempts || [];
+        const correctWord = words[i];
+        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        
+        if (!firstTryCorrect || hintUsed[i]) {
+            stillNeedPractice.push(correctWord);
+        }
+    }
+    
+    if (stillNeedPractice.length > 0) {
+        // Offer to continue practicing these words
+        let html = `<h2 style="margin-bottom:18px;">Continue Practice?</h2>
+            <p style="margin-bottom:16px;">You still have <strong>${stillNeedPractice.length} word${stillNeedPractice.length > 1 ? 's' : ''}</strong> that could use more practice:</p>
+            <div style="margin:12px 0;font-weight:600;color:#f59e0b;">${stillNeedPractice.join(', ')}</div>
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
+                <button onclick="continuePractice()" style="background:#ffc107;color:#856404;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    🎯 Keep Practicing
+                </button>
+                <button onclick="exitPracticeMode(); closeModal();" style="background:#6b7280;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    🚪 Return to Main Quiz
+                </button>
+            </div>`;
+        showModal(html);
+    } else {
+        // All practice words mastered, return to main quiz
+        showNotification('Great job! All practice words completed!', 'success');
+        exitPracticeMode();
+    }
+}
+
+// Function to continue practicing the same words
+function continuePractice() {
+    console.log('Continuing practice...');
+    
+    // Reset state for another practice round
+    resetQuizState();
+    updateDisplay();
+    closeModal();
+    
+    // Shuffle words again
+    if (words.length > 1) {
+        shuffleArray(words);
+    }
+    
+    // Speak first word
+    setTimeout(() => {
+        if (words.length > 0) speakWord(words[0]);
+    }, 200);
+    
+    showNotification('Continuing practice session!', 'info');
 } 
