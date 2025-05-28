@@ -5,6 +5,7 @@ let students = [];
 let classes = [];
 let assignments = [];
 let quizResults = [];
+let filteredResults = []; // For analytics filtering
 
 // DOM Elements
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTabs();
     loadAllData();
     setupEventListeners();
+    initializeAnalyticsFilters();
 });
 
 // Tab functionality
@@ -393,101 +395,18 @@ async function loadQuizResults() {
 }
 
 function renderAnalytics() {
-    updateAnalyticsStats();
-    renderAnalyticsTable();
-}
-
-function updateAnalyticsStats() {
-    // Update stat cards
-    document.getElementById('totalStudents').textContent = students.length;
-    document.getElementById('totalWordSets').textContent = wordSets.length;
-    document.getElementById('totalQuizzes').textContent = quizResults.length;
+    // Initialize filters and populate dropdowns
+    updateAnalyticsFilterOptions();
     
-    // Calculate average score based on first-try correct only
-    if (quizResults.length > 0) {
-        const totalScore = quizResults.reduce((sum, result) => {
-            const words = result.words || [];
-            // Count only words that were correct on first attempt
-            const firstTryCorrect = words.filter(w => {
-                // Check if first attempt was correct
-                const attempts = w.attempts || [];
-                return attempts.length > 0 && attempts[0] === w.word;
-            }).length;
-            const total = words.length;
-            return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
-        }, 0);
-        const averageScore = Math.round(totalScore / quizResults.length);
-        document.getElementById('averageScore').textContent = averageScore + '%';
-    } else {
-        document.getElementById('averageScore').textContent = '0%';
-    }
-}
-
-function renderAnalyticsTable() {
-    const tbody = document.getElementById('analyticsTableBody');
-    if (!tbody) return;
+    // Set filtered results to all results initially
+    filteredResults = [...quizResults];
     
-    if (quizResults.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No quiz results yet.</td></tr>';
-        return;
-    }
+    // Update analytics display
+    updateFilteredAnalytics();
+    renderFilteredAnalyticsTable();
     
-    tbody.innerHTML = quizResults.map(result => {
-        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
-        const words = result.words || [];
-        
-        // Count only words that were correct on first attempt
-        const firstTryCorrect = words.filter(w => {
-            const attempts = w.attempts || [];
-            return attempts.length > 0 && attempts[0] === w.word;
-        }).length;
-        
-        const total = words.length;
-        const score = total > 0 ? Math.round((firstTryCorrect / total) * 100) : 0;
-        
-        // Find word set
-        const wordSetName = result.wordSetId ? 
-            (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
-            'Legacy Set';
-        
-        const wordDetails = words.map(w => {
-            const attempts = w.attempts || [];
-            const firstAttempt = attempts[0] || '';
-            const isFirstTryCorrect = firstAttempt === w.word;
-            
-            // Show wrong attempts (all attempts that weren't the correct word)
-            let wrongs = attempts.filter(a => a !== w.word);
-            let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
-            let hintStr = w.hint ? ' H' : '';
-            
-            // Add indicator if they eventually got it right but not on first try
-            let statusStr = '';
-            if (!isFirstTryCorrect && attempts.includes(w.word)) {
-                statusStr = ' (eventually correct)';
-            }
-            
-            return `${w.word}${wrongStr}${hintStr}${statusStr}`;
-        }).join(', ');
-        
-        return `
-            <tr>
-                <td>${result.user || 'Unknown'}</td>
-                <td>${dateTime}</td>
-                <td>${wordSetName}</td>
-                <td>
-                    <span style="color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
-                        ${score}% (${firstTryCorrect}/${total} first-try)
-                    </span>
-                </td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetails}">
-                    ${wordDetails}
-                </td>
-                <td>
-                    <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Delete</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    // Show default insights
+    generateInsights();
 }
 
 // Event Listeners
@@ -507,6 +426,7 @@ function setupEventListeners() {
     
     // Analytics
     document.getElementById('deleteAllResultsBtn')?.addEventListener('click', deleteAllResults);
+    setupAnalyticsEventListeners();
     
     // Modal
     closeModalBtn?.addEventListener('click', closeModal);
@@ -1255,4 +1175,738 @@ async function cleanupWordSets() {
         console.error('Error cleaning up word sets:', error);
         showNotification('Error cleaning up word sets', 'error');
     }
+}
+
+// New function to initialize analytics filters
+function initializeAnalyticsFilters() {
+    // Set default date range (last 30 days)
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+    
+    document.getElementById('analyticsFromDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+    document.getElementById('analyticsToDate').value = today.toISOString().split('T')[0];
+    
+    // Initialize filtered results with all results
+    filteredResults = [...quizResults];
+}
+
+// Analytics filtering functionality
+function setupAnalyticsEventListeners() {
+    const filterType = document.getElementById('analyticsFilterType');
+    const filterValue = document.getElementById('analyticsFilterValue');
+    const applyFilterBtn = document.getElementById('applyAnalyticsFilter');
+    const exportBtn = document.getElementById('exportAnalyticsBtn');
+    
+    if (filterType) {
+        filterType.addEventListener('change', updateAnalyticsFilterOptions);
+    }
+    
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener('click', applyAnalyticsFilter);
+    }
+    
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportAnalyticsData);
+    }
+}
+
+function updateAnalyticsFilterOptions() {
+    const filterType = document.getElementById('analyticsFilterType').value;
+    const filterValue = document.getElementById('analyticsFilterValue');
+    
+    filterValue.innerHTML = '<option value="">Choose...</option>';
+    filterValue.disabled = filterType === 'all';
+    
+    if (filterType === 'student') {
+        students.forEach(student => {
+            filterValue.innerHTML += `<option value="${student.id}">${student.name}</option>`;
+        });
+    } else if (filterType === 'class') {
+        classes.forEach(cls => {
+            filterValue.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+        });
+    }
+}
+
+function applyAnalyticsFilter() {
+    const filterType = document.getElementById('analyticsFilterType').value;
+    const filterValue = document.getElementById('analyticsFilterValue').value;
+    const fromDate = document.getElementById('analyticsFromDate').value;
+    const toDate = document.getElementById('analyticsToDate').value;
+    
+    // Start with all results
+    filteredResults = [...quizResults];
+    
+    // Apply date filter
+    if (fromDate || toDate) {
+        filteredResults = filteredResults.filter(result => {
+            const resultDate = new Date(result.date);
+            const from = fromDate ? new Date(fromDate) : new Date('1900-01-01');
+            const to = toDate ? new Date(toDate + 'T23:59:59') : new Date();
+            return resultDate >= from && resultDate <= to;
+        });
+    }
+    
+    // Apply student/class filter
+    if (filterType === 'student' && filterValue) {
+        const student = students.find(s => s.id === filterValue);
+        if (student) {
+            filteredResults = filteredResults.filter(result => 
+                result.user && result.user.toLowerCase().trim() === student.name.toLowerCase().trim()
+            );
+        }
+    } else if (filterType === 'class' && filterValue) {
+        const classStudents = students.filter(s => s.classId === filterValue);
+        const studentNames = classStudents.map(s => s.name.toLowerCase().trim());
+        filteredResults = filteredResults.filter(result => 
+            result.user && studentNames.includes(result.user.toLowerCase().trim())
+        );
+    }
+    
+    // Update analytics display
+    updateFilteredAnalytics();
+    generateInsights();
+    renderFilteredAnalyticsTable();
+    
+    showNotification('Analytics filter applied successfully!', 'success');
+}
+
+function updateFilteredAnalytics() {
+    const filterType = document.getElementById('analyticsFilterType').value;
+    const filterValue = document.getElementById('analyticsFilterValue').value;
+    
+    // Update student count label
+    const studentsLabel = document.getElementById('filteredStudentsLabel');
+    if (filterType === 'student') {
+        studentsLabel.textContent = 'Student';
+        document.getElementById('filteredStudents').textContent = filterValue ? '1' : '0';
+    } else if (filterType === 'class') {
+        studentsLabel.textContent = 'Students in Class';
+        const classStudents = students.filter(s => s.classId === filterValue);
+        document.getElementById('filteredStudents').textContent = classStudents.length;
+    } else {
+        studentsLabel.textContent = 'Total Students';
+        const uniqueStudents = [...new Set(filteredResults.map(r => r.user))].length;
+        document.getElementById('filteredStudents').textContent = uniqueStudents;
+    }
+    
+    // Update quiz count
+    document.getElementById('filteredQuizzes').textContent = filteredResults.length;
+    
+    // Calculate average first-try score
+    if (filteredResults.length > 0) {
+        const totalScore = filteredResults.reduce((sum, result) => {
+            const words = result.words || [];
+            const firstTryCorrect = words.filter(w => {
+                const attempts = w.attempts || [];
+                return attempts.length > 0 && attempts[0] === w.word;
+            }).length;
+            const total = words.length;
+            return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
+        }, 0);
+        const averageScore = Math.round(totalScore / filteredResults.length);
+        document.getElementById('filteredAverageScore').textContent = averageScore + '%';
+    } else {
+        document.getElementById('filteredAverageScore').textContent = '0%';
+    }
+    
+    // Count unique word sets practiced
+    const uniqueWordSets = [...new Set(filteredResults.map(r => r.wordSetId).filter(id => id))].length;
+    document.getElementById('filteredWordSets').textContent = uniqueWordSets;
+}
+
+function generateInsights() {
+    const insightsSection = document.getElementById('insightsSection');
+    const insightsDiv = document.getElementById('analyticsInsights');
+    const filterType = document.getElementById('analyticsFilterType').value;
+    const filterValue = document.getElementById('analyticsFilterValue').value;
+    
+    if (filteredResults.length === 0) {
+        insightsDiv.innerHTML = '<p style="color: #64748b; margin: 0;">No data available for the selected filters.</p>';
+        insightsSection.style.display = 'block';
+        return;
+    }
+    
+    // If filtering by specific student or class, show individual session insights
+    if ((filterType === 'student' || filterType === 'class') && filterValue) {
+        const insights = generateIndividualSessionInsights(filteredResults, filterType, filterValue);
+        insightsDiv.innerHTML = insights;
+    } else {
+        // Show overall insights for "All Students" view
+        const analysis = analyzePerformanceData(filteredResults);
+        const insights = generateInsightsFromAnalysis(analysis, filterType, filterValue);
+        insightsDiv.innerHTML = insights;
+    }
+    
+    insightsSection.style.display = 'block';
+}
+
+function generateIndividualSessionInsights(results, filterType, filterValue) {
+    let insights = '';
+    const studentName = filterType === 'student' && filterValue ? 
+        students.find(s => s.id === filterValue)?.name : null;
+    const className = filterType === 'class' && filterValue ? 
+        classes.find(c => c.id === filterValue)?.name : null;
+    
+    // Header
+    if (studentName) {
+        insights += `<h3 style="margin: 0 0 16px 0; color: #1e293b;">Individual Session Insights for ${studentName}</h3>`;
+    } else if (className) {
+        insights += `<h3 style="margin: 0 0 16px 0; color: #1e293b;">Individual Session Insights for Class ${className}</h3>`;
+    }
+    
+    // Sort results by date (newest first)
+    const sortedResults = [...results].sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Generate insights for each session
+    sortedResults.forEach((result, index) => {
+        const sessionInsights = analyzeIndividualSession(result, index + 1);
+        insights += sessionInsights;
+    });
+    
+    // Add summary if multiple sessions
+    if (sortedResults.length > 1) {
+        insights += generateProgressSummary(sortedResults, filterType);
+    }
+    
+    return insights;
+}
+
+function analyzeIndividualSession(result, sessionNumber) {
+    const words = result.words || [];
+    const date = result.date ? new Date(result.date).toLocaleDateString() : 'Unknown Date';
+    const time = result.date ? new Date(result.date).toLocaleTimeString() : 'Unknown Time';
+    const wordSetName = result.wordSetId ? 
+        (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
+        'Legacy Set';
+    
+    // Calculate session statistics
+    const firstTryCorrect = words.filter(w => {
+        const attempts = w.attempts || [];
+        return attempts.length > 0 && attempts[0] === w.word;
+    }).length;
+    
+    const totalWords = words.length;
+    const score = totalWords > 0 ? Math.round((firstTryCorrect / totalWords) * 100) : 0;
+    const hintsUsed = words.filter(w => w.hint).length;
+    const hintPercentage = totalWords > 0 ? Math.round((hintsUsed / totalWords) * 100) : 0;
+    
+    // Analyze mistakes
+    const mistakes = words.filter(w => {
+        const attempts = w.attempts || [];
+        return attempts.length > 0 && attempts[0] !== w.word;
+    });
+    
+    const eventuallyCorrect = mistakes.filter(w => {
+        const attempts = w.attempts || [];
+        return attempts.includes(w.word);
+    });
+    
+    // Performance color
+    const scoreColor = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+    const performanceLevel = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement';
+    
+    let sessionInsight = `
+        <div style="background: white; border: 2px solid #e0e7ef; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="margin: 0; color: #1e293b;">Session ${sessionNumber}: ${wordSetName}</h4>
+                <div style="color: #64748b; font-size: 0.9rem;">${date} at ${time}</div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                <div style="text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: ${scoreColor};">${score}%</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">First-Try Score</div>
+                </div>
+                <div style="text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #3b82f6;">${firstTryCorrect}/${totalWords}</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">Correct First Try</div>
+                </div>
+                <div style="text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px;">
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #f59e0b;">${hintPercentage}%</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">Hints Used</div>
+                </div>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 4px solid ${scoreColor}; margin-bottom: 12px;">
+                <strong>Performance: ${performanceLevel}</strong>
+            </div>
+    `;
+    
+    // Add specific insights based on performance
+    sessionInsight += `<div style="background: #f8fafc; padding: 12px; border-radius: 6px; margin-bottom: 12px;">`;
+    sessionInsight += `<strong>📝 Session Analysis:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">`;
+    
+    if (score >= 80) {
+        sessionInsight += `<li>Excellent performance! Strong spelling skills demonstrated</li>`;
+        if (hintPercentage === 0) {
+            sessionInsight += `<li>No hints needed - shows confidence and knowledge</li>`;
+        }
+        if (mistakes.length === 0) {
+            sessionInsight += `<li>Perfect session - all words spelled correctly on first try</li>`;
+        }
+    } else if (score >= 60) {
+        sessionInsight += `<li>Good performance with room for improvement</li>`;
+        if (hintPercentage > 30) {
+            sessionInsight += `<li>High hint usage suggests uncertainty - review these word patterns</li>`;
+        }
+    } else {
+        sessionInsight += `<li>Challenging session - consider reviewing basic spelling patterns</li>`;
+        sessionInsight += `<li>May benefit from easier word sets to build confidence</li>`;
+        if (hintPercentage < 20) {
+            sessionInsight += `<li>Low hint usage despite struggles - encourage using hints for learning</li>`;
+        }
+    }
+    
+    // Analyze specific mistakes
+    if (mistakes.length > 0) {
+        sessionInsight += `<li>Struggled with ${mistakes.length} word${mistakes.length > 1 ? 's' : ''}: `;
+        const mistakeDetails = mistakes.slice(0, 3).map(w => {
+            const attempts = w.attempts || [];
+            const firstAttempt = attempts[0] || '';
+            return `"${w.word}" (tried: ${firstAttempt})`;
+        }).join(', ');
+        sessionInsight += mistakeDetails;
+        if (mistakes.length > 3) {
+            sessionInsight += ` and ${mistakes.length - 3} more`;
+        }
+        sessionInsight += `</li>`;
+        
+        if (eventuallyCorrect.length > 0) {
+            sessionInsight += `<li>Eventually corrected ${eventuallyCorrect.length} word${eventuallyCorrect.length > 1 ? 's' : ''} - shows persistence</li>`;
+        }
+    }
+    
+    sessionInsight += `</ul></div>`;
+    
+    // Add recommendations for this session
+    sessionInsight += `<div style="background: #f8fafc; padding: 12px; border-radius: 6px;">`;
+    sessionInsight += `<strong>🎯 Recommendations for Next Session:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">`;
+    
+    if (score >= 80) {
+        sessionInsight += `<li>Ready for more challenging words or faster pace</li>`;
+        sessionInsight += `<li>Consider introducing new spelling patterns</li>`;
+    } else if (score >= 60) {
+        sessionInsight += `<li>Review the words that were missed in this session</li>`;
+        sessionInsight += `<li>Practice similar spelling patterns before advancing</li>`;
+    } else {
+        sessionInsight += `<li>Repeat this word set with more practice time</li>`;
+        sessionInsight += `<li>Focus on 3-5 words at a time rather than the full set</li>`;
+        sessionInsight += `<li>Use more hints to learn correct patterns</li>`;
+    }
+    
+    if (mistakes.length > 0) {
+        const commonPatterns = analyzeSpellingPatterns(mistakes);
+        if (commonPatterns.length > 0) {
+            sessionInsight += `<li>Focus on these spelling patterns: ${commonPatterns.join(', ')}</li>`;
+        }
+    }
+    
+    sessionInsight += `</ul></div></div>`;
+    
+    return sessionInsight;
+}
+
+function analyzeSpellingPatterns(mistakes) {
+    const patterns = [];
+    
+    mistakes.forEach(word => {
+        const attempts = word.attempts || [];
+        const correctWord = word.word;
+        const firstAttempt = attempts[0] || '';
+        
+        // Analyze common spelling pattern issues
+        if (correctWord.includes('ie') && firstAttempt.includes('ei')) {
+            patterns.push('ie vs ei rule');
+        }
+        if (correctWord.includes('tion') && firstAttempt.includes('sion')) {
+            patterns.push('tion vs sion endings');
+        }
+        if (correctWord.includes('double') && !firstAttempt.includes('double')) {
+            patterns.push('double consonants');
+        }
+        if (correctWord.endsWith('ly') && !firstAttempt.endsWith('ly')) {
+            patterns.push('ly endings');
+        }
+        if (correctWord.includes('ph') && firstAttempt.includes('f')) {
+            patterns.push('ph vs f sounds');
+        }
+    });
+    
+    // Return unique patterns
+    return [...new Set(patterns)];
+}
+
+function generateProgressSummary(sortedResults, filterType) {
+    const recentSessions = sortedResults.slice(0, 3);
+    const olderSessions = sortedResults.slice(-3);
+    
+    if (recentSessions.length < 2) return '';
+    
+    const recentAvg = recentSessions.reduce((sum, result) => {
+        const words = result.words || [];
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const score = words.length > 0 ? (firstTryCorrect / words.length) * 100 : 0;
+        return sum + score;
+    }, 0) / recentSessions.length;
+    
+    const olderAvg = olderSessions.reduce((sum, result) => {
+        const words = result.words || [];
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const score = words.length > 0 ? (firstTryCorrect / words.length) * 100 : 0;
+        return sum + score;
+    }, 0) / olderSessions.length;
+    
+    const improvement = recentAvg - olderAvg;
+    const trendIcon = improvement > 5 ? '📈' : improvement < -5 ? '📉' : '➡️';
+    const trendText = improvement > 5 ? 'improving' : improvement < -5 ? 'declining' : 'stable';
+    const trendColor = improvement > 5 ? '#22c55e' : improvement < -5 ? '#ef4444' : '#3b82f6';
+    
+    return `
+        <div style="background: white; border: 2px solid #2563eb; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+            <h4 style="margin: 0 0 12px 0; color: #1e293b;">📊 Progress Summary</h4>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; border-left: 4px solid ${trendColor};">
+                <strong>${trendIcon} Overall Trend:</strong> Performance is <span style="color: ${trendColor}; font-weight: bold;">${trendText}</span>
+                <br>Recent average: ${Math.round(recentAvg)}% vs Earlier average: ${Math.round(olderAvg)}%
+                <br>Change: ${improvement > 0 ? '+' : ''}${Math.round(improvement)}%
+            </div>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px;">
+                <strong>🎯 Overall Recommendations:</strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                    ${improvement > 5 ? 
+                        '<li>Great progress! Continue with current approach</li><li>Consider gradually increasing difficulty</li>' :
+                        improvement < -5 ?
+                        '<li>Performance declining - review recent material</li><li>Consider slowing pace or providing additional support</li>' :
+                        '<li>Consistent performance - maintain current level</li><li>Look for opportunities to challenge or support as needed</li>'
+                    }
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+function renderFilteredAnalyticsTable() {
+    const tbody = document.getElementById('analyticsTableBody');
+    if (!tbody) return;
+    
+    if (filteredResults.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No results match the selected filters.</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filteredResults.map(result => {
+        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+        const words = result.words || [];
+        
+        // Count only words that were correct on first attempt
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        
+        const total = words.length;
+        const score = total > 0 ? Math.round((firstTryCorrect / total) * 100) : 0;
+        
+        // Find word set
+        const wordSetName = result.wordSetId ? 
+            (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
+            'Legacy Set';
+        
+        const wordDetails = words.map(w => {
+            const attempts = w.attempts || [];
+            const firstAttempt = attempts[0] || '';
+            const isFirstTryCorrect = firstAttempt === w.word;
+            
+            // Show wrong attempts (all attempts that weren't the correct word)
+            let wrongs = attempts.filter(a => a !== w.word);
+            let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
+            let hintStr = w.hint ? ' H' : '';
+            
+            // Add indicator if they eventually got it right but not on first try
+            let statusStr = '';
+            if (!isFirstTryCorrect && attempts.includes(w.word)) {
+                statusStr = ' (eventually correct)';
+            }
+            
+            return `${w.word}${wrongStr}${hintStr}${statusStr}`;
+        }).join(', ');
+        
+        return `
+            <tr>
+                <td>${result.user || 'Unknown'}</td>
+                <td>${dateTime}</td>
+                <td>${wordSetName}</td>
+                <td>
+                    <span style="color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
+                        ${score}% (${firstTryCorrect}/${total} first-try)
+                    </span>
+                </td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetails}">
+                    ${wordDetails}
+                </td>
+                <td>
+                    <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Delete</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function exportAnalyticsData() {
+    if (filteredResults.length === 0) {
+        showNotification('No data to export', 'error');
+        return;
+    }
+    
+    // Create CSV content
+    let csvContent = 'Student,Date,Time,Word Set,First-Try Score,Total Words,Correct Words,Hint Usage,Details\n';
+    
+    filteredResults.forEach(result => {
+        const date = result.date ? new Date(result.date) : new Date();
+        const words = result.words || [];
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
+        const hintsUsed = words.filter(w => w.hint).length;
+        const wordSetName = result.wordSetId ? 
+            (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
+            'Legacy Set';
+        
+        const details = words.map(w => {
+            const attempts = w.attempts || [];
+            return `${w.word}:${attempts.join('/')}${w.hint ? '(H)' : ''}`;
+        }).join(';');
+        
+        csvContent += `"${result.user || 'Unknown'}","${date.toLocaleDateString()}","${date.toLocaleTimeString()}","${wordSetName}",${score},${words.length},${firstTryCorrect},${hintsUsed},"${details}"\n`;
+    });
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `spelling_analytics_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('Analytics data exported successfully!', 'success');
+}
+
+function analyzePerformanceData(results) {
+    const analysis = {
+        totalQuizzes: results.length,
+        averageScore: 0,
+        scoreDistribution: { excellent: 0, good: 0, needsWork: 0 },
+        commonMistakes: {},
+        wordSetPerformance: {},
+        progressTrend: [],
+        hintUsage: 0,
+        completionRate: 0
+    };
+    
+    if (results.length === 0) return analysis;
+    
+    let totalScore = 0;
+    let totalHints = 0;
+    let totalWords = 0;
+    
+    results.forEach(result => {
+        const words = result.words || [];
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        
+        const score = words.length > 0 ? (firstTryCorrect / words.length) * 100 : 0;
+        totalScore += score;
+        
+        // Score distribution
+        if (score >= 80) analysis.scoreDistribution.excellent++;
+        else if (score >= 60) analysis.scoreDistribution.good++;
+        else analysis.scoreDistribution.needsWork++;
+        
+        // Analyze mistakes and hints
+        words.forEach(w => {
+            totalWords++;
+            if (w.hint) totalHints++;
+            
+            const attempts = w.attempts || [];
+            if (attempts.length > 0 && attempts[0] !== w.word) {
+                // Track common mistakes
+                const mistake = attempts[0];
+                if (!analysis.commonMistakes[w.word]) {
+                    analysis.commonMistakes[w.word] = [];
+                }
+                analysis.commonMistakes[w.word].push(mistake);
+            }
+        });
+        
+        // Word set performance
+        if (result.wordSetId) {
+            if (!analysis.wordSetPerformance[result.wordSetId]) {
+                analysis.wordSetPerformance[result.wordSetId] = {
+                    name: result.wordSetName || 'Unknown Set',
+                    scores: [],
+                    totalQuizzes: 0
+                };
+            }
+            analysis.wordSetPerformance[result.wordSetId].scores.push(score);
+            analysis.wordSetPerformance[result.wordSetId].totalQuizzes++;
+        }
+    });
+    
+    analysis.averageScore = totalScore / results.length;
+    analysis.hintUsage = totalWords > 0 ? (totalHints / totalWords) * 100 : 0;
+    
+    // Calculate progress trend (last 5 quizzes vs first 5)
+    if (results.length >= 2) {
+        const sortedResults = [...results].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const firstHalf = sortedResults.slice(0, Math.ceil(sortedResults.length / 2));
+        const secondHalf = sortedResults.slice(Math.floor(sortedResults.length / 2));
+        
+        const firstAvg = firstHalf.reduce((sum, r) => {
+            const words = r.words || [];
+            const firstTryCorrect = words.filter(w => {
+                const attempts = w.attempts || [];
+                return attempts.length > 0 && attempts[0] === w.word;
+            }).length;
+            return sum + (words.length > 0 ? (firstTryCorrect / words.length) * 100 : 0);
+        }, 0) / firstHalf.length;
+        
+        const secondAvg = secondHalf.reduce((sum, r) => {
+            const words = r.words || [];
+            const firstTryCorrect = words.filter(w => {
+                const attempts = w.attempts || [];
+                return attempts.length > 0 && attempts[0] === w.word;
+            }).length;
+            return sum + (words.length > 0 ? (firstTryCorrect / words.length) * 100 : 0);
+        }, 0) / secondHalf.length;
+        
+        analysis.progressTrend = {
+            improving: secondAvg > firstAvg + 5,
+            stable: Math.abs(secondAvg - firstAvg) <= 5,
+            declining: secondAvg < firstAvg - 5,
+            change: secondAvg - firstAvg
+        };
+    }
+    
+    return analysis;
+}
+
+function generateInsightsFromAnalysis(analysis, filterType, filterValue) {
+    let insights = '';
+    const studentName = filterType === 'student' && filterValue ? 
+        students.find(s => s.id === filterValue)?.name : null;
+    const className = filterType === 'class' && filterValue ? 
+        classes.find(c => c.id === filterValue)?.name : null;
+    
+    // Header
+    if (studentName) {
+        insights += `<h3 style="margin: 0 0 16px 0; color: #1e293b;">Overall Insights for ${studentName}</h3>`;
+    } else if (className) {
+        insights += `<h3 style="margin: 0 0 16px 0; color: #1e293b;">Overall Insights for Class ${className}</h3>`;
+    } else {
+        insights += `<h3 style="margin: 0 0 16px 0; color: #1e293b;">Overall Learning Insights</h3>`;
+    }
+    
+    // Performance overview
+    const scoreColor = analysis.averageScore >= 80 ? '#22c55e' : 
+                      analysis.averageScore >= 60 ? '#f59e0b' : '#ef4444';
+    
+    insights += `<div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid ${scoreColor};">`;
+    insights += `<strong>Performance Overview:</strong> Average first-try score is <span style="color: ${scoreColor}; font-weight: bold;">${Math.round(analysis.averageScore)}%</span> across ${analysis.totalQuizzes} quizzes.`;
+    insights += `</div>`;
+    
+    // Progress trend
+    if (analysis.progressTrend && analysis.progressTrend.change !== undefined) {
+        const trendIcon = analysis.progressTrend.improving ? '📈' : 
+                         analysis.progressTrend.stable ? '➡️' : '📉';
+        const trendColor = analysis.progressTrend.improving ? '#22c55e' : 
+                          analysis.progressTrend.stable ? '#3b82f6' : '#ef4444';
+        const trendText = analysis.progressTrend.improving ? 'improving' : 
+                         analysis.progressTrend.stable ? 'stable' : 'declining';
+        
+        insights += `<div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px;">`;
+        insights += `<strong>${trendIcon} Progress Trend:</strong> Performance is <span style="color: ${trendColor}; font-weight: bold;">${trendText}</span> `;
+        insights += `(${analysis.progressTrend.change > 0 ? '+' : ''}${Math.round(analysis.progressTrend.change)}% change over time).`;
+        insights += `</div>`;
+    }
+    
+    // Suggestions based on performance
+    insights += `<div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px;">`;
+    insights += `<strong>🎯 Recommendations:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">`;
+    
+    if (analysis.averageScore < 60) {
+        insights += `<li>Consider reviewing basic spelling patterns and phonics rules</li>`;
+        insights += `<li>Practice with easier word sets to build confidence</li>`;
+        insights += `<li>Encourage use of hints when struggling (currently ${Math.round(analysis.hintUsage)}% hint usage)</li>`;
+    } else if (analysis.averageScore < 80) {
+        insights += `<li>Focus on commonly misspelled words for targeted practice</li>`;
+        insights += `<li>Introduce slightly more challenging word sets</li>`;
+        insights += `<li>Practice spelling patterns that appear frequently in mistakes</li>`;
+    } else {
+        insights += `<li>Excellent performance! Consider advancing to more challenging word sets</li>`;
+        insights += `<li>Focus on speed and accuracy with timed exercises</li>`;
+        insights += `<li>Introduce vocabulary expansion activities</li>`;
+    }
+    
+    if (analysis.hintUsage > 30) {
+        insights += `<li>High hint usage (${Math.round(analysis.hintUsage)}%) suggests need for more foundational practice</li>`;
+    }
+    
+    if (analysis.progressTrend && analysis.progressTrend.declining) {
+        insights += `<li>Performance is declining - consider reviewing recent material and providing additional support</li>`;
+    }
+    
+    insights += `</ul></div>`;
+    
+    // Common mistakes analysis
+    const mistakes = Object.entries(analysis.commonMistakes)
+        .filter(([word, attempts]) => attempts.length >= 2)
+        .slice(0, 5);
+    
+    if (mistakes.length > 0) {
+        insights += `<div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px;">`;
+        insights += `<strong>🔍 Common Spelling Challenges:</strong><ul style="margin: 8px 0 0 0; padding-left: 20px;">`;
+        mistakes.forEach(([word, attempts]) => {
+            const commonMistake = attempts.reduce((a, b, i, arr) => 
+                arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b
+            );
+            insights += `<li><strong>${word}</strong> - often misspelled as "${commonMistake}"</li>`;
+        });
+        insights += `</ul></div>`;
+    }
+    
+    // Word set performance
+    const wordSetPerf = Object.values(analysis.wordSetPerformance);
+    if (wordSetPerf.length > 1) {
+        const bestSet = wordSetPerf.reduce((a, b) => {
+            const avgA = a.scores.reduce((sum, s) => sum + s, 0) / a.scores.length;
+            const avgB = b.scores.reduce((sum, s) => sum + s, 0) / b.scores.length;
+            return avgA > avgB ? a : b;
+        });
+        const worstSet = wordSetPerf.reduce((a, b) => {
+            const avgA = a.scores.reduce((sum, s) => sum + s, 0) / a.scores.length;
+            const avgB = b.scores.reduce((sum, s) => sum + s, 0) / b.scores.length;
+            return avgA < avgB ? a : b;
+        });
+        
+        insights += `<div style="background: white; padding: 12px; border-radius: 6px;">`;
+        insights += `<strong>📚 Word Set Performance:</strong><br>`;
+        insights += `Best performance: <strong>${bestSet.name}</strong> (${Math.round(bestSet.scores.reduce((a, b) => a + b, 0) / bestSet.scores.length)}% avg)<br>`;
+        insights += `Needs attention: <strong>${worstSet.name}</strong> (${Math.round(worstSet.scores.reduce((a, b) => a + b, 0) / worstSet.scores.length)}% avg)`;
+        insights += `</div>`;
+    }
+    
+    return insights;
 } 

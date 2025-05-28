@@ -483,35 +483,83 @@
         <!-- Analytics Tab -->
         <div class="tab-content" id="analytics">
             <h2 style="margin-bottom: 20px; color: #1e293b;">Learning Analytics</h2>
-            <div class="analytics-grid">
-                <div class="stat-card">
-                    <div class="stat-number" id="totalStudents">0</div>
-                    <div class="stat-label">Total Students</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="totalWordSets">0</div>
-                    <div class="stat-label">Word Sets</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="totalQuizzes">0</div>
-                    <div class="stat-label">Quizzes Completed</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="averageScore">0%</div>
-                    <div class="stat-label">Average Score</div>
+            
+            <!-- Analytics Filters -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div class="section-title">Analytics Filters</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 16px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Filter by:</label>
+                        <select class="form-select" id="analyticsFilterType">
+                            <option value="all">All Students</option>
+                            <option value="student">Individual Student</option>
+                            <option value="class">Class</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Select:</label>
+                        <select class="form-select" id="analyticsFilterValue" disabled>
+                            <option value="">Choose...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">From Date:</label>
+                        <input type="date" class="form-input" id="analyticsFromDate">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">To Date:</label>
+                        <input type="date" class="form-input" id="analyticsToDate">
+                    </div>
+                    <div>
+                        <button class="btn-primary" id="applyAnalyticsFilter">Apply Filter</button>
+                    </div>
                 </div>
             </div>
             
+            <!-- Analytics Stats -->
+            <div class="analytics-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredStudents">0</div>
+                    <div class="stat-label" id="filteredStudentsLabel">Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredQuizzes">0</div>
+                    <div class="stat-label">Quizzes Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredAverageScore">0%</div>
+                    <div class="stat-label">Average First-Try Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredWordSets">0</div>
+                    <div class="stat-label">Word Sets Practiced</div>
+                </div>
+            </div>
+            
+            <!-- AI Insights Section -->
+            <div class="section-card" style="margin-bottom: 24px;" id="insightsSection" style="display: none;">
+                <div class="section-title">📊 Learning Insights & Suggestions</div>
+                <div id="analyticsInsights" style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb;">
+                    <p style="color: #64748b; margin: 0;">Apply filters to see personalized insights and suggestions.</p>
+                </div>
+            </div>
+            
+            <!-- Detailed Analytics -->
             <div class="section-card">
-                <div class="section-title">Recent Quiz Results</div>
-                <button class="btn-secondary" id="deleteAllResultsBtn" style="margin-bottom: 12px;">Delete All Data</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title">Detailed Results</div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportAnalyticsBtn">Export Data</button>
+                        <button class="btn-secondary" id="deleteAllResultsBtn">Delete All Data</button>
+                    </div>
+                </div>
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>Student</th>
                             <th>Date & Time</th>
                             <th>Word Set</th>
-                            <th>Score</th>
+                            <th>First-Try Score</th>
                             <th>Details</th>
                             <th>Actions</th>
                         </tr>
