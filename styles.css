@@ -43,19 +43,19 @@ body {
 .word-counter {
     font-size: 1.1rem;
     color: #64748b;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     font-weight: 500;
 }
 
 .progress-container {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .controls {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .control-btn {
@@ -71,23 +71,16 @@ body {
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
-.hint-instruction {
-    font-size: 0.85rem;
-    color: #64748b;
-    margin-bottom: 15px;
-    font-style: italic;
-}
-
 .result-message {
-    min-height: 30px;
-    margin: 6px 0;
+    min-height: 25px;
+    margin: 4px 0;
     font-size: 1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    padding: 8px;
+    padding: 6px;
     transition: all 0.3s ease;
 }
 
@@ -112,7 +105,7 @@ body {
     display: flex;
     gap: 15px;
     justify-content: center;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .header-row {
@@ -161,13 +154,13 @@ h1 {
 .practice-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    padding: 20px 30px 24px 30px;
+    padding: 15px 20px 18px 20px;
     border-radius: 28px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     min-width: 340px;
     width: 100%;
     max-width: 500px;
@@ -325,8 +318,8 @@ h1 {
 }
 
 .letter-hint {
-    margin: 8px 0;
-    min-height: 50px;
+    margin: 4px 0;
+    min-height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1083,9 +1076,9 @@ h1 {
 
 .controls {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .control-btn {
