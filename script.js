@@ -452,6 +452,7 @@ const practiceSection = document.querySelector('.practice-card');
 const speakButton = document.getElementById('speakButton');
 const allWordsButton = document.getElementById('allWordsButton');
 const hintButton = document.getElementById('hintButton');
+const clearAllButton = document.getElementById('clearAllButton');
 const checkButton = document.getElementById('checkButton');
 const resultMessage = document.getElementById('resultMessage');
 const prevButton = document.getElementById('prevButton');
@@ -549,6 +550,13 @@ function updateLetterHint() {
             // Prevent processing if quiz is complete or word has changed
             if (quizComplete || !words[currentWordIndex]) return;
             
+            // Ensure only single character and convert to uppercase for consistency
+            if (box.value.length > 1) {
+                box.value = box.value.charAt(0).toUpperCase();
+            } else if (box.value.length === 1) {
+                box.value = box.value.toUpperCase();
+            }
+            
             if (box.value.length === 1 && i < wordLength - 1) {
                 // Move to next box
                 if (letterInputs[i + 1]) {
@@ -588,10 +596,21 @@ function updateLetterHint() {
                 }
             }
             
-            // Handle backspace to move to previous box
-            if (e.key === 'Backspace' && box.value === '' && i > 0) {
-                if (letterInputs[i - 1]) {
-                    letterInputs[i - 1].focus();
+            // Enhanced backspace and delete handling for better user experience
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                e.preventDefault(); // Prevent default behavior
+                
+                if (box.value !== '') {
+                    // Clear current box if it has content
+                    box.value = '';
+                    box.disabled = false; // Re-enable if it was disabled from hint
+                } else if (e.key === 'Backspace' && i > 0) {
+                    // If current box is empty and backspace pressed, move to previous box and clear it
+                    if (letterInputs[i - 1]) {
+                        letterInputs[i - 1].value = '';
+                        letterInputs[i - 1].disabled = false; // Re-enable if it was disabled from hint
+                        letterInputs[i - 1].focus();
+                    }
                 }
             }
             
@@ -626,6 +645,22 @@ function updateLetterHint() {
                 box.disabled = true;
                 hintUsed[currentWordIndex] = true;
             }
+        });
+        
+        // Add double-click to clear any letter box (even hint letters)
+        box.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            box.value = '';
+            box.disabled = false;
+            box.focus();
+        });
+        
+        // Add right-click context menu to clear letter
+        box.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            box.value = '';
+            box.disabled = false;
+            box.focus();
         });
         
         letterInputs.push(box);
@@ -809,6 +844,28 @@ if (hintButton) {
     hintButton.addEventListener('click', () => {
         showNotification('Press SPACE on any letter box to reveal that letter', 'info');
     });
+}
+
+// Clear All button to clear all letter boxes
+if (clearAllButton) {
+    clearAllButton.addEventListener('click', () => {
+        clearAllLetterBoxes();
+    });
+}
+
+// Function to clear all letter boxes
+function clearAllLetterBoxes() {
+    if (letterInputs && letterInputs.length > 0) {
+        letterInputs.forEach(box => {
+            box.value = '';
+            box.disabled = false; // Re-enable if it was disabled from hint
+        });
+        // Focus on the first box after clearing
+        if (letterInputs[0]) {
+            letterInputs[0].focus();
+        }
+        showNotification('All letters cleared!', 'info');
+    }
 }
 
 prevButton.addEventListener('click', () => {
