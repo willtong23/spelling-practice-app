@@ -1588,6 +1588,66 @@ h1 {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
 }
 
+/* Student Name Entry Modal Styles */
+.student-modal {
+    border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.student-header {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.student-header::before {
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="studentGrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23studentGrid)"/></svg>');
+}
+
+.student-modal .btn-submit {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.student-modal .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
+}
+
+.student-modal .password-input-container input:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.student-modal .password-toggle:hover {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+/* Student modal specific animations */
+.student-modal.success .btn-submit {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+/* Error states and animations */
+.password-input-container input.error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    animation: inputShake 0.5s ease-in-out;
+}
+
+.password-modal.shake {
+    animation: modalShake 0.5s ease-in-out;
+}
+
+@keyframes inputShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+@keyframes modalShake {
+    0%, 100% { transform: translateY(0) scale(1); }
+    25% { transform: translateY(-3px) scale(1.01); }
+    75% { transform: translateY(3px) scale(0.99); }
+}
+
 /* Password Modal Styles */
 .password-modal-overlay {
     position: fixed;

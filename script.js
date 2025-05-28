@@ -494,10 +494,149 @@ let currentFocusedLetterBox = null;
 
 // --- Name Prompt ---
 function promptUserName() {
-    userName = prompt('Please enter your name:')?.trim() || 'unknown';
-    localStorage.setItem('userName', userName);
+    // Check if name is already stored
+    const storedName = localStorage.getItem('userName');
+    if (storedName && storedName !== 'unknown' && storedName.trim()) {
+        userName = storedName.trim();
+        return;
+    }
+    
+    // Show professional name entry modal
+    showNameModal();
 }
-promptUserName();
+
+function showNameModal() {
+    const nameModal = document.getElementById('nameModal');
+    const nameInput = document.getElementById('studentNameInput');
+    const submitBtn = document.getElementById('submitNameBtn');
+    const cancelBtn = document.getElementById('cancelNameBtn');
+    const clearBtn = document.getElementById('clearNameBtn');
+    const errorDiv = document.getElementById('nameError');
+    
+    if (!nameModal || !nameInput || !submitBtn) return;
+    
+    // Reset modal state
+    nameInput.value = '';
+    errorDiv.style.display = 'none';
+    submitBtn.classList.remove('loading');
+    nameModal.classList.remove('success');
+    
+    // Show modal
+    nameModal.style.display = 'flex';
+    
+    // Focus on input after animation
+    setTimeout(() => {
+        nameInput.focus();
+    }, 300);
+    
+    // Handle input events
+    nameInput.addEventListener('input', function() {
+        errorDiv.style.display = 'none';
+        submitBtn.classList.remove('loading');
+    });
+    
+    // Handle Enter key
+    nameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleNameSubmit();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            hideNameModal();
+        }
+    });
+    
+    // Handle clear button
+    clearBtn.addEventListener('click', function() {
+        nameInput.value = '';
+        nameInput.focus();
+    });
+    
+    // Handle submit button
+    submitBtn.addEventListener('click', handleNameSubmit);
+    
+    // Handle cancel button
+    cancelBtn.addEventListener('click', function() {
+        hideNameModal();
+        // Set default name if cancelled
+        userName = 'Student';
+        localStorage.setItem('userName', userName);
+    });
+    
+    // Handle click outside modal
+    nameModal.addEventListener('click', function(e) {
+        if (e.target === nameModal) {
+            hideNameModal();
+            // Set default name if clicked outside
+            userName = 'Student';
+            localStorage.setItem('userName', userName);
+        }
+    });
+    
+    function handleNameSubmit() {
+        const name = nameInput.value.trim();
+        
+        if (!name || name.length < 1) {
+            showNameError('Please enter a valid name.');
+            return;
+        }
+        
+        if (name.length > 50) {
+            showNameError('Name is too long. Please use 50 characters or less.');
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.classList.add('loading');
+        submitBtn.textContent = 'Starting...';
+        
+        // Simulate brief loading for better UX
+        setTimeout(() => {
+            showNameSuccess();
+            
+            setTimeout(() => {
+                userName = name;
+                localStorage.setItem('userName', userName);
+                hideNameModal();
+                
+                // Initialize the app after name is set
+                initializeApp();
+            }, 800);
+        }, 300);
+    }
+    
+    function showNameError(message) {
+        const errorText = errorDiv.querySelector('.error-text');
+        if (errorText) {
+            errorText.textContent = message;
+        }
+        errorDiv.style.display = 'flex';
+        nameInput.classList.add('error');
+        nameModal.classList.add('shake');
+        
+        setTimeout(() => {
+            nameModal.classList.remove('shake');
+            nameInput.classList.remove('error');
+        }, 500);
+        
+        nameInput.focus();
+    }
+    
+    function showNameSuccess() {
+        nameModal.classList.add('success');
+        submitBtn.textContent = '✓ Welcome!';
+        submitBtn.classList.remove('loading');
+        errorDiv.style.display = 'none';
+    }
+}
+
+function hideNameModal() {
+    const nameModal = document.getElementById('nameModal');
+    if (nameModal) {
+        nameModal.style.display = 'none';
+        nameModal.classList.remove('success', 'shake');
+    }
+}
 
 // --- Voice Selection ---
 function setBritishVoice() {
@@ -1344,6 +1483,28 @@ function initializeApp() {
         updateWordSetPanel();
     }
 }
+
+// Initialize the app - first prompt for name, then start
+document.addEventListener('DOMContentLoaded', function() {
+    // First get the user's name
+    promptUserName();
+    
+    // If name is already stored, initialize immediately
+    const storedName = localStorage.getItem('userName');
+    if (storedName && storedName !== 'unknown' && storedName.trim()) {
+        userName = storedName.trim();
+        
+        // Wait for Firebase to load, then initialize
+        if (typeof firebase !== 'undefined' && window.db) {
+            initializeApp();
+        } else {
+            // Wait a bit for Firebase to load
+            setTimeout(() => {
+                initializeApp();
+            }, 1000);
+        }
+    }
+});
 
 // Wait for Firebase to load, then initialize
 if (typeof firebase !== 'undefined' && window.db) {
