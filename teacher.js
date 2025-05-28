@@ -1859,257 +1859,80 @@ function renderFilteredAnalyticsTable() {
         const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
         const words = result.words || [];
         
-        // Count only words that were correct on first attempt
-        const firstTryCorrect = words.filter(w => {
-            const attempts = w.attempts || [];
-            return attempts.length > 0 && attempts[0] === w.word;
-        }).length;
-        
-        const total = words.length;
-        const score = total > 0 ? Math.round((firstTryCorrect / total) * 100) : 0;
-        
-        // Find word set
-        const wordSetName = result.wordSetId ? 
-            (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
-            'Legacy Set';
-        
-        // Format time display
-        const totalTimeSeconds = result.totalTimeSeconds || 0;
-        const minutes = Math.floor(totalTimeSeconds / 60);
-        const seconds = totalTimeSeconds % 60;
-        const timeDisplay = totalTimeSeconds > 0 ? 
-            (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`) : 
-            'N/A';
-        
-        // Create detailed breakdown
+        // Create detailed breakdown - Focus on mistakes and hints only
         let detailsHtml = '<div style="font-size:0.85rem;">';
         
-        // Section 1: Correct Words
-        const correctWords = result.words.filter(w => w.correct && !w.hint);
-        if (correctWords.length > 0) {
-            detailsHtml += '<div style="margin-bottom:8px;">';
-            detailsHtml += '<div style="font-weight:600;color:#059669;margin-bottom:4px;">✅ Correct (' + correctWords.length + '):</div>';
-            detailsHtml += '<div style="color:#059669;">' + correctWords.map(w => w.word).join(', ') + '</div>';
-            detailsHtml += '</div>';
-        }
-        
-        // Section 2: Mistakes and Hints
+        // Only show mistakes and words that used hints
         const mistakesAndHints = result.words.filter(w => !w.correct || w.hint);
+        
         if (mistakesAndHints.length > 0) {
-            detailsHtml += '<div>';
-            detailsHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:4px;">❌ Needs Review (' + mistakesAndHints.length + '):</div>';
+            detailsHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:6px;">📝 Learning Areas (' + mistakesAndHints.length + '):</div>';
             
             mistakesAndHints.forEach(w => {
-                detailsHtml += '<div style="margin-bottom:2px;">';
+                detailsHtml += '<div style="margin-bottom:4px;padding:2px 0;">';
                 
                 if (!w.correct) {
-                    // Show wrong spelling with correction
+                    // Show wrong spelling with correction - enhanced display
                     const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                    detailsHtml += '<span style="color:#dc2626;text-decoration:line-through;">' + wrongAttempt + '</span>';
-                    detailsHtml += ' → ';
-                    detailsHtml += '<span style="color:#059669;font-weight:600;">' + w.word + '</span>';
+                    detailsHtml += '<span style="background:#fee2e2;color:#dc2626;padding:1px 3px;border-radius:3px;text-decoration:line-through;font-weight:600;">' + wrongAttempt + '</span>';
+                    detailsHtml += ' <span style="color:#6b7280;">→</span> ';
+                    detailsHtml += '<span style="background:#dcfce7;color:#059669;padding:1px 3px;border-radius:3px;font-weight:600;">' + w.word + '</span>';
                 } else if (w.hint) {
-                    // Show word with hints (correct but used hints)
-                    let wordDisplay = w.word;
+                    // Show word with specific hint letters highlighted
+                    let wordDisplay = '';
                     if (w.hintLetters && w.hintLetters.length > 0) {
                         wordDisplay = w.word.split('').map((letter, letterIndex) => {
                             if (w.hintLetters.includes(letterIndex)) {
-                                return `<u>${letter}</u>`;
+                                return `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:700;">${letter}</span>`;
                             }
-                            return letter;
+                            return `<span style="color:#374151;">${letter}</span>`;
                         }).join('');
                     } else {
-                        wordDisplay = `<u>${w.word}</u>`;
+                        // If no specific hint letters, underline the whole word
+                        wordDisplay = `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:600;">${w.word}</span>`;
                     }
-                    detailsHtml += '<span style="color:#f59e0b;">' + wordDisplay + ' (hint)</span>';
+                    detailsHtml += wordDisplay + ' <span style="color:#d97706;font-size:0.75rem;">(used hint)</span>';
                 }
                 
                 detailsHtml += '</div>';
             });
-            
-            detailsHtml += '</div>';
+        } else {
+            // All words were correct without hints
+            detailsHtml += '<div style="color:#059669;font-weight:600;">🎉 Perfect! All words spelled correctly without hints</div>';
         }
         
         detailsHtml += '</div>';
         
-        // Create a simple summary for the cell content
+        // Create a focused summary for the cell content
         let summaryText = '';
-        if (correctWords.length > 0) {
-            summaryText += `✅ ${correctWords.length} correct`;
+        const correctWords = result.words.filter(w => w.correct && !w.hint);
+        const mistakes = result.words.filter(w => !w.correct);
+        const hintsUsed = result.words.filter(w => w.hint);
+        
+        if (mistakes.length > 0) {
+            summaryText += `❌ ${mistakes.length} mistake${mistakes.length > 1 ? 's' : ''}`;
         }
-        if (mistakesAndHints.length > 0) {
+        if (hintsUsed.length > 0) {
             if (summaryText) summaryText += ', ';
-            summaryText += `❌ ${mistakesAndHints.length} need review`;
+            summaryText += `💡 ${hintsUsed.length} hint${hintsUsed.length > 1 ? 's' : ''}`;
         }
-        if (!summaryText) summaryText = 'No data';
+        if (!summaryText) {
+            summaryText = `🎉 Perfect (${correctWords.length}/${result.words.length})`;
+        }
         
         return `
             <tr>
                 <td>${result.user || 'Unknown'}</td>
+                <td>${result.wordSetName || 'Unknown Set'}</td>
                 <td>${dateTime}</td>
-                <td>${wordSetName}</td>
-                <td style="text-align: center;">${timeDisplay}</td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${summaryText}">${summaryText}</td>
+                <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${detailsHtml.replace(/<[^>]*>/g, '')}">${detailsHtml}</td>
                 <td>
-                    <span style="color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
-                        ${score}% (${firstTryCorrect}/${total})
-                    </span>
-                </td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; cursor: help;" title="${detailsHtml.replace(/"/g, '&quot;')}">
-                    ${summaryText}
-                </td>
-                <td>
-                    <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Delete</button>
+                    <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Remove</button>
                 </td>
             </tr>
         `;
     }).join('');
-}
-
-function exportAnalyticsData() {
-    if (filteredResults.length === 0) {
-        showNotification('No data to export', 'error');
-        return;
-    }
-    
-    // Create CSV content
-    let csvContent = 'Student,Date,Time,Word Set,Duration,Score,Total Words,Correct Words,Hint Usage,Details\n';
-    
-    filteredResults.forEach(result => {
-        const date = result.date ? new Date(result.date) : new Date();
-        const words = result.words || [];
-        const firstTryCorrect = words.filter(w => {
-            const attempts = w.attempts || [];
-            return attempts.length > 0 && attempts[0] === w.word;
-        }).length;
-        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
-        const hintsUsed = words.filter(w => w.hint).length;
-        const wordSetName = result.wordSetId ? 
-            (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
-            'Legacy Set';
-        
-        // Format duration
-        const totalTimeSeconds = result.totalTimeSeconds || 0;
-        const minutes = Math.floor(totalTimeSeconds / 60);
-        const seconds = totalTimeSeconds % 60;
-        const duration = totalTimeSeconds > 0 ? 
-            (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`) : 
-            'N/A';
-        
-        const details = words.map(w => {
-            const attempts = w.attempts || [];
-            return `${w.word}:${attempts.join('/')}${w.hint ? '(H)' : ''}`;
-        }).join(';');
-        
-        csvContent += `"${result.user || 'Unknown'}","${date.toLocaleDateString()}","${date.toLocaleTimeString()}","${wordSetName}","${duration}",${score},${words.length},${firstTryCorrect},${hintsUsed},"${details}"\n`;
-    });
-    
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `spelling_analytics_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    
-    showNotification('Analytics data exported successfully!', 'success');
-}
-
-// PDF Export Function
-function exportPdfData() {
-    if (filteredResults.length === 0) {
-        showNotification('No data to export', 'error');
-        return;
-    }
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Title
-    doc.setFontSize(16);
-    doc.text('Spelling Practice Report', 20, 20);
-    doc.setFontSize(12);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 35);
-    
-    let yPos = 50;
-    
-    // Group by student
-    const studentData = {};
-    filteredResults.forEach(result => {
-        const student = result.user || 'Unknown';
-        if (!studentData[student]) studentData[student] = [];
-        studentData[student].push(result);
-    });
-    
-    Object.keys(studentData).forEach(studentName => {
-        if (yPos > 250) {
-            doc.addPage();
-            yPos = 20;
-        }
-        
-        doc.setFontSize(14);
-        doc.text(`Student: ${studentName}`, 20, yPos);
-        yPos += 15;
-        
-        studentData[studentName].forEach(result => {
-            const words = result.words || [];
-            const correctWords = words.filter(w => w.correct && !w.hint);
-            const mistakesAndHints = words.filter(w => !w.correct || w.hint);
-            
-            if (correctWords.length > 0 || mistakesAndHints.length > 0) {
-                doc.setFontSize(10);
-                doc.text(`Word Set: ${result.wordSetName || 'Unknown'} - ${new Date(result.date).toLocaleDateString()}`, 20, yPos);
-                yPos += 8;
-                
-                // Show correct words
-                if (correctWords.length > 0) {
-                    doc.setFontSize(9);
-                    doc.text(`✓ Words Spelled Correctly (${correctWords.length}):`, 20, yPos);
-                    yPos += 6;
-                    const correctWordsText = correctWords.map(w => w.word).join(', ');
-                    const correctLines = doc.splitTextToSize(correctWordsText, 170);
-                    doc.text(correctLines, 25, yPos);
-                    yPos += correctLines.length * 5 + 3;
-                }
-                
-                // Show mistakes and hints
-                if (mistakesAndHints.length > 0) {
-                    doc.setFontSize(9);
-                    doc.text(`✗ Words Needing Practice (${mistakesAndHints.length}):`, 20, yPos);
-                    yPos += 6;
-                    
-                    mistakesAndHints.forEach(w => {
-                        let practiceText = '';
-                        
-                        if (!w.correct) {
-                            // Show wrong spelling with correction
-                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                            practiceText = `• ${wrongAttempt} → ${w.word} (incorrect spelling)`;
-                        } else if (w.hint) {
-                            // Show word with hints
-                            if (w.hintLetters && w.hintLetters.length > 0) {
-                                const hintedLetters = w.hintLetters.map(pos => w.word[pos]).join(', ');
-                                practiceText = `• ${w.word} (used hints for letters: ${hintedLetters})`;
-                            } else {
-                                practiceText = `• ${w.word} (used hints)`;
-                            }
-                        }
-                        
-                        const practiceLines = doc.splitTextToSize(practiceText, 170);
-                        doc.text(practiceLines, 25, yPos);
-                        yPos += practiceLines.length * 5;
-                    });
-                }
-                
-                yPos += 10;
-            }
-        });
-    });
-    
-    doc.save(`spelling_report_${new Date().toISOString().split('T')[0]}.pdf`);
-    showNotification('PDF report generated!', 'success');
 }
 
 function analyzePerformanceData(results) {
@@ -2614,4 +2437,202 @@ async function checkAllClassAssignments() {
         console.error('Error checking class assignments:', error);
         showNotification('Error checking class assignments', 'error');
     }
+}
+
+// Export analytics data as CSV
+function exportAnalyticsData() {
+    if (filteredResults.length === 0) {
+        showNotification('No data to export', 'warning');
+        return;
+    }
+    
+    // Create CSV headers
+    const headers = ['Student', 'Date & Time', 'Word Set', 'Time (seconds)', 'Score (%)', 'Mistakes', 'Hints Used', 'Details'];
+    
+    // Create CSV rows
+    const rows = filteredResults.map(result => {
+        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+        const words = result.words || [];
+        
+        // Calculate score
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
+        
+        // Get mistakes and hints
+        const mistakes = words.filter(w => !w.correct);
+        const hintsUsed = words.filter(w => w.hint);
+        
+        // Create detailed text for mistakes and hints
+        let details = '';
+        if (mistakes.length > 0) {
+            details += 'Mistakes: ';
+            details += mistakes.map(w => {
+                const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                return `${wrongAttempt} → ${w.word}`;
+            }).join(', ');
+        }
+        if (hintsUsed.length > 0) {
+            if (details) details += '; ';
+            details += 'Hints: ';
+            details += hintsUsed.map(w => {
+                if (w.hintLetters && w.hintLetters.length > 0) {
+                    return `${w.word} (letters: ${w.hintLetters.map(pos => w.word[pos]).join(', ')})`;
+                }
+                return w.word;
+            }).join(', ');
+        }
+        if (!details) details = 'Perfect - no mistakes or hints';
+        
+        return [
+            result.user || 'Unknown',
+            dateTime,
+            result.wordSetName || 'Unknown Set',
+            result.totalTime || '0',
+            score,
+            mistakes.length,
+            hintsUsed.length,
+            details
+        ];
+    });
+    
+    // Combine headers and rows
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(cell => `"${cell}"`).join(','))
+        .join('\n');
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `spelling_analytics_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('Analytics data exported to CSV!', 'success');
+}
+
+// Export analytics data as PDF
+function exportPdfData() {
+    if (filteredResults.length === 0) {
+        showNotification('No data to export', 'warning');
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('Spelling Practice Report', 20, 20);
+    
+    // Date range and filter info
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    const filterType = document.getElementById('analyticsFilterType').value;
+    const filterValue = document.getElementById('analyticsFilterValue').value;
+    const fromDate = document.getElementById('analyticsFromDate').value;
+    const toDate = document.getElementById('analyticsToDate').value;
+    
+    let filterInfo = 'Filter: ';
+    if (filterType === 'student' && filterValue) {
+        const student = students.find(s => s.id === filterValue);
+        filterInfo += `Student - ${student?.name || 'Unknown'}`;
+    } else if (filterType === 'class' && filterValue) {
+        const cls = classes.find(c => c.id === filterValue);
+        filterInfo += `Class - ${cls?.name || 'Unknown'}`;
+    } else {
+        filterInfo += 'All Students';
+    }
+    
+    if (fromDate || toDate) {
+        filterInfo += ` | Date Range: ${fromDate || 'Start'} to ${toDate || 'End'}`;
+    }
+    
+    doc.text(filterInfo, 20, 30);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 40);
+    doc.text(`Total Results: ${filteredResults.length}`, 20, 50);
+    
+    let yPos = 70;
+    
+    // Process each result
+    filteredResults.forEach((result, index) => {
+        // Check if we need a new page
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+        const words = result.words || [];
+        
+        // Calculate score
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
+        
+        // Header for this result
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${index + 1}. ${result.user || 'Unknown'} - ${result.wordSetName || 'Unknown Set'}`, 20, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Date: ${dateTime} | Score: ${score}% | Time: ${result.totalTime || 0}s`, 20, yPos);
+        yPos += 12;
+        
+        // Focus on mistakes and hints only
+        const mistakesAndHints = words.filter(w => !w.correct || w.hint);
+        
+        if (mistakesAndHints.length > 0) {
+            doc.setFont(undefined, 'bold');
+            doc.text(`Learning Areas (${mistakesAndHints.length}):`, 25, yPos);
+            yPos += 8;
+            
+            mistakesAndHints.forEach(w => {
+                let practiceText = '';
+                
+                if (!w.correct) {
+                    // Show mistake with colors in text description
+                    const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                    practiceText = `• MISTAKE: "${wrongAttempt}" → "${w.word}" (incorrect spelling)`;
+                } else if (w.hint) {
+                    // Show word with hint information
+                    if (w.hintLetters && w.hintLetters.length > 0) {
+                        const hintedLetters = w.hintLetters.map(pos => `${w.word[pos]} (position ${pos + 1})`).join(', ');
+                        practiceText = `• HINT USED: "${w.word}" - helped with letters: ${hintedLetters}`;
+                    } else {
+                        practiceText = `• HINT USED: "${w.word}" (general hint)`;
+                    }
+                }
+                
+                doc.setFont(undefined, 'normal');
+                const practiceLines = doc.splitTextToSize(practiceText, 170);
+                doc.text(practiceLines, 30, yPos);
+                yPos += practiceLines.length * 5;
+            });
+        } else {
+            // Perfect performance
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(0, 150, 0); // Green color
+            doc.text('🎉 PERFECT! All words spelled correctly without hints', 25, yPos);
+            doc.setTextColor(0, 0, 0); // Reset to black
+            yPos += 8;
+        }
+        
+        yPos += 10; // Space between results
+    });
+    
+    // Save the PDF
+    doc.save(`spelling_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('PDF report generated!', 'success');
 } 

@@ -457,7 +457,6 @@ const practiceSection = document.querySelector('.practice-card');
 const speakButton = document.getElementById('speakButton');
 const allWordsButton = document.getElementById('allWordsButton');
 const hintButton = document.getElementById('hintButton');
-const clearAllButton = document.getElementById('clearAllButton');
 const alphabetsButton = document.getElementById('alphabetsButton');
 const alphabetKeyboard = document.getElementById('alphabetKeyboard');
 const exitPracticeButton = document.getElementById('exitPracticeButton');
@@ -665,7 +664,14 @@ function updateLetterHint() {
             if (words[currentWordIndex] && words[currentWordIndex][i]) {
                 box.value = words[currentWordIndex][i];
                 box.disabled = true;
-                hintUsed[currentWordIndex] = true;
+                
+                // Track which letter position was hinted (same as spacebar logic)
+                if (!hintUsed[currentWordIndex]) {
+                    hintUsed[currentWordIndex] = [];
+                }
+                if (!hintUsed[currentWordIndex].includes(i)) {
+                    hintUsed[currentWordIndex].push(i);
+                }
             }
         });
         
@@ -908,12 +914,6 @@ if (hintButton) {
     });
 }
 
-// Clear All button to clear all letter boxes
-if (clearAllButton) {
-    clearAllButton.addEventListener('click', () => {
-        clearAllLetterBoxes();
-    });
-}
 
 // Exit Practice button to return to main quiz
 if (exitPracticeButton) {
@@ -938,19 +938,6 @@ if (alphabetsButton) {
 // Note: Voice Input button event listener is set up in DOMContentLoaded event
 
 // Function to clear all letter boxes
-function clearAllLetterBoxes() {
-    if (letterInputs && letterInputs.length > 0) {
-        letterInputs.forEach(box => {
-            box.value = '';
-            box.disabled = false; // Re-enable if it was disabled from hint
-        });
-        // Focus on the first box after clearing
-        if (letterInputs[0]) {
-            letterInputs[0].focus();
-        }
-        showNotification('All letters cleared!', 'info');
-    }
-}
 
 prevButton.addEventListener('click', () => {
     if (currentWordIndex > 0 && !quizComplete && words.length > 0) {
@@ -1455,15 +1442,20 @@ function updatePracticeModeUI() {
     const title = document.querySelector('.title');
     const exitButton = document.getElementById('exitPracticeButton');
     
-    if (title && isIndividualWordPractice) {
-        title.textContent = '🎯 Word Practice';
-        title.style.color = '#10b981';
-    } else if (title && isPracticeMode) {
-        title.textContent = '🎯 Practice Mode';
-        title.style.color = '#f59e0b';
-    } else if (title && !isPracticeMode && !isIndividualWordPractice) {
-        title.textContent = 'Spelling Practice';
-        title.style.color = '#2563eb';
+    if (title) {
+        // Preserve the logo and update the text
+        const logoHtml = '<img src="logo.png" alt="Spelling Practice Logo" class="logo">';
+        
+        if (isIndividualWordPractice) {
+            title.innerHTML = logoHtml + '🎯 Word Practice';
+            title.style.color = '#10b981';
+        } else if (isPracticeMode) {
+            title.innerHTML = logoHtml + '🎯 Practice Mode';
+            title.style.color = '#f59e0b';
+        } else if (!isPracticeMode && !isIndividualWordPractice) {
+            title.innerHTML = logoHtml + 'Spelling Practice';
+            title.style.color = '#2563eb';
+        }
     }
     
     // Show/hide exit practice button
