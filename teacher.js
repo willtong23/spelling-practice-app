@@ -537,6 +537,12 @@ function setupEventListeners() {
     modalOverlay?.addEventListener('click', (e) => {
         if (e.target === modalOverlay) closeModal();
     });
+    
+    // Export analytics data
+    document.getElementById('exportAnalyticsBtn').addEventListener('click', exportAnalyticsData);
+    
+    // Export PDF data
+    document.getElementById('exportPdfBtn').addEventListener('click', exportPdfData);
 }
 
 // Modal Functions
@@ -1557,7 +1563,7 @@ function analyzeIndividualSession(result, sessionNumber) {
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
                 <div style="text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px;">
                     <div style="font-size: 1.2rem; font-weight: bold; color: ${scoreColor};">${score}%</div>
-                    <div style="font-size: 0.8rem; color: #64748b;">First-Try Score</div>
+                    <div style="font-size: 0.8rem; color: #64748b;">Score</div>
                 </div>
                 <div style="text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px;">
                     <div style="font-size: 1.2rem; font-weight: bold; color: #3b82f6;">${firstTryCorrect}/${totalWords}</div>
@@ -1737,7 +1743,7 @@ function renderFilteredAnalyticsTable() {
     if (!tbody) return;
     
     if (filteredResults.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No results match the selected filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No results match the selected filters.</td></tr>';
         return;
     }
     
@@ -1759,6 +1765,14 @@ function renderFilteredAnalyticsTable() {
             (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
             'Legacy Set';
         
+        // Format time display
+        const totalTimeSeconds = result.totalTimeSeconds || 0;
+        const minutes = Math.floor(totalTimeSeconds / 60);
+        const seconds = totalTimeSeconds % 60;
+        const timeDisplay = totalTimeSeconds > 0 ? 
+            (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`) : 
+            'N/A';
+        
         const wordDetails = words.map(w => {
             const attempts = w.attempts || [];
             const firstAttempt = attempts[0] || '';
@@ -1769,6 +1783,21 @@ function renderFilteredAnalyticsTable() {
             let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
             let hintStr = w.hint ? ' H' : '';
             
+            // Create word display with hint letters underlined
+            let wordDisplay = w.word;
+            if (w.hint && w.hintLetters && w.hintLetters.length > 0) {
+                // Underline specific letters that were hinted
+                wordDisplay = w.word.split('').map((letter, letterIndex) => {
+                    if (w.hintLetters.includes(letterIndex)) {
+                        return `<u>${letter}</u>`;
+                    }
+                    return letter;
+                }).join('');
+            } else if (w.hint) {
+                // Fallback: underline whole word if hint was used but no specific letters tracked
+                wordDisplay = `<u>${w.word}</u>`;
+            }
+            
             // Determine color based on status
             let color = '#000000'; // default black
             if (!isFirstTryCorrect) {
@@ -1777,7 +1806,7 @@ function renderFilteredAnalyticsTable() {
                 color = '#3b82f6'; // blue for words with hints
             }
             
-            return `<span style="color: ${color};">${w.word}${wrongStr}${hintStr}</span>`;
+            return `<span style="color: ${color};">${wordDisplay}${wrongStr}${hintStr}</span>`;
         }).join(', ');
         
         // Create plain text version for tooltip
@@ -1794,9 +1823,10 @@ function renderFilteredAnalyticsTable() {
                 <td>${result.user || 'Unknown'}</td>
                 <td>${dateTime}</td>
                 <td>${wordSetName}</td>
+                <td style="text-align: center;">${timeDisplay}</td>
                 <td>
                     <span style="color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
-                        ${score}% (${firstTryCorrect}/${total} first-try)
+                        ${score}% (${firstTryCorrect}/${total})
                     </span>
                 </td>
                 <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetailsPlain}">
@@ -1817,7 +1847,7 @@ function exportAnalyticsData() {
     }
     
     // Create CSV content
-    let csvContent = 'Student,Date,Time,Word Set,First-Try Score,Total Words,Correct Words,Hint Usage,Details\n';
+    let csvContent = 'Student,Date,Time,Word Set,Duration,Score,Total Words,Correct Words,Hint Usage,Details\n';
     
     filteredResults.forEach(result => {
         const date = result.date ? new Date(result.date) : new Date();
@@ -1832,12 +1862,20 @@ function exportAnalyticsData() {
             (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
             'Legacy Set';
         
+        // Format duration
+        const totalTimeSeconds = result.totalTimeSeconds || 0;
+        const minutes = Math.floor(totalTimeSeconds / 60);
+        const seconds = totalTimeSeconds % 60;
+        const duration = totalTimeSeconds > 0 ? 
+            (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`) : 
+            'N/A';
+        
         const details = words.map(w => {
             const attempts = w.attempts || [];
             return `${w.word}:${attempts.join('/')}${w.hint ? '(H)' : ''}`;
         }).join(';');
         
-        csvContent += `"${result.user || 'Unknown'}","${date.toLocaleDateString()}","${date.toLocaleTimeString()}","${wordSetName}",${score},${words.length},${firstTryCorrect},${hintsUsed},"${details}"\n`;
+        csvContent += `"${result.user || 'Unknown'}","${date.toLocaleDateString()}","${date.toLocaleTimeString()}","${wordSetName}","${duration}",${score},${words.length},${firstTryCorrect},${hintsUsed},"${details}"\n`;
     });
     
     // Download CSV
@@ -1852,6 +1890,81 @@ function exportAnalyticsData() {
     window.URL.revokeObjectURL(url);
     
     showNotification('Analytics data exported successfully!', 'success');
+}
+
+// PDF Export Function
+function exportPdfData() {
+    if (filteredResults.length === 0) {
+        showNotification('No data to export', 'error');
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(16);
+    doc.text('Spelling Practice Report', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 35);
+    
+    let yPos = 50;
+    
+    // Group by student
+    const studentData = {};
+    filteredResults.forEach(result => {
+        const student = result.user || 'Unknown';
+        if (!studentData[student]) studentData[student] = [];
+        studentData[student].push(result);
+    });
+    
+    Object.keys(studentData).forEach(studentName => {
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFontSize(14);
+        doc.text(`Student: ${studentName}`, 20, yPos);
+        yPos += 15;
+        
+        studentData[studentName].forEach(result => {
+            const words = result.words || [];
+            const wrongWords = words.filter(w => {
+                const attempts = w.attempts || [];
+                return attempts.length > 0 && attempts[0] !== w.word;
+            });
+            const hintWords = words.filter(w => w.hint);
+            
+            if (wrongWords.length > 0 || hintWords.length > 0) {
+                doc.setFontSize(10);
+                doc.text(`Word Set: ${result.wordSetName || 'Unknown'}`, 20, yPos);
+                yPos += 8;
+                
+                if (wrongWords.length > 0) {
+                    doc.text('Words to practice:', 20, yPos);
+                    yPos += 6;
+                    wrongWords.forEach(w => {
+                        doc.text(`• ${w.word} (you wrote: ${w.attempts[0]})`, 25, yPos);
+                        yPos += 6;
+                    });
+                }
+                
+                if (hintWords.length > 0) {
+                    doc.text('Words with hints:', 20, yPos);
+                    yPos += 6;
+                    hintWords.forEach(w => {
+                        doc.text(`• ${w.word}`, 25, yPos);
+                        yPos += 6;
+                    });
+                }
+                yPos += 10;
+            }
+        });
+    });
+    
+    doc.save(`spelling_report_${new Date().toISOString().split('T')[0]}.pdf`);
+    showNotification('PDF report generated!', 'success');
 }
 
 function analyzePerformanceData(results) {
@@ -1976,7 +2089,7 @@ function generateInsightsFromAnalysis(analysis, filterType, filterValue) {
                       analysis.averageScore >= 60 ? '#f59e0b' : '#ef4444';
     
     insights += `<div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 16px; border-left: 4px solid ${scoreColor};">`;
-    insights += `<strong>Performance Overview:</strong> Average first-try score is <span style="color: ${scoreColor}; font-weight: bold;">${Math.round(analysis.averageScore)}%</span> across ${analysis.totalQuizzes} quizzes.`;
+    insights += `<strong>Performance Overview:</strong> Average score is <span style="color: ${scoreColor}; font-weight: bold;">${Math.round(analysis.averageScore)}%</span> across ${analysis.totalQuizzes} quizzes.`;
     insights += `</div>`;
     
     // Progress trend

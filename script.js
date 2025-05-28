@@ -595,7 +595,15 @@ function updateLetterHint() {
                 if (words[currentWordIndex] && words[currentWordIndex][i]) {
                     box.value = words[currentWordIndex][i];
                     box.disabled = true;
-                    hintUsed[currentWordIndex] = true;
+                    
+                    // Track which letter position was hinted
+                    if (!hintUsed[currentWordIndex]) {
+                        hintUsed[currentWordIndex] = [];
+                    }
+                    if (!hintUsed[currentWordIndex].includes(i)) {
+                        hintUsed[currentWordIndex].push(i);
+                    }
+                    
                     // Move focus to next box if available
                     if (i < wordLength - 1 && letterInputs[i + 1]) {
                         letterInputs[i + 1].focus();
@@ -734,6 +742,9 @@ function resetQuizState() {
     quizComplete = false;
     lastQuizComplete = false;
     
+    // Start time tracking
+    window.quizStartTime = new Date();
+    
     // Stop voice input when resetting quiz
     if (isVoiceInputActive) {
         stopVoiceInput();
@@ -741,7 +752,7 @@ function resetQuizState() {
     
     for (let i = 0; i < words.length; i++) {
         userAnswers[i] = { attempts: [], correct: false };
-        hintUsed[i] = false;
+        hintUsed[i] = []; // Change to array to track individual letter positions
     }
 }
 
@@ -1023,13 +1034,13 @@ function showEndOfQuizFeedback() {
         
         // Check if first attempt was correct
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
-        if (!firstTryCorrect || hintUsed[i]) {
+        if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             allPerfectFirstTry = false;
             // Add to practice list if wrong or hint used
             wordsNeedingPractice.push({
                 word: correctWord,
                 index: i,
-                usedHint: hintUsed[i],
+                usedHint: Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i],
                 gotWrong: !firstTryCorrect
             });
         }
@@ -1072,7 +1083,7 @@ function showEndOfQuizFeedback() {
         }
         
         // Add hint indicator
-        if (hintUsed[i]) {
+        if (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i]) {
             html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
         }
         
@@ -1210,7 +1221,8 @@ async function saveQuizResults() {
                 word: word,
                 correct: firstAttemptCorrect, // Only true if first attempt was correct
                 attempts: attempts,
-                hint: hintUsed[index] || false,
+                hint: Array.isArray(hintUsed[index]) ? hintUsed[index].length > 0 : hintUsed[index] || false,
+                hintLetters: Array.isArray(hintUsed[index]) ? hintUsed[index] : [], // Track which letters were hinted
                 firstTryCorrect: firstAttemptCorrect // Explicit field for first-try scoring
             };
             console.log(`Word ${index}:`, wordObj);
@@ -1218,6 +1230,13 @@ async function saveQuizResults() {
         });
         
         const now = new Date();
+        
+        // Calculate total time if we have a start time
+        let totalTimeSeconds = 0;
+        if (window.quizStartTime) {
+            totalTimeSeconds = Math.round((now - window.quizStartTime) / 1000);
+        }
+        
         const quizData = {
             user: userName,  // Changed from userName to user
             date: now.toISOString(), // Use ISO string for consistent parsing
@@ -1225,7 +1244,8 @@ async function saveQuizResults() {
             wordSetId: currentWordSetId, // Include word set ID for tracking
             wordSetName: currentWordSetName, // Include word set name for display
             timestamp: now, // Firebase timestamp for server-side operations
-            completedAt: now // Additional timestamp for completion tracking
+            completedAt: now, // Additional timestamp for completion tracking
+            totalTimeSeconds: totalTimeSeconds // Add total time in seconds
         };
         
         console.log('Final quiz data to save:', JSON.stringify(quizData, null, 2));
@@ -1394,7 +1414,7 @@ function startPracticeMode() {
         const correctWord = words[i];
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
         
-        if (!firstTryCorrect || hintUsed[i]) {
+        if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             practiceWords.push(correctWord);
         }
     }
@@ -1487,7 +1507,7 @@ function checkForContinuedPractice() {
         const correctWord = words[i];
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
         
-        if (!firstTryCorrect || hintUsed[i]) {
+        if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             stillNeedPractice.push(correctWord);
         }
     }

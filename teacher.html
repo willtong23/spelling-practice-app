@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
@@ -495,7 +496,8 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div class="section-title">Detailed Results</div>
                     <div style="display: flex; gap: 12px;">
-                        <button class="btn-secondary" id="exportAnalyticsBtn">Export Data</button>
+                        <button class="btn-secondary" id="exportAnalyticsBtn">Export CSV</button>
+                        <button class="btn-secondary" id="exportPdfBtn">Export PDF</button>
                         <button class="btn-secondary" id="deleteAllResultsBtn">Delete All Data</button>
                     </div>
                 </div>
@@ -505,7 +507,8 @@
                             <th>Student</th>
                             <th>Date & Time</th>
                             <th>Word Set</th>
-                            <th>First-Try Score</th>
+                            <th>Time</th>
+                            <th>Score</th>
                             <th>Details</th>
                             <th>Actions</th>
                         </tr>
@@ -559,8 +562,8 @@
                     <div class="stat-label">Quizzes Completed</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="filteredAverageScore">0%</div>
-                    <div class="stat-label">Average First-Try Score</div>
+                    <div class="stat-value" id="avgScore">0%</div>
+                    <div class="stat-label">Average Score</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="filteredWordSets">0</div>
