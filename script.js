@@ -1272,7 +1272,7 @@ function showAllWords() {
         return;
     }
     
-    let html = '<h2 style="margin-bottom:18px;">All Words</h2>';
+    let html = '<h2 style="margin-bottom:18px;">📋 Wordlist</h2>';
     
     // Show which word set is being used
     if (currentWordSetName) {
@@ -1324,6 +1324,50 @@ if (typeof firebase !== 'undefined' && window.db) {
     // Wait a bit for Firebase to load
     setTimeout(() => {
         initializeApp();
+    }, 1000);
+}
+
+// Password protection for teacher dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    const teacherLink = document.querySelector('.teacher-link');
+    if (teacherLink) {
+        teacherLink.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default navigation
+            
+            const password = prompt('🔐 Enter teacher password:');
+            
+            if (password === '9739') {
+                // Correct password - navigate to teacher dashboard
+                showNotification('✅ Access granted! Redirecting to teacher dashboard...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'teacher.html';
+                }, 1000);
+            } else if (password !== null) { // User didn't cancel
+                // Wrong password - show countdown and redirect back
+                showPasswordError();
+            }
+            // If user cancels (password === null), do nothing
+        });
+    }
+});
+
+// Function to show password error with countdown
+function showPasswordError() {
+    let countdown = 8;
+    showNotification(`❌ Incorrect password! Returning to practice in ${countdown} seconds...`, 'error');
+    
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+            showNotification(`❌ Incorrect password! Returning to practice in ${countdown} seconds...`, 'error');
+        } else {
+            clearInterval(countdownInterval);
+            showNotification('🔄 Returning to practice...', 'info');
+            // Focus back on the practice area
+            if (letterInputs && letterInputs.length > 0 && letterInputs[0]) {
+                letterInputs[0].focus();
+            }
+        }
     }, 1000);
 }
 

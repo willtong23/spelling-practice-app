@@ -482,39 +482,43 @@ h1 {
 }
 
 .speak-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .speak-btn:hover {
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    background: linear-gradient(135deg, #ff5252 0%, #d63031 100%);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
 .hint-btn {
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+    box-shadow: 0 4px 15px rgba(254, 202, 87, 0.3);
 }
 
 .hint-btn:hover {
-    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    background: linear-gradient(135deg, #ff9f43 0%, #fd79a8 100%);
+    box-shadow: 0 6px 20px rgba(254, 202, 87, 0.4);
 }
 
 .clear-btn {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    background: linear-gradient(135deg, #a55eea 0%, #8b5cf6 100%);
+    box-shadow: 0 4px 15px rgba(165, 94, 234, 0.3);
 }
 
 .clear-btn:hover {
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    background: linear-gradient(135deg, #9c88ff 0%, #7c3aed 100%);
+    box-shadow: 0 6px 20px rgba(165, 94, 234, 0.4);
 }
 
 .exit-practice-btn {
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-    box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+    background: linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%);
+    box-shadow: 0 4px 15px rgba(253, 121, 168, 0.3);
 }
 
 .exit-practice-btn:hover {
-    box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+    background: linear-gradient(135deg, #e84393 0%, #f39c12 100%);
+    box-shadow: 0 6px 20px rgba(253, 121, 168, 0.4);
 }
 
 /* Modal Styles */
@@ -1073,12 +1077,13 @@ h1 {
 }
 
 .speak-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
 .speak-btn:hover {
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    background: linear-gradient(135deg, #ff5252 0%, #d63031 100%);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
 /* Responsive design for modals */
@@ -1153,20 +1158,24 @@ h1 {
 }
 
 .alphabets-btn {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #ff9ff3 0%, #f368e0 100%);
+    box-shadow: 0 4px 15px rgba(255, 159, 243, 0.3);
 }
 
 .alphabets-btn:hover {
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    background: linear-gradient(135deg, #fd79a8 0%, #e056fd 100%);
+    box-shadow: 0 6px 20px rgba(255, 159, 243, 0.4);
 }
 
 .voice-input-btn {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
     position: relative;
+    box-shadow: 0 4px 15px rgba(38, 222, 129, 0.3);
 }
 
 .voice-input-btn:hover {
-    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    background: linear-gradient(135deg, #20bf6b 0%, #0fb9b1 100%);
+    box-shadow: 0 6px 20px rgba(38, 222, 129, 0.4);
 }
 
 .voice-input-btn.listening {
@@ -1317,4 +1326,15 @@ h1 {
         border-radius: 8px;
         min-width: 22px;
     }
+}
+
+/* All Words / Wordlist button - bright cyan */
+#allWordsButton {
+    background: linear-gradient(135deg, #00d2d3 0%, #54a0ff 100%);
+    box-shadow: 0 4px 15px rgba(0, 210, 211, 0.3);
+}
+
+#allWordsButton:hover {
+    background: linear-gradient(135deg, #0abde3 0%, #3742fa 100%);
+    box-shadow: 0 6px 20px rgba(0, 210, 211, 0.4);
 } 
