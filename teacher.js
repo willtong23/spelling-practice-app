@@ -2019,6 +2019,23 @@ async function setClassDefaultWordSet(classId) {
     try {
         const selectElement = document.getElementById(`classDefaultSet_${classId}`);
         const wordSetId = selectElement.value;
+        const wordSetName = wordSetId ? wordSets.find(ws => ws.id === wordSetId)?.name : 'None';
+        const className = classes.find(c => c.id === classId)?.name;
+        
+        // Find all students in this class
+        const studentsInClass = students.filter(student => student.classId === classId);
+        
+        // Show confirmation dialog
+        const confirmMessage = studentsInClass.length > 0 
+            ? `This will set the default word set for class "${className}" to "${wordSetName}" and also update the default word set for all ${studentsInClass.length} students in this class.\n\nDo you want to continue?`
+            : `This will set the default word set for class "${className}" to "${wordSetName}".\n\nDo you want to continue?`;
+        
+        if (!confirm(confirmMessage)) {
+            // Reset the select to its previous value
+            const currentDefault = classes.find(c => c.id === classId)?.defaultWordSetId;
+            selectElement.value = currentDefault || '';
+            return;
+        }
         
         // Update the class document
         await db.collection('classes').doc(classId).update({
@@ -2031,10 +2048,38 @@ async function setClassDefaultWordSet(classId) {
             classes[classIndex].defaultWordSetId = wordSetId || null;
         }
         
-        const wordSetName = wordSetId ? wordSets.find(ws => ws.id === wordSetId)?.name : 'None';
-        showNotification(`Default word set for class updated to: ${wordSetName}`, 'success');
+        let updatedStudentsCount = 0;
         
-        // Re-render to show the updated default
+        if (studentsInClass.length > 0) {
+            console.log(`Updating default word set for ${studentsInClass.length} students in class`);
+            
+            // Update each student's default word set
+            for (const student of studentsInClass) {
+                try {
+                    await db.collection('students').doc(student.id).update({
+                        defaultWordSetId: wordSetId || null
+                    });
+                    
+                    // Update local data
+                    const studentIndex = students.findIndex(s => s.id === student.id);
+                    if (studentIndex !== -1) {
+                        students[studentIndex].defaultWordSetId = wordSetId || null;
+                    }
+                    
+                    updatedStudentsCount++;
+                } catch (error) {
+                    console.error(`Error updating student ${student.name}:`, error);
+                }
+            }
+        }
+        
+        if (updatedStudentsCount > 0) {
+            showNotification(`Default word set for class "${className}" and ${updatedStudentsCount} students updated to: ${wordSetName}`, 'success');
+        } else {
+            showNotification(`Default word set for class "${className}" updated to: ${wordSetName}`, 'success');
+        }
+        
+        // Re-render to show the updated defaults
         renderStudentsAndClasses();
         
     } catch (error) {
