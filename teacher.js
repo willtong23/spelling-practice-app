@@ -1773,50 +1773,56 @@ function renderFilteredAnalyticsTable() {
             (minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`) : 
             'N/A';
         
-        const wordDetails = words.map(w => {
-            const attempts = w.attempts || [];
-            const firstAttempt = attempts[0] || '';
-            const isFirstTryCorrect = firstAttempt === w.word;
-            
-            // Show wrong attempts (all attempts that weren't the correct word)
-            let wrongs = attempts.filter(a => a !== w.word);
-            let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
-            let hintStr = w.hint ? ' H' : '';
-            
-            // Create word display with hint letters underlined
-            let wordDisplay = w.word;
-            if (w.hint && w.hintLetters && w.hintLetters.length > 0) {
-                // Underline specific letters that were hinted
-                wordDisplay = w.word.split('').map((letter, letterIndex) => {
-                    if (w.hintLetters.includes(letterIndex)) {
-                        return `<u>${letter}</u>`;
-                    }
-                    return letter;
-                }).join('');
-            } else if (w.hint) {
-                // Fallback: underline whole word if hint was used but no specific letters tracked
-                wordDisplay = `<u>${w.word}</u>`;
-            }
-            
-            // Determine color based on status
-            let color = '#000000'; // default black
-            if (!isFirstTryCorrect) {
-                color = '#ef4444'; // red for incorrect words
-            } else if (w.hint) {
-                color = '#3b82f6'; // blue for words with hints
-            }
-            
-            return `<span style="color: ${color};">${wordDisplay}${wrongStr}${hintStr}</span>`;
-        }).join(', ');
+        // Create detailed breakdown
+        let detailsHtml = '<div style="font-size:0.85rem;">';
         
-        // Create plain text version for tooltip
-        const wordDetailsPlain = words.map(w => {
-            const attempts = w.attempts || [];
-            let wrongs = attempts.filter(a => a !== w.word);
-            let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
-            let hintStr = w.hint ? ' H' : '';
-            return `${w.word}${wrongStr}${hintStr}`;
-        }).join(', ');
+        // Section 1: Correct Words
+        const correctWords = result.words.filter(w => w.correct && !w.hint);
+        if (correctWords.length > 0) {
+            detailsHtml += '<div style="margin-bottom:8px;">';
+            detailsHtml += '<div style="font-weight:600;color:#059669;margin-bottom:4px;">✅ Correct (' + correctWords.length + '):</div>';
+            detailsHtml += '<div style="color:#059669;">' + correctWords.map(w => w.word).join(', ') + '</div>';
+            detailsHtml += '</div>';
+        }
+        
+        // Section 2: Mistakes and Hints
+        const mistakesAndHints = result.words.filter(w => !w.correct || w.hint);
+        if (mistakesAndHints.length > 0) {
+            detailsHtml += '<div>';
+            detailsHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:4px;">❌ Needs Review (' + mistakesAndHints.length + '):</div>';
+            
+            mistakesAndHints.forEach(w => {
+                detailsHtml += '<div style="margin-bottom:2px;">';
+                
+                if (!w.correct) {
+                    // Show wrong spelling with correction
+                    const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                    detailsHtml += '<span style="color:#dc2626;text-decoration:line-through;">' + wrongAttempt + '</span>';
+                    detailsHtml += ' → ';
+                    detailsHtml += '<span style="color:#059669;font-weight:600;">' + w.word + '</span>';
+                } else if (w.hint) {
+                    // Show word with hints (correct but used hints)
+                    let wordDisplay = w.word;
+                    if (w.hintLetters && w.hintLetters.length > 0) {
+                        wordDisplay = w.word.split('').map((letter, letterIndex) => {
+                            if (w.hintLetters.includes(letterIndex)) {
+                                return `<u>${letter}</u>`;
+                            }
+                            return letter;
+                        }).join('');
+                    } else {
+                        wordDisplay = `<u>${w.word}</u>`;
+                    }
+                    detailsHtml += '<span style="color:#f59e0b;">' + wordDisplay + ' (hint)</span>';
+                }
+                
+                detailsHtml += '</div>';
+            });
+            
+            detailsHtml += '</div>';
+        }
+        
+        detailsHtml += '</div>';
         
         return `
             <tr>
@@ -1829,8 +1835,8 @@ function renderFilteredAnalyticsTable() {
                         ${score}% (${firstTryCorrect}/${total})
                     </span>
                 </td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetailsPlain}">
-                    ${wordDetails}
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${detailsHtml}">
+                    ${detailsHtml}
                 </td>
                 <td>
                     <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Delete</button>
@@ -1930,34 +1936,54 @@ function exportPdfData() {
         
         studentData[studentName].forEach(result => {
             const words = result.words || [];
-            const wrongWords = words.filter(w => {
-                const attempts = w.attempts || [];
-                return attempts.length > 0 && attempts[0] !== w.word;
-            });
-            const hintWords = words.filter(w => w.hint);
+            const correctWords = words.filter(w => w.correct && !w.hint);
+            const mistakesAndHints = words.filter(w => !w.correct || w.hint);
             
-            if (wrongWords.length > 0 || hintWords.length > 0) {
+            if (correctWords.length > 0 || mistakesAndHints.length > 0) {
                 doc.setFontSize(10);
-                doc.text(`Word Set: ${result.wordSetName || 'Unknown'}`, 20, yPos);
+                doc.text(`Word Set: ${result.wordSetName || 'Unknown'} - ${new Date(result.date).toLocaleDateString()}`, 20, yPos);
                 yPos += 8;
                 
-                if (wrongWords.length > 0) {
-                    doc.text('Words to practice:', 20, yPos);
+                // Show correct words
+                if (correctWords.length > 0) {
+                    doc.setFontSize(9);
+                    doc.text(`✓ Words Spelled Correctly (${correctWords.length}):`, 20, yPos);
                     yPos += 6;
-                    wrongWords.forEach(w => {
-                        doc.text(`• ${w.word} (you wrote: ${w.attempts[0]})`, 25, yPos);
-                        yPos += 6;
+                    const correctWordsText = correctWords.map(w => w.word).join(', ');
+                    const correctLines = doc.splitTextToSize(correctWordsText, 170);
+                    doc.text(correctLines, 25, yPos);
+                    yPos += correctLines.length * 5 + 3;
+                }
+                
+                // Show mistakes and hints
+                if (mistakesAndHints.length > 0) {
+                    doc.setFontSize(9);
+                    doc.text(`✗ Words Needing Practice (${mistakesAndHints.length}):`, 20, yPos);
+                    yPos += 6;
+                    
+                    mistakesAndHints.forEach(w => {
+                        let practiceText = '';
+                        
+                        if (!w.correct) {
+                            // Show wrong spelling with correction
+                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                            practiceText = `• ${wrongAttempt} → ${w.word} (incorrect spelling)`;
+                        } else if (w.hint) {
+                            // Show word with hints
+                            if (w.hintLetters && w.hintLetters.length > 0) {
+                                const hintedLetters = w.hintLetters.map(pos => w.word[pos]).join(', ');
+                                practiceText = `• ${w.word} (used hints for letters: ${hintedLetters})`;
+                            } else {
+                                practiceText = `• ${w.word} (used hints)`;
+                            }
+                        }
+                        
+                        const practiceLines = doc.splitTextToSize(practiceText, 170);
+                        doc.text(practiceLines, 25, yPos);
+                        yPos += practiceLines.length * 5;
                     });
                 }
                 
-                if (hintWords.length > 0) {
-                    doc.text('Words with hints:', 20, yPos);
-                    yPos += 6;
-                    hintWords.forEach(w => {
-                        doc.text(`• ${w.word}`, 25, yPos);
-                        yPos += 6;
-                    });
-                }
                 yPos += 10;
             }
         });
