@@ -1290,14 +1290,14 @@ function showEndOfQuizFeedback() {
     lastQuizComplete = true;
     
     // Save quiz results to Firebase (only for main quiz, not practice)
-    if (!isPracticeMode) {
+    if (!isPracticeMode && !isIndividualWordPractice) {
         console.log('About to call saveQuizResults...');
         console.log('Current userAnswers:', userAnswers);
         console.log('Current hintUsed:', hintUsed);
         console.log('Current words:', words);
         saveQuizResults();
     } else {
-        console.log('Practice mode complete - not saving results to Firebase');
+        console.log('Practice mode or individual word practice complete - not saving results to Firebase');
     }
 }
 
@@ -1378,6 +1378,8 @@ async function saveQuizResults() {
         const quizData = {
             user: userName,  // Changed from userName to user
             date: now.toISOString(), // Use ISO string for consistent parsing
+            startTime: window.quizStartTime ? window.quizStartTime.toISOString() : now.toISOString(), // Quiz start time
+            finishTime: now.toISOString(), // Quiz finish time
             words: wordsData,  // Changed to array of word objects
             wordSetId: currentWordSetId, // Include word set ID for tracking
             wordSetName: currentWordSetName, // Include word set name for display

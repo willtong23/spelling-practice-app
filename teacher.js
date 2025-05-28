@@ -646,11 +646,8 @@ function setupEventListeners() {
         if (e.target === modalOverlay) closeModal();
     });
     
-    // Export analytics data
-    document.getElementById('exportAnalyticsBtn').addEventListener('click', exportAnalyticsData);
-    
     // Export PDF data
-    document.getElementById('exportPdfBtn').addEventListener('click', exportPdfData);
+    document.getElementById('exportPdfBtn').addEventListener('click', exportAnalyticsData);
 }
 
 // Modal Functions
@@ -1480,7 +1477,6 @@ function setupAnalyticsEventListeners() {
     const filterType = document.getElementById('analyticsFilterType');
     const filterValue = document.getElementById('analyticsFilterValue');
     const applyFilterBtn = document.getElementById('applyAnalyticsFilter');
-    const exportBtn = document.getElementById('exportAnalyticsBtn');
     
     if (filterType) {
         filterType.addEventListener('change', updateAnalyticsFilterOptions);
@@ -1488,10 +1484,6 @@ function setupAnalyticsEventListeners() {
     
     if (applyFilterBtn) {
         applyFilterBtn.addEventListener('click', applyAnalyticsFilter);
-    }
-    
-    if (exportBtn) {
-        exportBtn.addEventListener('click', exportAnalyticsData);
     }
 }
 
@@ -1888,20 +1880,75 @@ function renderFilteredAnalyticsTable() {
     const tbody = document.getElementById('analyticsTableBody');
     if (!tbody) return;
     
-    if (filteredResults.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #64748b;">No results match the selected filters.</td></tr>';
+    // Filter out practice data and individual word practice
+    const validResults = filteredResults.filter(result => {
+        // Only include results from assigned word sets (exclude "All Words" practice)
+        return result.wordSetId && result.wordSetName && 
+               result.wordSetName !== 'All Words' && 
+               result.wordSetName !== 'Default Set' &&
+               !result.wordSetName.includes('Practice') &&
+               !result.wordSetName.includes('Individual');
+    });
+    
+    if (validResults.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No valid quiz results found. Only assigned word sets are displayed.</td></tr>';
         return;
     }
     
-    tbody.innerHTML = filteredResults.map(result => {
-        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+    tbody.innerHTML = validResults.map(result => {
         const words = result.words || [];
+        
+        // Format word set name for multi-row display
+        let wordSetDisplay = result.wordSetName || 'Unknown Set';
+        let wordSetRow1 = wordSetDisplay;
+        let wordSetRow2 = '';
+        
+        // Split long word set names into two rows
+        if (wordSetDisplay.length > 20) {
+            const parts = wordSetDisplay.split(' ');
+            if (parts.length > 3) {
+                const midPoint = Math.ceil(parts.length / 2);
+                wordSetRow1 = parts.slice(0, midPoint).join(' ');
+                wordSetRow2 = parts.slice(midPoint).join(' ');
+            }
+        }
+        
+        // Format date and time for multi-row display
+        let dateRow = 'Unknown';
+        let startTimeRow = '';
+        let finishTimeRow = '';
+        
+        if (result.date) {
+            const date = new Date(result.date);
+            dateRow = date.toLocaleDateString();
+            
+            // Use specific start and finish times if available
+            if (result.startTime && result.finishTime) {
+                const startTime = new Date(result.startTime);
+                const finishTime = new Date(result.finishTime);
+                startTimeRow = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                finishTimeRow = finishTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            } else {
+                // Fallback to single time
+                startTimeRow = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                finishTimeRow = '';
+            }
+        }
+        
+        // Calculate summary data
+        const totalWords = words.length;
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        const mistakes = words.filter(w => !w.correct);
+        const hintsUsed = words.filter(w => w.hint);
         
         // Create detailed breakdown - Focus on mistakes and hints only
         let detailsHtml = '<div style="font-size:0.85rem;">';
         
         // Only show mistakes and words that used hints
-        const mistakesAndHints = result.words.filter(w => !w.correct || w.hint);
+        const mistakesAndHints = words.filter(w => !w.correct || w.hint);
         
         if (mistakesAndHints.length > 0) {
             detailsHtml += '<div style="font-weight:600;color:#dc2626;margin-bottom:6px;">📝 Learning Areas (' + mistakesAndHints.length + '):</div>';
@@ -1941,29 +1988,23 @@ function renderFilteredAnalyticsTable() {
         
         detailsHtml += '</div>';
         
-        // Create a focused summary for the cell content
-        let summaryText = '';
-        const correctWords = result.words.filter(w => w.correct && !w.hint);
-        const mistakes = result.words.filter(w => !w.correct);
-        const hintsUsed = result.words.filter(w => w.hint);
-        
-        if (mistakes.length > 0) {
-            summaryText += `❌ ${mistakes.length} mistake${mistakes.length > 1 ? 's' : ''}`;
-        }
-        if (hintsUsed.length > 0) {
-            if (summaryText) summaryText += ', ';
-            summaryText += `💡 ${hintsUsed.length} hint${hintsUsed.length > 1 ? 's' : ''}`;
-        }
-        if (!summaryText) {
-            summaryText = `🎉 Perfect (${correctWords.length}/${result.words.length})`;
-        }
-        
         return `
             <tr>
                 <td>${result.user || 'Unknown'}</td>
-                <td>${result.wordSetName || 'Unknown Set'}</td>
-                <td>${dateTime}</td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${summaryText}">${summaryText}</td>
+                <td class="word-set-cell multi-row-cell">
+                    <div class="row-1">${wordSetRow1}</div>
+                    ${wordSetRow2 ? `<div class="row-2">${wordSetRow2}</div>` : ''}
+                </td>
+                <td class="date-time-cell multi-row-cell">
+                    <div class="row-1">${dateRow}</div>
+                    ${startTimeRow ? `<div class="row-2">Start: ${startTimeRow}</div>` : ''}
+                    ${finishTimeRow ? `<div class="row-3">End: ${finishTimeRow}</div>` : ''}
+                </td>
+                <td class="summary-cell multi-row-cell">
+                    <div class="summary-row row-1">${firstTryCorrect}/${totalWords}</div>
+                    <div class="summary-row row-2">❌ ${mistakes.length} mistake${mistakes.length !== 1 ? 's' : ''}</div>
+                    <div class="summary-row row-3">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? 's' : ''}</div>
+                </td>
                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${detailsHtml.replace(/<[^>]*>/g, '')}">${detailsHtml}</td>
                 <td>
                     <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Remove</button>
@@ -2477,88 +2518,19 @@ async function checkAllClassAssignments() {
     }
 }
 
-// Export analytics data as CSV
+// Export analytics data as PDF
 function exportAnalyticsData() {
-    if (filteredResults.length === 0) {
-        showNotification('No data to export', 'warning');
-        return;
-    }
-    
-    // Create CSV headers
-    const headers = ['Student', 'Date & Time', 'Word Set', 'Time (seconds)', 'Score (%)', 'Mistakes', 'Hints Used', 'Details'];
-    
-    // Create CSV rows
-    const rows = filteredResults.map(result => {
-        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
-        const words = result.words || [];
-        
-        // Calculate score
-        const firstTryCorrect = words.filter(w => {
-            const attempts = w.attempts || [];
-            return attempts.length > 0 && attempts[0] === w.word;
-        }).length;
-        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
-        
-        // Get mistakes and hints
-        const mistakes = words.filter(w => !w.correct);
-        const hintsUsed = words.filter(w => w.hint);
-        
-        // Create detailed text for mistakes and hints
-        let details = '';
-        if (mistakes.length > 0) {
-            details += 'Mistakes: ';
-            details += mistakes.map(w => {
-                const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                return `${wrongAttempt} → ${w.word}`;
-            }).join(', ');
-        }
-        if (hintsUsed.length > 0) {
-            if (details) details += '; ';
-            details += 'Hints: ';
-            details += hintsUsed.map(w => {
-                if (w.hintLetters && w.hintLetters.length > 0) {
-                    return `${w.word} (letters: ${w.hintLetters.map(pos => w.word[pos]).join(', ')})`;
-                }
-                return w.word;
-            }).join(', ');
-        }
-        if (!details) details = 'Perfect - no mistakes or hints';
-        
-        return [
-            result.user || 'Unknown',
-            dateTime,
-            result.wordSetName || 'Unknown Set',
-            result.totalTime || '0',
-            score,
-            mistakes.length,
-            hintsUsed.length,
-            details
-        ];
+    // Filter out practice data like in the table
+    const validResults = filteredResults.filter(result => {
+        return result.wordSetId && result.wordSetName && 
+               result.wordSetName !== 'All Words' && 
+               result.wordSetName !== 'Default Set' &&
+               !result.wordSetName.includes('Practice') &&
+               !result.wordSetName.includes('Individual');
     });
     
-    // Combine headers and rows
-    const csvContent = [headers, ...rows]
-        .map(row => row.map(cell => `"${cell}"`).join(','))
-        .join('\n');
-    
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `spelling_analytics_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showNotification('Analytics data exported to CSV!', 'success');
-}
-
-// Export analytics data as PDF
-function exportPdfData() {
-    if (filteredResults.length === 0) {
-        showNotification('No data to export', 'warning');
+    if (validResults.length === 0) {
+        showNotification('No valid data to export', 'warning');
         return;
     }
     
@@ -2595,27 +2567,34 @@ function exportPdfData() {
     
     doc.text(filterInfo, 20, 30);
     doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 40);
-    doc.text(`Total Results: ${filteredResults.length}`, 20, 50);
+    doc.text(`Total Results: ${validResults.length}`, 20, 50);
     
     let yPos = 70;
     
     // Process each result
-    filteredResults.forEach((result, index) => {
+    validResults.forEach((result, index) => {
         // Check if we need a new page
         if (yPos > 250) {
             doc.addPage();
             yPos = 20;
         }
         
-        const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
+        // Format dates and times
+        const date = result.date ? new Date(result.date).toLocaleDateString() : 'Unknown';
+        const startTime = result.startTime ? new Date(result.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                         (result.date ? new Date(result.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown');
+        const finishTime = result.finishTime ? new Date(result.finishTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+        
         const words = result.words || [];
         
-        // Calculate score
+        // Calculate score and fraction
         const firstTryCorrect = words.filter(w => {
             const attempts = w.attempts || [];
             return attempts.length > 0 && attempts[0] === w.word;
         }).length;
-        const score = words.length > 0 ? Math.round((firstTryCorrect / words.length) * 100) : 0;
+        const totalWords = words.length;
+        const score = totalWords > 0 ? Math.round((firstTryCorrect / totalWords) * 100) : 0;
+        const fraction = `${firstTryCorrect}/${totalWords}`;
         
         // Header for this result
         doc.setFontSize(14);
@@ -2625,7 +2604,9 @@ function exportPdfData() {
         
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text(`Date: ${dateTime} | Score: ${score}% | Time: ${result.totalTime || 0}s`, 20, yPos);
+        doc.text(`Date: ${date} | Start: ${startTime} | End: ${finishTime}`, 20, yPos);
+        yPos += 6;
+        doc.text(`Score: ${fraction} (${score}%) | Time: ${result.totalTimeSeconds || 0}s`, 20, yPos);
         yPos += 12;
         
         // Focus on mistakes and hints only

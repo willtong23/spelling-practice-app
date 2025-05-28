@@ -451,55 +451,6 @@
             flex: 1;
             min-width: 200px;
         }
-        
-        /* Multi-row table cell styles */
-        .multi-row-cell {
-            vertical-align: top;
-            line-height: 1.4;
-        }
-        
-        .multi-row-cell .row-1 {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 2px;
-        }
-        
-        .multi-row-cell .row-2 {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-        
-        .multi-row-cell .row-3 {
-            font-size: 0.85rem;
-            color: #64748b;
-            margin-top: 2px;
-        }
-        
-        /* Word set cell specific styling */
-        .word-set-cell {
-            max-width: 140px;
-            word-wrap: break-word;
-        }
-        
-        /* Date time cell specific styling */
-        .date-time-cell {
-            max-width: 120px;
-            font-size: 0.85rem;
-        }
-        
-        /* Summary cell styling */
-        .summary-cell {
-            max-width: 150px;
-        }
-        
-        .summary-cell .summary-row {
-            margin-bottom: 3px;
-            padding: 1px 0;
-        }
-        
-        .summary-cell .summary-row:last-child {
-            margin-bottom: 0;
-        }
     </style>
 </head>
 <body>
@@ -633,6 +584,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div class="section-title">Detailed Results</div>
                     <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportAnalyticsBtn">Export CSV</button>
                         <button class="btn-secondary" id="exportPdfBtn">Export PDF</button>
                         <button class="btn-secondary" id="deleteAllResultsBtn" style="background: #dc2626; color: white; border: 2px solid #b91c1c;" title="⚠️ DANGER: This will permanently delete ALL quiz results from ALL students!">⚠️ Delete All Data</button>
                     </div>
@@ -640,12 +592,12 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 120px;">Student</th>
-                            <th style="width: 140px;">Word Set</th>
-                            <th style="width: 120px;">Date & Time</th>
-                            <th style="width: 150px;">Summary</th>
-                            <th style="width: 300px;">Learning Details</th>
-                            <th style="width: 80px;">Actions</th>
+                            <th>Student</th>
+                            <th>Word Set</th>
+                            <th>Date & Time</th>
+                            <th>Summary</th>
+                            <th>Learning Details</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="analyticsTableBody">
