@@ -11,13 +11,27 @@ async function getWordsFromAssignment(userName) {
     try {
         console.log(`=== GETTING WORDS FOR USER: ${userName} ===`);
         
-        // First, try to find if this user has a specific assignment
-        const studentsSnapshot = await window.db.collection('students').where('name', '==', userName).get();
+        // Normalize the username for better matching
+        const normalizedUserName = userName.trim().toLowerCase();
+        console.log(`Normalized username: "${normalizedUserName}"`);
         
-        if (!studentsSnapshot.empty) {
-            const studentDoc = studentsSnapshot.docs[0];
-            const studentData = studentDoc.data();
-            const studentId = studentDoc.id;
+        // First, try to find if this user has a specific assignment
+        const studentsSnapshot = await window.db.collection('students').get();
+        let studentDoc = null;
+        let studentData = null;
+        let studentId = null;
+        
+        // Find student with case-insensitive matching
+        studentsSnapshot.forEach(doc => {
+            const docData = doc.data();
+            if (docData.name && docData.name.trim().toLowerCase() === normalizedUserName) {
+                studentDoc = doc;
+                studentData = docData;
+                studentId = doc.id;
+            }
+        });
+        
+        if (studentDoc) {
             console.log(`Found student in database: ${studentId}`, studentData);
             
             // Check if this student has a specific assignment (highest priority)
@@ -31,13 +45,15 @@ async function getWordsFromAssignment(userName) {
                 
                 // Get the word set
                 const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
-                if (wordSetDoc.exists) {
+                if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
                     console.log(`Using specific assignment for ${userName}: "${wordSetDoc.data().name}"`);
                     return {
                         words: wordSetDoc.data().words,
                         setId: wordSetId,
                         setName: wordSetDoc.data().name
                     };
+                } else {
+                    console.log(`Assignment word set ${wordSetId} is empty or invalid, checking alternatives...`);
                 }
             }
             
@@ -45,13 +61,15 @@ async function getWordsFromAssignment(userName) {
             if (studentData.defaultWordSetId) {
                 console.log(`No specific assignment, checking student's default word set: ${studentData.defaultWordSetId}`);
                 const wordSetDoc = await window.db.collection('wordSets').doc(studentData.defaultWordSetId).get();
-                if (wordSetDoc.exists) {
+                if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
                     console.log(`Using student's default word set for ${userName}: "${wordSetDoc.data().name}"`);
                     return {
                         words: wordSetDoc.data().words,
                         setId: studentData.defaultWordSetId,
                         setName: wordSetDoc.data().name
                     };
+                } else {
+                    console.log(`Student's default word set ${studentData.defaultWordSetId} is empty or invalid, checking alternatives...`);
                 }
             }
             
@@ -64,13 +82,15 @@ async function getWordsFromAssignment(userName) {
                     console.log(`Found class default word set: ${classDefaultWordSetId}`);
                     
                     const wordSetDoc = await window.db.collection('wordSets').doc(classDefaultWordSetId).get();
-                    if (wordSetDoc.exists) {
+                    if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
                         console.log(`Using class default word set for ${userName}: "${wordSetDoc.data().name}"`);
                         return {
                             words: wordSetDoc.data().words,
                             setId: classDefaultWordSetId,
                             setName: wordSetDoc.data().name
                         };
+                    } else {
+                        console.log(`Class default word set ${classDefaultWordSetId} is empty or invalid, checking alternatives...`);
                     }
                 }
             }
@@ -80,28 +100,46 @@ async function getWordsFromAssignment(userName) {
             console.log(`Student ${userName} not found in database`);
         }
         
-        // If no specific assignment or defaults, check if there are any word sets available
+        // If no specific assignment or defaults, find the best available word set
         console.log('No assignment or defaults found, checking for available word sets...');
         const wordSetsSnapshot = await window.db.collection('wordSets').get();
         
         if (!wordSetsSnapshot.empty) {
-            // Use the first available word set instead of the potentially problematic active set
-            const firstWordSet = wordSetsSnapshot.docs[0];
-            const wordSetData = firstWordSet.data();
-            console.log(`Using first available word set: "${wordSetData.name}"`);
-            return {
-                words: wordSetData.words,
-                setId: firstWordSet.id,
-                setName: wordSetData.name
-            };
+            // Filter out empty or invalid word sets and find the best one
+            const validWordSets = [];
+            wordSetsSnapshot.forEach(doc => {
+                const data = doc.data();
+                if (data.words && Array.isArray(data.words) && data.words.length > 0) {
+                    // Avoid test sets with single letters
+                    const hasValidWords = data.words.some(word => word.length > 1);
+                    if (hasValidWords) {
+                        validWordSets.push({ id: doc.id, ...data });
+                    }
+                }
+            });
+            
+            if (validWordSets.length > 0) {
+                // Prefer word sets with "basic" or "default" in the name, otherwise use the first valid one
+                const preferredSet = validWordSets.find(set => 
+                    set.name.toLowerCase().includes('basic') || 
+                    set.name.toLowerCase().includes('default')
+                ) || validWordSets[0];
+                
+                console.log(`Using available word set: "${preferredSet.name}"`);
+                return {
+                    words: preferredSet.words,
+                    setId: preferredSet.id,
+                    setName: preferredSet.name
+                };
+            }
         }
         
         // If no word sets exist, try to get the active word set from the main wordlist
-        console.log('No word sets found, checking main wordlist...');
+        console.log('No valid word sets found, checking main wordlist...');
         const doc = await window.db.collection('spelling').doc('wordlist').get();
         if (doc.exists && doc.data().activeSetId) {
             const wordSetDoc = await window.db.collection('wordSets').doc(doc.data().activeSetId).get();
-            if (wordSetDoc.exists) {
+            if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
                 console.log(`Using active word set: "${wordSetDoc.data().name}"`);
                 return {
                     words: wordSetDoc.data().words,
@@ -112,7 +150,7 @@ async function getWordsFromAssignment(userName) {
         }
         
         // Fallback to the old wordlist format
-        if (doc.exists && doc.data().words) {
+        if (doc.exists && doc.data().words && doc.data().words.length > 0) {
             console.log('Using legacy word list');
             return {
                 words: doc.data().words,
@@ -122,7 +160,7 @@ async function getWordsFromAssignment(userName) {
         }
         
         // Final fallback to default words
-        console.log('Using default words');
+        console.log('Using default words as final fallback');
         return {
             words: defaultWords,
             setId: null,
@@ -131,6 +169,7 @@ async function getWordsFromAssignment(userName) {
         
     } catch (error) {
         console.error('Error getting words from assignment:', error);
+        console.log('Error occurred, using default words');
         return {
             words: defaultWords,
             setId: null,
@@ -506,61 +545,86 @@ function updateLetterHint() {
         
         // Add event listeners
         box.addEventListener('input', function(e) {
+            // Prevent processing if quiz is complete or word has changed
+            if (quizComplete || !words[currentWordIndex]) return;
+            
             if (box.value.length === 1 && i < wordLength - 1) {
-                letterInputs[i + 1].focus();
+                // Move to next box
+                if (letterInputs[i + 1]) {
+                    letterInputs[i + 1].focus();
+                }
             } else if (box.value.length === 1 && i === wordLength - 1) {
                 // Auto-check when last letter is entered
                 setTimeout(() => {
-                    checkSpelling();
+                    if (!quizComplete && words[currentWordIndex]) {
+                        checkSpelling();
+                    }
                 }, 100);
             }
         });
         
         box.addEventListener('keydown', function(e) {
+            // Prevent processing if quiz is complete
+            if (quizComplete) return;
+            
             if (e.key === ' ') {
                 e.preventDefault();
-                box.value = word[i];
-                box.disabled = true;
-                hintUsed[currentWordIndex] = true;
-                // Move focus to next box if available
-                if (i < wordLength - 1) {
-                    letterInputs[i + 1].focus();
-                } else {
-                    // Auto-check if this was the last letter
-                    setTimeout(() => {
-                        checkSpelling();
-                    }, 100);
+                if (words[currentWordIndex] && words[currentWordIndex][i]) {
+                    box.value = words[currentWordIndex][i];
+                    box.disabled = true;
+                    hintUsed[currentWordIndex] = true;
+                    // Move focus to next box if available
+                    if (i < wordLength - 1 && letterInputs[i + 1]) {
+                        letterInputs[i + 1].focus();
+                    } else {
+                        // Auto-check if this was the last letter
+                        setTimeout(() => {
+                            if (!quizComplete && words[currentWordIndex]) {
+                                checkSpelling();
+                            }
+                        }, 100);
+                    }
                 }
             }
             
             // Handle backspace to move to previous box
             if (e.key === 'Backspace' && box.value === '' && i > 0) {
-                letterInputs[i - 1].focus();
+                if (letterInputs[i - 1]) {
+                    letterInputs[i - 1].focus();
+                }
             }
             
             // Handle arrow keys for navigation
             if (e.key === 'ArrowLeft' && i > 0) {
                 e.preventDefault();
-                letterInputs[i - 1].focus();
+                if (letterInputs[i - 1]) {
+                    letterInputs[i - 1].focus();
+                }
             }
             if (e.key === 'ArrowRight' && i < wordLength - 1) {
                 e.preventDefault();
-                letterInputs[i + 1].focus();
+                if (letterInputs[i + 1]) {
+                    letterInputs[i + 1].focus();
+                }
             }
             
             // Handle Enter key to check spelling
             if (e.key === 'Enter') {
                 e.preventDefault();
-                checkSpelling();
+                if (!quizComplete && words[currentWordIndex]) {
+                    checkSpelling();
+                }
             }
         });
         
         box.addEventListener('click', function(e) {
             if (!box.disabled) return;
-            if (box.value === word[i]) return;
-            box.value = word[i];
-            box.disabled = true;
-            hintUsed[currentWordIndex] = true;
+            if (words[currentWordIndex] && box.value === words[currentWordIndex][i]) return;
+            if (words[currentWordIndex] && words[currentWordIndex][i]) {
+                box.value = words[currentWordIndex][i];
+                box.disabled = true;
+                hintUsed[currentWordIndex] = true;
+            }
         });
         
         letterInputs.push(box);
@@ -575,18 +639,32 @@ function updateDisplay() {
         practiceSection.innerHTML = '<p class="no-words">No words available. Please check with your teacher.</p>';
         return;
     }
+    
+    // Ensure currentWordIndex is within bounds
+    if (currentWordIndex < 0) currentWordIndex = 0;
+    if (currentWordIndex >= words.length) currentWordIndex = words.length - 1;
+    
     currentWordNumber.textContent = currentWordIndex + 1;
     totalWords.textContent = words.length;
     resultMessage.innerHTML = '';
     resultMessage.className = 'result-message';
     updateLetterHint();
+    
     if (progressBar) {
         const percent = ((currentWordIndex + 1) / words.length) * 100;
         progressBar.style.width = percent + '%';
     }
+    
+    // Update navigation buttons with proper state
     prevButton.disabled = currentWordIndex === 0 || quizComplete;
     nextButton.disabled = currentWordIndex === words.length - 1 || quizComplete;
-    letterInputs[0]?.focus();
+    
+    // Ensure proper focus after a short delay to allow DOM updates
+    setTimeout(() => {
+        if (letterInputs && letterInputs.length > 0 && letterInputs[0]) {
+            letterInputs[0].focus();
+        }
+    }, 50);
 }
 
 function resetQuizState() {
@@ -731,16 +809,30 @@ allWordsButton.addEventListener('click', showAllWords);
 // });
 
 prevButton.addEventListener('click', () => {
-    if (currentWordIndex > 0 && !quizComplete) {
+    if (currentWordIndex > 0 && !quizComplete && words.length > 0) {
         currentWordIndex--;
+        console.log(`Navigating to previous word: ${currentWordIndex + 1}/${words.length}`);
         updateDisplay();
+        // Speak the new word after a short delay
+        setTimeout(() => {
+            if (words[currentWordIndex]) {
+                speakWord(words[currentWordIndex]);
+            }
+        }, 200);
     }
 });
 
 nextButton.addEventListener('click', () => {
-    if (currentWordIndex < words.length - 1 && !quizComplete) {
+    if (currentWordIndex < words.length - 1 && !quizComplete && words.length > 0) {
         currentWordIndex++;
+        console.log(`Navigating to next word: ${currentWordIndex + 1}/${words.length}`);
         updateDisplay();
+        // Speak the new word after a short delay
+        setTimeout(() => {
+            if (words[currentWordIndex]) {
+                speakWord(words[currentWordIndex]);
+            }
+        }, 200);
     }
 });
 
