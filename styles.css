@@ -33,6 +33,177 @@ body {
     border-bottom: 2px solid rgba(102, 126, 234, 0.2);
 }
 
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+}
+
+/* Celebration Animation Styles */
+.celebration-area {
+    position: relative;
+    width: 120px;
+    height: 60px;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.celebration-animation {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s ease;
+}
+
+.celebration-animation.active {
+    opacity: 1;
+    transform: scale(1);
+    animation: celebrationBounce 3s ease-out;
+}
+
+.celebration-stars {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.star {
+    position: absolute;
+    font-size: 1.5rem;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.celebration-animation.active .star {
+    animation: starBurst 3s ease-out;
+}
+
+.star-1 {
+    top: 10px;
+    left: 20px;
+    animation-delay: 0s;
+}
+
+.star-2 {
+    top: 5px;
+    right: 15px;
+    animation-delay: 0.2s;
+}
+
+.star-3 {
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation-delay: 0.4s;
+}
+
+.star-4 {
+    bottom: 10px;
+    left: 10px;
+    animation-delay: 0.6s;
+}
+
+.star-5 {
+    bottom: 5px;
+    right: 20px;
+    animation-delay: 0.8s;
+}
+
+.celebration-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #22c55e;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    white-space: nowrap;
+}
+
+.celebration-animation.active .celebration-text {
+    animation: textPop 3s ease-out;
+}
+
+@keyframes celebrationBounce {
+    0% {
+        transform: scale(0.5);
+        opacity: 0;
+    }
+    20% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+    40% {
+        transform: scale(0.9);
+    }
+    60% {
+        transform: scale(1.1);
+    }
+    80% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+@keyframes starBurst {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.5) rotate(180deg);
+    }
+    40% {
+        opacity: 0.8;
+        transform: scale(1.2) rotate(360deg);
+    }
+    60% {
+        opacity: 0.6;
+        transform: scale(1) rotate(540deg);
+    }
+    80% {
+        opacity: 0.3;
+        transform: scale(0.8) rotate(720deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.5) rotate(900deg);
+    }
+}
+
+@keyframes textPop {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    15% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.2);
+    }
+    30% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    70% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+}
+
 .title {
     font-size: 1.6rem;
     color: #2563eb;
@@ -636,21 +807,21 @@ h1 {
     }
     
     .word-set-panel.collapsed {
-        width: 40px;
+        width: 50px;
     }
     
     .main-content {
-        margin-left: 40px;
-        transition: margin-left 0.3s ease;
+        margin-left: 60px;
+        padding: 10px;
     }
     
     .main-content.expanded {
-        margin-left: 280px;
+        margin-left: 290px;
     }
     
     .container {
         padding: 15px;
-        max-width: 100%;
+        border-radius: 15px;
     }
     
     .practice-card {
@@ -659,7 +830,7 @@ h1 {
     }
     
     .title {
-        font-size: 2.2rem;
+        font-size: 1.4rem;
     }
     
     .controls {
@@ -670,134 +841,153 @@ h1 {
     .control-btn {
         padding: 8px 16px;
         font-size: 0.85rem;
-        flex: 1;
-        min-width: 120px;
     }
     
     .voice-input-btn {
-        min-width: 140px;
+        order: -1;
     }
     
-    .navigation {
-        gap: 10px;
+    /* Responsive celebration animation */
+    .header-right {
+        gap: 15px;
+    }
+    
+    .celebration-area {
+        width: 100px;
+        height: 50px;
+    }
+    
+    .star {
+        font-size: 1.2rem;
+    }
+    
+    .celebration-text {
+        font-size: 0.8rem;
     }
 }
 
 @media (max-width: 480px) {
     .word-set-panel {
-        width: 100%;
-        transform: translateX(-100%);
+        width: 260px;
+        font-size: 0.9rem;
     }
-    
+
     .word-set-panel.collapsed {
-        transform: translateX(-100%);
+        width: 45px;
     }
-    
+
     .word-set-panel:not(.collapsed) {
-        transform: translateX(0);
+        width: 100%;
     }
-    
+
     .main-content {
         margin-left: 0;
-        padding: 6px;
+        padding: 8px;
     }
-    
+
     .main-content.panel-open {
-        margin-left: 100%;
+        margin-left: 0;
     }
-    
+
     .container {
         padding: 12px;
-        margin: 4px;
-        max-width: 98vw;
+        margin: 5px;
+        border-radius: 12px;
     }
-    
+
     .practice-card {
         padding: 15px 20px;
-        min-width: unset;
-        max-width: 98vw;
+        gap: 8px;
+        border-radius: 20px;
     }
-    
+
     .title {
         font-size: 1.2rem;
     }
-    
+
     .controls {
         gap: 4px;
     }
-    
+
     .control-btn {
-        padding: 4px 8px;
+        padding: 6px 12px;
         font-size: 0.8rem;
     }
-    
+
     .letter-hint {
-        margin: 4px 0;
-        padding: 0 2px;
-        min-height: 60px;
+        gap: 2px;
+        margin: 8px 0;
     }
-    
+
     .letter-hint-container {
         gap: 2px;
-        padding: 0 2px;
-        flex-wrap: nowrap;
+        justify-content: center;
     }
-    
-    /* Small mobile responsive letter boxes - still bigger than before */
+
     .letter-hint-container[data-word-length="1"] .letter-hint-box,
     .letter-hint-container[data-word-length="2"] .letter-hint-box,
     .letter-hint-container[data-word-length="3"] .letter-hint-box {
-        width: 55px;
-        height: 55px;
+        width: 45px;
+        height: 45px;
         font-size: 1.4rem;
-        margin: 0 3px;
-        border-width: 3px;
     }
-    
+
     .letter-hint-container[data-word-length="4"] .letter-hint-box,
     .letter-hint-container[data-word-length="5"] .letter-hint-box {
-        width: 50px;
-        height: 50px;
-        font-size: 1.3rem;
-        margin: 0 2px;
-        border-width: 3px;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
     }
-    
+
     .letter-hint-container[data-word-length="6"] .letter-hint-box,
     .letter-hint-container[data-word-length="7"] .letter-hint-box,
     .letter-hint-container[data-word-length="8"] .letter-hint-box {
-        width: 45px;
-        height: 45px;
-        font-size: 1.2rem;
-        margin: 0 2px;
-        border-width: 2px;
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
     }
-    
+
     .letter-hint-container[data-word-length="9"] .letter-hint-box,
     .letter-hint-container[data-word-length="10"] .letter-hint-box,
     .letter-hint-container[data-word-length="11"] .letter-hint-box,
     .letter-hint-container[data-word-length="12"] .letter-hint-box {
-        width: 40px;
-        height: 40px;
-        font-size: 1.1rem;
-        margin: 0 2px;
-        border-width: 2px;
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
     }
-    
+
     .letter-hint-container[data-word-length="13"] .letter-hint-box,
     .letter-hint-container[data-word-length="14"] .letter-hint-box,
     .letter-hint-container[data-word-length="15"] .letter-hint-box,
-    .letter-hint-container[data-word-length="16"] .letter-hint-box,
-    .letter-hint-container[data-word-length="17"] .letter-hint-box,
-    .letter-hint-container[data-word-length="18"] .letter-hint-box,
-    .letter-hint-container[data-word-length="19"] .letter-hint-box,
-    .letter-hint-container[data-word-length="20"] .letter-hint-box,
     .letter-hint-container[data-very-long-word="true"] .letter-hint-box {
-        width: 35px;
-        height: 35px;
+        width: 25px;
+        height: 25px;
+        font-size: 0.8rem;
+    }
+    
+    /* Mobile celebration animation */
+    .header {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .header-right {
+        gap: 10px;
+        justify-content: center;
+    }
+    
+    .celebration-area {
+        width: 80px;
+        height: 40px;
+    }
+    
+    .star {
         font-size: 1rem;
-        margin: 0 1px;
-        border-width: 2px;
+    }
+    
+    .celebration-text {
+        font-size: 0.7rem;
     }
 }
 

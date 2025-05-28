@@ -867,6 +867,13 @@ function checkSpelling() {
     console.log('=== END CHECKING SPELLING ===');
     
     if (isCorrect && userAnswers[currentWordIndex].correct) {
+        // Check if this word was completed without hints
+        const usedHintsForThisWord = Array.isArray(hintUsed[currentWordIndex]) ? hintUsed[currentWordIndex].length > 0 : hintUsed[currentWordIndex];
+        const isCorrectWithoutHints = !usedHintsForThisWord;
+        
+        // Trigger celebration animation
+        triggerCelebrationAnimation(isCorrectWithoutHints);
+        
         resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
         resultMessage.className = 'result-message correct';
         letterInputs.forEach(box => box.value = '');
@@ -1043,6 +1050,9 @@ function showEndOfQuizFeedback() {
     }
     
     if (allPerfectFirstTry && !isPracticeMode) {
+        // Trigger perfect quiz celebration animation
+        triggerPerfectQuizCelebration();
+        
         html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
     } else if (isPracticeMode) {
         html += '<div style="color:#3b82f6;font-size:1.2em;font-weight:700;margin-bottom:18px;background:#dbeafe;padding:10px 0;border-radius:8px;">🎯 Practice Session Complete!</div>';
@@ -2160,4 +2170,66 @@ function exitIndividualWordPractice() {
     updatePracticeModeUI(); // This will restore the correct title and button state
     
     showNotification('🔄 Returned to original practice', 'success');
+}
+
+// --- Celebration Animation Functions ---
+function triggerCelebrationAnimation(isCorrectWithoutHints = false) {
+    const celebrationArea = document.getElementById('celebrationArea');
+    const celebrationAnimation = document.getElementById('celebrationAnimation');
+    const celebrationText = document.getElementById('celebrationText');
+    
+    if (!celebrationArea || !celebrationAnimation || !celebrationText) return;
+    
+    // Set appropriate celebration text
+    const messages = [
+        'Great Job!', 'Excellent!', 'Perfect!', 'Well Done!', 
+        'Amazing!', 'Fantastic!', 'Brilliant!', 'Outstanding!'
+    ];
+    
+    if (isCorrectWithoutHints) {
+        celebrationText.textContent = messages[Math.floor(Math.random() * messages.length)];
+    } else {
+        celebrationText.textContent = 'Good Try!';
+    }
+    
+    // Remove any existing animation
+    celebrationAnimation.classList.remove('active');
+    
+    // Trigger animation after a small delay
+    setTimeout(() => {
+        celebrationAnimation.classList.add('active');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            celebrationAnimation.classList.remove('active');
+        }, 3000);
+    }, 100);
+}
+
+function triggerPerfectQuizCelebration() {
+    const celebrationArea = document.getElementById('celebrationArea');
+    const celebrationAnimation = document.getElementById('celebrationAnimation');
+    const celebrationText = document.getElementById('celebrationText');
+    
+    if (!celebrationArea || !celebrationAnimation || !celebrationText) return;
+    
+    // Set special message for perfect quiz
+    celebrationText.textContent = '🎉 PERFECT QUIZ! 🎉';
+    celebrationText.style.fontSize = '0.8rem';
+    celebrationText.style.color = '#f59e0b';
+    
+    // Remove any existing animation
+    celebrationAnimation.classList.remove('active');
+    
+    // Trigger animation after a small delay
+    setTimeout(() => {
+        celebrationAnimation.classList.add('active');
+        
+        // Reset text style after animation
+        setTimeout(() => {
+            celebrationAnimation.classList.remove('active');
+            celebrationText.style.fontSize = '0.9rem';
+            celebrationText.style.color = '#22c55e';
+        }, 3000);
+    }, 500);
 } 
