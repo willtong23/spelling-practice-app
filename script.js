@@ -451,6 +451,7 @@ function setWords(words) {
 const practiceSection = document.querySelector('.practice-card');
 const speakButton = document.getElementById('speakButton');
 const allWordsButton = document.getElementById('allWordsButton');
+const hintButton = document.getElementById('hintButton');
 const checkButton = document.getElementById('checkButton');
 const resultMessage = document.getElementById('resultMessage');
 const prevButton = document.getElementById('prevButton');
@@ -803,10 +804,12 @@ speakButton.addEventListener('click', () => {
 
 allWordsButton.addEventListener('click', showAllWords);
 
-// Remove the old check button event listener since the button is now hidden
-// checkButton.addEventListener('click', () => {
-//     checkSpelling();
-// });
+// Hint button to show hint instruction
+if (hintButton) {
+    hintButton.addEventListener('click', () => {
+        showNotification('Press SPACE on any letter box to reveal that letter', 'info');
+    });
+}
 
 prevButton.addEventListener('click', () => {
     if (currentWordIndex > 0 && !quizComplete && words.length > 0) {
