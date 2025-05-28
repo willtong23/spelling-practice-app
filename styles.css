@@ -19,7 +19,7 @@ body {
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 20px;
+    padding: 15px;
     max-width: 900px;
     width: 100%;
 }
@@ -28,13 +28,13 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 2px solid rgba(102, 126, 234, 0.2);
 }
 
 .title {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     color: #2563eb;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
@@ -43,19 +43,19 @@ body {
 .word-counter {
     font-size: 1.1rem;
     color: #64748b;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     font-weight: 500;
 }
 
 .progress-container {
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .controls {
     display: flex;
     gap: 12px;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .control-btn {
@@ -79,15 +79,15 @@ body {
 }
 
 .result-message {
-    min-height: 40px;
-    margin: 10px 0;
+    min-height: 30px;
+    margin: 6px 0;
     font-size: 1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    padding: 10px;
+    padding: 8px;
     transition: all 0.3s ease;
 }
 
@@ -112,7 +112,7 @@ body {
     display: flex;
     gap: 15px;
     justify-content: center;
-    margin-top: 15px;
+    margin-top: 8px;
 }
 
 .header-row {
@@ -161,13 +161,13 @@ h1 {
 .practice-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    padding: 32px 40px 36px 40px;
+    padding: 20px 30px 24px 30px;
     border-radius: 28px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
     min-width: 340px;
     width: 100%;
     max-width: 500px;
@@ -325,7 +325,7 @@ h1 {
 }
 
 .letter-hint {
-    margin: 15px 0;
+    margin: 8px 0;
     min-height: 50px;
     display: flex;
     align-items: center;
@@ -567,11 +567,11 @@ h1 {
 @media (max-width: 900px) {
     .container {
         max-width: 95vw;
-        padding: 20px;
-        margin: 10px;
+        padding: 12px;
+        margin: 8px;
     }
     .practice-card {
-        padding: 15px;
+        padding: 12px;
         min-width: unset;
     }
     h1 {
@@ -581,10 +581,10 @@ h1 {
         padding: 15px;
     }
     .title {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
     }
     .main-content {
-        padding: 10px;
+        padding: 8px;
     }
 }
 
@@ -599,7 +599,7 @@ h1 {
     
     .main-content {
         margin-left: 280px;
-        padding: 10px;
+        padding: 8px;
     }
     
     .main-content.expanded {
@@ -607,35 +607,35 @@ h1 {
     }
     
     .container {
-        padding: 15px;
-        margin: 5px;
+        padding: 10px;
+        margin: 4px;
         max-width: 95vw;
     }
     
     .title {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
     }
     
     .controls {
         flex-direction: row;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
         justify-content: center;
     }
     
     .control-btn {
-        padding: 8px 16px;
-        font-size: 0.9rem;
+        padding: 6px 12px;
+        font-size: 0.85rem;
     }
     
     .navigation {
         flex-direction: row;
-        gap: 10px;
+        gap: 8px;
         justify-content: center;
     }
     
     .letter-hint {
-        margin: 15px 0;
+        margin: 6px 0;
         padding: 0 5px;
     }
     
@@ -716,7 +716,7 @@ h1 {
     
     .main-content {
         margin-left: 0;
-        padding: 5px;
+        padding: 4px;
     }
     
     .main-content.panel-open {
@@ -724,26 +724,26 @@ h1 {
     }
     
     .container {
-        padding: 12px;
-        margin: 3px;
+        padding: 8px;
+        margin: 2px;
         max-width: 98vw;
     }
     
     .title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
     }
     
     .controls {
-        gap: 6px;
+        gap: 4px;
     }
     
     .control-btn {
-        padding: 6px 12px;
-        font-size: 0.85rem;
+        padding: 4px 8px;
+        font-size: 0.8rem;
     }
     
     .letter-hint {
-        margin: 10px 0;
+        margin: 4px 0;
         padding: 0 2px;
     }
     
@@ -1012,7 +1012,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 15px;
+    padding: 10px;
     box-sizing: border-box;
 }
 
@@ -1026,7 +1026,7 @@ h1 {
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 20px;
+    padding: 15px;
     max-width: 900px;
     width: 100%;
 }
@@ -1035,13 +1035,13 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
     border-bottom: 2px solid rgba(102, 126, 234, 0.2);
 }
 
 .title {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     color: #2563eb;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
@@ -1085,7 +1085,7 @@ h1 {
     display: flex;
     gap: 12px;
     justify-content: center;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
 }
 
 .control-btn {
@@ -1119,11 +1119,11 @@ h1 {
 @media (max-width: 900px) {
     .container {
         max-width: 95vw;
-        padding: 20px;
-        margin: 10px;
+        padding: 12px;
+        margin: 8px;
     }
     .practice-card {
-        padding: 15px;
+        padding: 12px;
         min-width: unset;
     }
     h1 {
@@ -1133,10 +1133,10 @@ h1 {
         padding: 15px;
     }
     .title {
-        font-size: 1.8rem;
+        font-size: 1.6rem;
     }
     .main-content {
-        padding: 10px;
+        padding: 8px;
     }
 }
 
