@@ -7,6 +7,10 @@ let availableWordSets = [];
 let selectedWordSetId = null;
 let userAssignmentId = null;
 
+// Variables for individual word practice
+let isIndividualWordPractice = false;
+let originalPracticeState = null;
+
 async function getWordsFromAssignment(userName) {
     try {
         console.log(`=== GETTING WORDS FOR USER: ${userName} ===`);
@@ -903,7 +907,11 @@ if (clearAllButton) {
 // Exit Practice button to return to main quiz
 if (exitPracticeButton) {
     exitPracticeButton.addEventListener('click', () => {
-        exitPracticeMode();
+        if (isIndividualWordPractice) {
+            exitIndividualWordPractice();
+        } else {
+            exitPracticeMode();
+        }
     });
 }
 
@@ -1279,10 +1287,13 @@ function showAllWords() {
         html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:16px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
     }
     
+    // Add instruction for clicking words
+    html += '<div style="color:#3b82f6;font-size:0.9rem;margin-bottom:16px;font-style:italic;">💡 Click on any word to practice it individually!</div>';
+    
     html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;max-width:400px;">';
     
     allWords.forEach((word, index) => {
-        html += `<div style="background:#f8fafc;border:2px solid #e0e7ef;border-radius:8px;padding:12px;text-align:center;font-weight:600;color:#2563eb;">${word}</div>`;
+        html += `<div class="word-item" onclick="practiceIndividualWord('${word}')" style="background:#f8fafc;border:2px solid #e0e7ef;border-radius:8px;padding:12px;text-align:center;font-weight:600;color:#2563eb;cursor:pointer;transition:all 0.2s ease;" onmouseover="this.style.background='#dbeafe'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#f8fafc'; this.style.transform='scale(1)'">${word}</div>`;
     });
     
     html += '</div>';
@@ -1424,17 +1435,28 @@ function updatePracticeModeUI() {
     const title = document.querySelector('.title');
     const exitButton = document.getElementById('exitPracticeButton');
     
-    if (title && isPracticeMode) {
+    if (title && isIndividualWordPractice) {
+        title.textContent = '🎯 Word Practice';
+        title.style.color = '#10b981';
+    } else if (title && isPracticeMode) {
         title.textContent = '🎯 Practice Mode';
         title.style.color = '#f59e0b';
-    } else if (title && !isPracticeMode) {
+    } else if (title && !isPracticeMode && !isIndividualWordPractice) {
         title.textContent = 'Spelling Practice';
         title.style.color = '#2563eb';
     }
     
     // Show/hide exit practice button
     if (exitButton) {
-        exitButton.style.display = isPracticeMode ? 'inline-block' : 'none';
+        if (isIndividualWordPractice) {
+            exitButton.style.display = 'inline-block';
+            exitButton.textContent = '🔙 Back to Practice';
+        } else if (isPracticeMode) {
+            exitButton.style.display = 'inline-block';
+            exitButton.textContent = '🚪 Exit Practice';
+        } else {
+            exitButton.style.display = 'none';
+        }
     }
 }
 
@@ -1912,4 +1934,90 @@ function inputLetterToBox(letter) {
             showNotification('All letters filled! Checking spelling...', 'success');
         }
     }
+}
+
+// Function to practice an individual word
+function practiceIndividualWord(word) {
+    console.log(`Starting individual practice for word: ${word}`);
+    
+    // Save the current state
+    originalPracticeState = {
+        words: [...words],
+        currentWordIndex: currentWordIndex,
+        userAnswers: [...userAnswers],
+        hintUsed: [...hintUsed],
+        quizComplete: quizComplete,
+        isPracticeMode: isPracticeMode,
+        practiceWords: [...practiceWords],
+        originalWords: [...originalWords]
+    };
+    
+    // Set up for individual word practice
+    isIndividualWordPractice = true;
+    words = [word]; // Only practice this one word
+    currentWordIndex = 0;
+    quizComplete = false;
+    
+    // Reset state for this single word
+    userAnswers = [{ attempts: [], correct: false }];
+    hintUsed = [false];
+    
+    // Close modal and update display
+    closeModal();
+    updateDisplay();
+    updatePracticeModeUI();
+    
+    // Speak the word
+    setTimeout(() => {
+        speakWord(word);
+    }, 500);
+    
+    showNotification(`🎯 Individual practice: "${word}"`, 'info');
+}
+
+// Function to update UI for individual word practice
+function updateIndividualWordPracticeUI() {
+    const title = document.querySelector('.title');
+    const exitButton = document.getElementById('exitPracticeButton');
+    
+    if (title && isIndividualWordPractice) {
+        title.textContent = '🎯 Word Practice';
+        title.style.color = '#10b981';
+    }
+    
+    // Show exit button for individual practice
+    if (exitButton) {
+        exitButton.style.display = 'inline-block';
+        exitButton.textContent = '🔙 Back to Practice';
+    }
+}
+
+// Function to exit individual word practice
+function exitIndividualWordPractice() {
+    console.log('Exiting individual word practice...');
+    
+    if (!originalPracticeState) {
+        console.error('No original state to restore!');
+        return;
+    }
+    
+    // Restore the original state
+    words = [...originalPracticeState.words];
+    currentWordIndex = originalPracticeState.currentWordIndex;
+    userAnswers = [...originalPracticeState.userAnswers];
+    hintUsed = [...originalPracticeState.hintUsed];
+    quizComplete = originalPracticeState.quizComplete;
+    isPracticeMode = originalPracticeState.isPracticeMode;
+    practiceWords = [...originalPracticeState.practiceWords];
+    originalWords = [...originalPracticeState.originalWords];
+    
+    // Clear individual practice state
+    isIndividualWordPractice = false;
+    originalPracticeState = null;
+    
+    // Update display and UI
+    updateDisplay();
+    updatePracticeModeUI(); // This will restore the correct title and button state
+    
+    showNotification('🔄 Returned to original practice', 'success');
 } 
