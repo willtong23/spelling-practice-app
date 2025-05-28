@@ -403,12 +403,18 @@ function updateAnalyticsStats() {
     document.getElementById('totalWordSets').textContent = wordSets.length;
     document.getElementById('totalQuizzes').textContent = quizResults.length;
     
-    // Calculate average score
+    // Calculate average score based on first-try correct only
     if (quizResults.length > 0) {
         const totalScore = quizResults.reduce((sum, result) => {
-            const correct = result.words ? result.words.filter(w => w.correct).length : 0;
-            const total = result.words ? result.words.length : 0;
-            return sum + (total > 0 ? (correct / total) * 100 : 0);
+            const words = result.words || [];
+            // Count only words that were correct on first attempt
+            const firstTryCorrect = words.filter(w => {
+                // Check if first attempt was correct
+                const attempts = w.attempts || [];
+                return attempts.length > 0 && attempts[0] === w.word;
+            }).length;
+            const total = words.length;
+            return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
         }, 0);
         const averageScore = Math.round(totalScore / quizResults.length);
         document.getElementById('averageScore').textContent = averageScore + '%';
@@ -429,20 +435,38 @@ function renderAnalyticsTable() {
     tbody.innerHTML = quizResults.map(result => {
         const dateTime = result.date ? new Date(result.date).toLocaleString() : 'Unknown';
         const words = result.words || [];
-        const correct = words.filter(w => w.correct).length;
-        const total = words.length;
-        const score = total > 0 ? Math.round((correct / total) * 100) : 0;
         
-        // Find word set (this might need to be enhanced based on how you track which set was used)
+        // Count only words that were correct on first attempt
+        const firstTryCorrect = words.filter(w => {
+            const attempts = w.attempts || [];
+            return attempts.length > 0 && attempts[0] === w.word;
+        }).length;
+        
+        const total = words.length;
+        const score = total > 0 ? Math.round((firstTryCorrect / total) * 100) : 0;
+        
+        // Find word set
         const wordSetName = result.wordSetId ? 
             (wordSets.find(ws => ws.id === result.wordSetId)?.name || 'Unknown Set') : 
             'Legacy Set';
         
         const wordDetails = words.map(w => {
-            let wrongs = (w.attempts || []).filter(a => a !== w.word);
+            const attempts = w.attempts || [];
+            const firstAttempt = attempts[0] || '';
+            const isFirstTryCorrect = firstAttempt === w.word;
+            
+            // Show wrong attempts (all attempts that weren't the correct word)
+            let wrongs = attempts.filter(a => a !== w.word);
             let wrongStr = wrongs.length ? ` [${wrongs.join(', ')}]` : '';
             let hintStr = w.hint ? ' H' : '';
-            return `${w.word}${wrongStr}${hintStr}`;
+            
+            // Add indicator if they eventually got it right but not on first try
+            let statusStr = '';
+            if (!isFirstTryCorrect && attempts.includes(w.word)) {
+                statusStr = ' (eventually correct)';
+            }
+            
+            return `${w.word}${wrongStr}${hintStr}${statusStr}`;
         }).join(', ');
         
         return `
@@ -452,7 +476,7 @@ function renderAnalyticsTable() {
                 <td>${wordSetName}</td>
                 <td>
                     <span style="color: ${score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444'}; font-weight: 600;">
-                        ${score}% (${correct}/${total})
+                        ${score}% (${firstTryCorrect}/${total} first-try)
                     </span>
                 </td>
                 <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${wordDetails}">

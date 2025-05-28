@@ -403,16 +403,20 @@ modalOverlay.addEventListener('click', (e) => {
 });
 
 function showEndOfQuizFeedback() {
-    let allPerfect = true;
+    let allPerfectFirstTry = true;
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
+        const attempts = entry.attempts || [];
         const correctWord = words[i];
-        const wrongAttempts = (entry.attempts || []).filter(a => a !== correctWord);
-        if (wrongAttempts.length > 0 || !entry.correct) {
-            allPerfect = false;
+        
+        // Check if first attempt was correct
+        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        if (!firstTryCorrect) {
+            allPerfectFirstTry = false;
             break;
         }
     }
+    
     let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
     
     // Show which word set was used
@@ -420,41 +424,73 @@ function showEndOfQuizFeedback() {
         html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
     }
     
-    if (allPerfect) {
-        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Congratulations! You got everything correct on the first try!</div>';
+    if (allPerfectFirstTry) {
+        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
     }
+    
     html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
-    html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">Result</th><th style="text-align:left;padding:4px 8px;">Wrong attempts</th></tr>';
+    html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">First Try</th><th style="text-align:left;padding:4px 8px;">All Attempts</th></tr>';
+    
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
-        const correct = entry.correct;
         const attempts = entry.attempts || [];
         const correctWord = words[i];
-        const wrongAttempts = attempts.filter(a => a !== correctWord);
-        const correctAttempts = attempts.some(a => a === correctWord) ? 1 : 0;
+        
+        // Check if first attempt was correct
+        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        const eventuallyCorrect = attempts.includes(correctWord);
+        
         html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
-        if (correctAttempts) {
-            html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif;'>`;
-            for (let t = 0; t < correctAttempts; t++) html += '✅';
-            html += `</span>`;
+        
+        // Show first try result
+        if (firstTryCorrect) {
+            html += `<span style='font-size:1.5em;color:#22c55e;'>✅</span>`;
+        } else {
+            html += `<span style='font-size:1.5em;color:#ef4444;'>❌</span>`;
         }
-        if (wrongAttempts.length) {
-            html += `<span style='font-size:1.5em;vertical-align:middle;font-family: "Apple Color Emoji", "Segoe UI Emoji", "NotoColorEmoji", "Noto Color Emoji", "Segoe UI Symbol", "Android Emoji", emoji, sans-serif; color:#ef4444;'>`;
-            for (let x = 0; x < wrongAttempts.length; x++) html += '❌';
-            html += `</span>`;
-        }
+        
+        // Add hint indicator
         if (hintUsed[i]) {
             html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
         }
+        
         html += `</td><td style="color:#888;padding:4px 8px;">`;
-        if (wrongAttempts.length) {
-            html += `<b>${wrongAttempts.join(', ')}</b>`;
+        
+        // Show all attempts
+        if (attempts.length > 0) {
+            const attemptsList = attempts.map((attempt, idx) => {
+                if (attempt === correctWord) {
+                    return `<span style="color:#22c55e;font-weight:600;">${attempt}</span>`;
+                } else {
+                    return `<span style="color:#ef4444;">${attempt}</span>`;
+                }
+            }).join(' → ');
+            html += attemptsList;
+            
+            // Add status if eventually correct but not first try
+            if (!firstTryCorrect && eventuallyCorrect) {
+                html += ` <span style="color:#f59e0b;font-size:0.8em;">(eventually correct)</span>`;
+            }
         } else {
-            html += '-';
+            html += 'No attempts';
         }
+        
         html += '</td></tr>';
     }
     html += '</table></div>';
+    
+    // Calculate and show first-try score
+    const firstTryCorrectCount = words.filter((word, i) => {
+        const attempts = (userAnswers[i] || {}).attempts || [];
+        return attempts.length > 0 && attempts[0] === word;
+    }).length;
+    
+    const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
+    
+    html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
+        <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
+    </div>`;
+    
     showModal(html);
     lastQuizComplete = true;
     
@@ -511,11 +547,17 @@ async function saveQuizResults() {
         // Transform data to match teacher dashboard expectations
         const wordsData = words.map((word, index) => {
             const userAnswer = userAnswers[index] || { attempts: [], correct: false };
+            const attempts = userAnswer.attempts || [];
+            
+            // A word is only correct if the FIRST attempt was correct
+            const firstAttemptCorrect = attempts.length > 0 && attempts[0] === word;
+            
             const wordObj = {
                 word: word,
-                correct: userAnswer.correct,
-                attempts: userAnswer.attempts || [],
-                hint: hintUsed[index] || false
+                correct: firstAttemptCorrect, // Only true if first attempt was correct
+                attempts: attempts,
+                hint: hintUsed[index] || false,
+                firstTryCorrect: firstAttemptCorrect // Explicit field for first-try scoring
             };
             console.log(`Word ${index}:`, wordObj);
             return wordObj;
