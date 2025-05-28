@@ -27,11 +27,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // Check password
-    const password = prompt('Enter teacher password:');
-    if (password !== '9739') {
-        alert('Incorrect password');
-        window.location.href = 'index.html';
-        return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAlreadyAuthenticated = urlParams.get('auth') === 'verified';
+    
+    if (!isAlreadyAuthenticated) {
+        const password = prompt('Enter teacher password:');
+        if (password !== '9739') {
+            alert('Incorrect password');
+            window.location.href = 'index.html';
+            return;
+        }
+    } else {
+        // Clean up the URL parameter after successful authentication
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
     
     // Initialize tabs

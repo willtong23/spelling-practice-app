@@ -1358,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Correct password - navigate to teacher dashboard
                 showNotification('✅ Access granted! Redirecting to teacher dashboard...', 'success');
                 setTimeout(() => {
-                    window.location.href = 'teacher.html';
+                    window.location.href = 'teacher.html?auth=verified';
                 }, 1000);
             } else if (password !== null) { // User didn't cancel
                 // Wrong password - show countdown and redirect back
