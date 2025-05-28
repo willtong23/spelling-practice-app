@@ -484,6 +484,32 @@
         <div class="tab-content" id="analytics">
             <h2 style="margin-bottom: 20px; color: #1e293b;">Learning Analytics</h2>
             
+            <!-- Detailed Results - Moved to Top -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title">Detailed Results</div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportAnalyticsBtn">Export Data</button>
+                        <button class="btn-secondary" id="deleteAllResultsBtn">Delete All Data</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Date & Time</th>
+                            <th>Word Set</th>
+                            <th>First-Try Score</th>
+                            <th>Details</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsTableBody">
+                        <!-- Analytics data will be displayed here -->
+                    </tbody>
+                </table>
+            </div>
+            
             <!-- Analytics Filters -->
             <div class="section-card" style="margin-bottom: 24px;">
                 <div class="section-title">Analytics Filters</div>
@@ -542,32 +568,6 @@
                 <div id="analyticsInsights" style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #2563eb;">
                     <p style="color: #64748b; margin: 0;">Apply filters to see personalized insights and suggestions.</p>
                 </div>
-            </div>
-            
-            <!-- Detailed Analytics -->
-            <div class="section-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <div class="section-title">Detailed Results</div>
-                    <div style="display: flex; gap: 12px;">
-                        <button class="btn-secondary" id="exportAnalyticsBtn">Export Data</button>
-                        <button class="btn-secondary" id="deleteAllResultsBtn">Delete All Data</button>
-                    </div>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Date & Time</th>
-                            <th>Word Set</th>
-                            <th>First-Try Score</th>
-                            <th>Details</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analyticsTableBody">
-                        <!-- Analytics data will be displayed here -->
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
