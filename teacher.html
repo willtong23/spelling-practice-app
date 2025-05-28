@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teacher Dashboard - Spelling Practice</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👩‍🏫</text></svg>">
+    <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -42,6 +42,28 @@
             font-size: 2.2rem;
             color: #2563eb;
             font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .teacher-logo {
+            height: 2.8rem;
+            width: auto;
+            border-radius: 8px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes logoGlow {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            }
+            100% {
+                transform: scale(1.05);
+                filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.3));
+            }
         }
         
         /* Tab Navigation */
@@ -370,7 +392,10 @@
 <body>
     <div class="dashboard-container">
         <div class="dashboard-header">
-            <div class="dashboard-title">Teacher Dashboard</div>
+            <div class="dashboard-title">
+                <img src="logo.png" alt="Teacher Dashboard Logo" class="teacher-logo">
+                Teacher Dashboard
+            </div>
             <a href="index.html" style="color:#2563eb;text-decoration:none;font-weight:600;">Student View</a>
         </div>
         

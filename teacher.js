@@ -1932,6 +1932,17 @@ function renderFilteredAnalyticsTable() {
         
         detailsHtml += '</div>';
         
+        // Create a simple summary for the cell content
+        let summaryText = '';
+        if (correctWords.length > 0) {
+            summaryText += `✅ ${correctWords.length} correct`;
+        }
+        if (mistakesAndHints.length > 0) {
+            if (summaryText) summaryText += ', ';
+            summaryText += `❌ ${mistakesAndHints.length} need review`;
+        }
+        if (!summaryText) summaryText = 'No data';
+        
         return `
             <tr>
                 <td>${result.user || 'Unknown'}</td>
@@ -1943,8 +1954,8 @@ function renderFilteredAnalyticsTable() {
                         ${score}% (${firstTryCorrect}/${total})
                     </span>
                 </td>
-                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;" title="${detailsHtml}">
-                    ${detailsHtml}
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; cursor: help;" title="${detailsHtml.replace(/"/g, '&quot;')}">
+                    ${summaryText}
                 </td>
                 <td>
                     <button class="btn-small btn-delete" onclick="deleteQuizResult('${result.id}')">Delete</button>

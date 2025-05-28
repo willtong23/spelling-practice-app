@@ -38,6 +38,29 @@ body {
     color: #2563eb;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    height: 2.5rem;
+    width: auto;
+    display: inline-block;
+    animation: logoGlow 2s ease-in-out infinite alternate;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    border-radius: 8px;
+}
+
+@keyframes logoGlow {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+    100% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.3));
+    }
 }
 
 .word-counter {
@@ -1015,40 +1038,40 @@ h1 {
     color: #2563eb;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.teacher-link {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
-    padding: 8px 16px;
+.logo {
+    height: 2.5rem;
+    width: auto;
+    display: inline-block;
+    animation: logoGlow 2s ease-in-out infinite alternate;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
     border-radius: 8px;
-    transition: all 0.2s ease;
 }
 
-.teacher-link:hover {
-    background: rgba(102, 126, 234, 0.1);
-    transform: translateY(-2px);
+@keyframes logoGlow {
+    0% {
+        transform: scale(1);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+    100% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.3));
+    }
 }
 
-.practice-card {
-    text-align: center;
+.word-counter {
+    font-size: 1.1rem;
+    color: #64748b;
+    margin-bottom: 4px;
+    font-weight: 500;
 }
 
-.progress-bar {
-    width: 100%;
-    height: 8px;
-    background: rgba(102, 126, 234, 0.2);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    border-radius: 4px;
-    transition: width 0.3s ease;
-    width: 0%;
+.progress-container {
+    margin-bottom: 4px;
 }
 
 .controls {
