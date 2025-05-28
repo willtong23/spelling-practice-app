@@ -829,6 +829,11 @@ function checkSpelling() {
     let userAnswer = letterInputs.map((box, idx) => box.value ? box.value.toLowerCase() : '').join('');
     const correctWord = words[currentWordIndex];
     
+    console.log('=== CHECKING SPELLING ===');
+    console.log('User answer:', userAnswer);
+    console.log('Correct word:', correctWord);
+    console.log('Letter inputs values:', letterInputs.map(box => box.value));
+    
     if (!userAnswers[currentWordIndex]) {
         userAnswers[currentWordIndex] = { attempts: [], correct: false };
     }
@@ -836,6 +841,9 @@ function checkSpelling() {
     
     let isCorrect = userAnswer === correctWord;
     if (isCorrect) userAnswers[currentWordIndex].correct = true;
+    
+    console.log('Is correct:', isCorrect);
+    console.log('=== END CHECKING SPELLING ===');
     
     if (isCorrect && userAnswers[currentWordIndex].correct) {
         resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
@@ -908,14 +916,7 @@ if (alphabetsButton) {
     console.log('alphabetsButton not found!');
 }
 
-// Voice Input button to start/stop voice recognition
-if (voiceInputButton) {
-    voiceInputButton.addEventListener('click', () => {
-        toggleVoiceInput();
-    });
-} else {
-    console.log('voiceInputButton not found!');
-}
+// Note: Voice Input button event listener is set up in DOMContentLoaded event
 
 // Function to clear all letter boxes
 function clearAllLetterBoxes() {
@@ -1568,7 +1569,9 @@ let voiceInputButton = null;
 
 // Initialize voice input when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - initializing voice input');
     voiceInputButton = document.getElementById('voiceInputButton');
+    console.log('voiceInputButton found:', !!voiceInputButton);
     
     // Check if browser supports speech recognition
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -1581,9 +1584,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    console.log('Speech recognition is supported');
+    
     // Initialize speech recognition
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
+    console.log('Speech recognition initialized:', !!recognition);
+    
+    // Set up voice input button event listener now that everything is ready
+    if (voiceInputButton) {
+        console.log('Setting up voice input button event listener');
+        voiceInputButton.addEventListener('click', () => {
+            console.log('Voice input button clicked!');
+            toggleVoiceInput();
+        });
+    } else {
+        console.log('voiceInputButton not found in DOMContentLoaded!');
+    }
     
     // Configure speech recognition
     recognition.continuous = true;
@@ -1648,14 +1665,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to toggle voice input on/off
 function toggleVoiceInput() {
+    console.log('toggleVoiceInput called');
+    console.log('recognition available:', !!recognition);
+    console.log('isVoiceInputActive:', isVoiceInputActive);
+    
     if (!recognition) {
+        console.log('No recognition available');
         showNotification('Voice input not supported in this browser', 'error');
         return;
     }
     
     if (isVoiceInputActive) {
+        console.log('Stopping voice input');
         stopVoiceInput();
     } else {
+        console.log('Starting voice input');
         startVoiceInput();
     }
 }
@@ -1798,13 +1822,31 @@ function inputLetterToBox(letter) {
     }
     
     if (targetBox) {
-        // Input the letter
-        targetBox.value = letter;
+        const boxIndex = letterInputs.indexOf(targetBox);
+        
+        // Input the letter (convert to lowercase for consistency)
+        targetBox.value = letter.toLowerCase();
         targetBox.disabled = false;
         
-        // Trigger the input event to handle auto-advance
-        const inputEvent = new Event('input', { bubbles: true });
-        targetBox.dispatchEvent(inputEvent);
+        // Focus on the target box
+        targetBox.focus();
+        
+        // Simulate the same logic as keyboard input
+        if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
+            // Move to next box if not the last one
+            if (letterInputs[boxIndex + 1]) {
+                setTimeout(() => {
+                    letterInputs[boxIndex + 1].focus();
+                }, 50);
+            }
+        } else if (targetBox.value.length === 1 && boxIndex === letterInputs.length - 1) {
+            // Auto-check when last letter is entered (same as keyboard input)
+            setTimeout(() => {
+                if (!quizComplete && words[currentWordIndex]) {
+                    checkSpelling();
+                }
+            }, 100);
+        }
         
         // Visual feedback
         targetBox.style.background = '#e7fbe9';
@@ -1814,23 +1856,16 @@ function inputLetterToBox(letter) {
             targetBox.style.transform = '';
         }, 300);
         
-        console.log(`Voice input: "${letter}" added to box`);
+        console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
         // Show feedback about recognized letter
         const remainingEmpty = letterInputs.filter(box => box.value === '').length;
         if (remainingEmpty > 0) {
             showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more letter${remainingEmpty > 1 ? 's' : ''} needed`, 'success');
-        }
-        
-        // Check if all boxes are now filled
-        const allFilled = letterInputs.every(box => box.value !== '');
-        if (allFilled) {
-            // All boxes filled, stop voice input and check spelling
+        } else {
+            // All boxes filled
             stopVoiceInput();
             showNotification('All letters filled! Checking spelling...', 'success');
-            setTimeout(() => {
-                checkSpelling();
-            }, 500);
         }
     }
 } 
