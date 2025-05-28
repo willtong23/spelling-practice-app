@@ -1219,4 +1219,95 @@ h1 {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+}
+
+.alphabets-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.alphabets-btn:hover {
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Virtual Alphabet Keyboard */
+.alphabet-keyboard {
+    margin: 12px 0;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border: 2px solid rgba(139, 92, 246, 0.2);
+}
+
+.alphabet-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.alphabet-key {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.alphabet-key:hover {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
+    border-color: #7c3aed;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.alphabet-key:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+/* Mobile responsive alphabet keyboard */
+@media (max-width: 768px) {
+    .alphabet-keyboard {
+        margin: 8px 0;
+        padding: 12px;
+    }
+    
+    .alphabet-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+        max-width: 320px;
+    }
+    
+    .alphabet-key {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .alphabet-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        max-width: 280px;
+    }
+    
+    .alphabet-key {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
 } 

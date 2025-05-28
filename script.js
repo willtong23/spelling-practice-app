@@ -454,6 +454,8 @@ const speakButton = document.getElementById('speakButton');
 const allWordsButton = document.getElementById('allWordsButton');
 const hintButton = document.getElementById('hintButton');
 const clearAllButton = document.getElementById('clearAllButton');
+const alphabetsButton = document.getElementById('alphabetsButton');
+const alphabetKeyboard = document.getElementById('alphabetKeyboard');
 const exitPracticeButton = document.getElementById('exitPracticeButton');
 const checkButton = document.getElementById('checkButton');
 const resultMessage = document.getElementById('resultMessage');
@@ -484,6 +486,8 @@ let isPracticeMode = false;
 let practiceWords = [];
 let originalWords = [];
 let practiceResults = [];
+let isAlphabetKeyboardVisible = false;
+let currentFocusedLetterBox = null;
 
 // --- Name Prompt ---
 function promptUserName() {
@@ -651,6 +655,11 @@ function updateLetterHint() {
                 box.disabled = true;
                 hintUsed[currentWordIndex] = true;
             }
+        });
+        
+        // Track focus for virtual keyboard
+        box.addEventListener('focus', function(e) {
+            currentFocusedLetterBox = box;
         });
         
         // Add double-click to clear any letter box (even hint letters)
@@ -864,6 +873,13 @@ if (clearAllButton) {
 if (exitPracticeButton) {
     exitPracticeButton.addEventListener('click', () => {
         exitPracticeMode();
+    });
+}
+
+// Alphabets button to show/hide virtual keyboard
+if (alphabetsButton) {
+    alphabetsButton.addEventListener('click', () => {
+        toggleAlphabetKeyboard();
     });
 }
 
@@ -1416,4 +1432,95 @@ function continuePractice() {
     }, 200);
     
     showNotification('Continuing practice session!', 'info');
+}
+
+// Function to toggle alphabet keyboard visibility
+function toggleAlphabetKeyboard() {
+    isAlphabetKeyboardVisible = !isAlphabetKeyboardVisible;
+    
+    if (alphabetKeyboard) {
+        alphabetKeyboard.style.display = isAlphabetKeyboardVisible ? 'block' : 'none';
+    }
+    
+    // Update button text to show current state
+    if (alphabetsButton) {
+        alphabetsButton.textContent = isAlphabetKeyboardVisible ? '🔤 Hide Alphabets' : '🔤 Alphabets';
+    }
+    
+    // Set up alphabet key event listeners when keyboard is shown
+    if (isAlphabetKeyboardVisible) {
+        setupAlphabetKeys();
+        showNotification('Virtual keyboard shown! Click letters to input them.', 'info');
+    } else {
+        showNotification('Virtual keyboard hidden.', 'info');
+    }
+}
+
+// Function to set up alphabet key event listeners
+function setupAlphabetKeys() {
+    const alphabetKeys = document.querySelectorAll('.alphabet-key');
+    alphabetKeys.forEach(key => {
+        // Remove existing listeners to avoid duplicates
+        key.removeEventListener('click', handleAlphabetKeyClick);
+        // Add new listener
+        key.addEventListener('click', handleAlphabetKeyClick);
+    });
+}
+
+// Function to handle alphabet key clicks
+function handleAlphabetKeyClick(event) {
+    const letter = event.target.getAttribute('data-letter');
+    if (!letter) return;
+    
+    // Find the target letter box
+    let targetBox = null;
+    
+    if (letterInputs && letterInputs.length > 0) {
+        // First priority: use the currently focused box
+        if (currentFocusedLetterBox && letterInputs.includes(currentFocusedLetterBox)) {
+            targetBox = currentFocusedLetterBox;
+        } else {
+            // Second priority: use the active element if it's a letter box
+            const activeElement = document.activeElement;
+            if (activeElement && activeElement.classList.contains('letter-hint-box')) {
+                targetBox = activeElement;
+            } else {
+                // Third priority: find the first empty box
+                targetBox = letterInputs.find(box => box.value === '');
+                
+                // Fourth priority: use the first box
+                if (!targetBox) {
+                    targetBox = letterInputs[0];
+                }
+            }
+        }
+        
+        if (targetBox && targetBox.classList.contains('letter-hint-box')) {
+            // Input the letter
+            targetBox.value = letter;
+            targetBox.disabled = false; // Re-enable if it was disabled from hint
+            
+            // Trigger the input event to handle auto-advance
+            const inputEvent = new Event('input', { bubbles: true });
+            targetBox.dispatchEvent(inputEvent);
+            
+            // Keep focus on the target box or move to next
+            const boxIndex = letterInputs.indexOf(targetBox);
+            if (boxIndex < letterInputs.length - 1 && letterInputs[boxIndex + 1]) {
+                letterInputs[boxIndex + 1].focus();
+                currentFocusedLetterBox = letterInputs[boxIndex + 1];
+            } else {
+                targetBox.focus();
+                currentFocusedLetterBox = targetBox;
+            }
+            
+            // Visual feedback for the clicked alphabet key
+            event.target.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+            event.target.style.color = 'white';
+            setTimeout(() => {
+                event.target.style.background = '';
+                event.target.style.color = '';
+            }, 200);
+        }
+    }
 } 
