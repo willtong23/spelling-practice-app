@@ -560,11 +560,11 @@ function updateLetterHint() {
             // Prevent processing if quiz is complete or word has changed
             if (quizComplete || !words[currentWordIndex]) return;
             
-            // Ensure only single character and convert to uppercase for consistency
+            // Ensure only single character and convert to lowercase for consistency
             if (box.value.length > 1) {
-                box.value = box.value.charAt(0).toUpperCase();
+                box.value = box.value.charAt(0).toLowerCase();
             } else if (box.value.length === 1) {
-                box.value = box.value.toUpperCase();
+                box.value = box.value.toLowerCase();
             }
             
             if (box.value.length === 1 && i < wordLength - 1) {
@@ -879,9 +879,6 @@ if (exitPracticeButton) {
 // Alphabets button to show/hide virtual keyboard
 if (alphabetsButton) {
     alphabetsButton.addEventListener('click', () => {
-        console.log('Alphabets button clicked!');
-        console.log('Current isAlphabetKeyboardVisible:', isAlphabetKeyboardVisible);
-        console.log('alphabetKeyboard element:', alphabetKeyboard);
         toggleAlphabetKeyboard();
     });
 } else {
@@ -1441,13 +1438,10 @@ function continuePractice() {
 
 // Function to toggle alphabet keyboard visibility
 function toggleAlphabetKeyboard() {
-    console.log('toggleAlphabetKeyboard called');
     isAlphabetKeyboardVisible = !isAlphabetKeyboardVisible;
-    console.log('New isAlphabetKeyboardVisible:', isAlphabetKeyboardVisible);
     
     if (alphabetKeyboard) {
         alphabetKeyboard.style.display = isAlphabetKeyboardVisible ? 'block' : 'none';
-        console.log('Set alphabetKeyboard display to:', alphabetKeyboard.style.display);
     } else {
         console.log('alphabetKeyboard element not found!');
     }
@@ -1455,7 +1449,6 @@ function toggleAlphabetKeyboard() {
     // Update button text to show current state
     if (alphabetsButton) {
         alphabetsButton.textContent = isAlphabetKeyboardVisible ? '🔤 Hide Alphabets' : '🔤 Alphabets';
-        console.log('Updated button text to:', alphabetsButton.textContent);
     }
     
     // Set up alphabet key event listeners when keyboard is shown
