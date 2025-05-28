@@ -1241,11 +1241,18 @@ h1 {
 }
 
 .alphabet-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 700px;
     margin: 0 auto;
+}
+
+.alphabet-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .alphabet-key {
@@ -1286,9 +1293,12 @@ h1 {
     }
     
     .alphabet-grid {
-        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+        max-width: 600px;
+    }
+    
+    .alphabet-row {
         gap: 6px;
-        max-width: 320px;
     }
     
     .alphabet-key {
@@ -1300,14 +1310,17 @@ h1 {
 
 @media (max-width: 480px) {
     .alphabet-grid {
-        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+        max-width: 500px;
+    }
+    
+    .alphabet-row {
         gap: 4px;
-        max-width: 280px;
     }
     
     .alphabet-key {
-        width: 40px;
-        height: 40px;
+        width: 35px;
+        height: 35px;
         font-size: 1rem;
     }
 } 
