@@ -1394,7 +1394,7 @@ async function assignToStudent() {
             type: 'individual'
         };
         
-        const docRef = await window.db.collection('assignments').add(assignmentData);
+        const docRef = await createAssignmentWithValidation(assignmentData);
         assignments.push({ id: docRef.id, ...assignmentData });
         
         // Update the main wordlist for this student (for backward compatibility)
@@ -1418,7 +1418,22 @@ async function assignToStudent() {
         document.getElementById('assignWordSetSelect').value = '';
     } catch (error) {
         console.error('Error creating assignment:', error);
-        showNotification('Error creating assignment', 'error');
+        
+        // Provide more specific error messages
+        let errorMessage = 'Error creating assignment';
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Permission denied - Check Firebase security rules';
+        } else if (error.code === 'unavailable') {
+            errorMessage = 'Database temporarily unavailable - Please try again';
+        } else if (error.code === 'deadline-exceeded') {
+            errorMessage = 'Request timeout - Please check your internet connection';
+        } else if (error.code === 'resource-exhausted') {
+            errorMessage = 'Database quota exceeded - Please try again later';
+        } else if (error.message) {
+            errorMessage = `Assignment error: ${error.message}`;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -1506,7 +1521,22 @@ async function assignToClass() {
         document.getElementById('assignClassWordSetSelect').value = '';
     } catch (error) {
         console.error('Error creating class assignment:', error);
-        showNotification('Error creating class assignment', 'error');
+        
+        // Provide more specific error messages
+        let errorMessage = 'Error creating class assignment';
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Permission denied - Check Firebase security rules';
+        } else if (error.code === 'unavailable') {
+            errorMessage = 'Database temporarily unavailable - Please try again';
+        } else if (error.code === 'deadline-exceeded') {
+            errorMessage = 'Request timeout - Please check your internet connection';
+        } else if (error.code === 'resource-exhausted') {
+            errorMessage = 'Database quota exceeded - Please try again later';
+        } else if (error.message) {
+            errorMessage = `Class assignment error: ${error.message}`;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -3018,7 +3048,7 @@ async function syncClassAssignments(classId) {
                             classId
                         };
                         
-                        const docRef = await window.db.collection('assignments').add(assignmentData);
+                        const docRef = await createAssignmentWithValidation(assignmentData);
                         assignments.push({ id: docRef.id, ...assignmentData });
                         assignmentsCreated++;
                     } catch (error) {
@@ -3942,7 +3972,7 @@ async function executeQuickAssignToStudent(studentId) {
             type: 'individual'
         };
         
-        const docRef = await window.db.collection('assignments').add(assignmentData);
+        const docRef = await createAssignmentWithValidation(assignmentData);
         assignments.push({ id: docRef.id, ...assignmentData });
         
         closeModal();
@@ -3954,7 +3984,22 @@ async function executeQuickAssignToStudent(studentId) {
         
     } catch (error) {
         console.error('Error creating assignment:', error);
-        showNotification('Error creating assignment', 'error');
+        
+        // Provide more specific error messages
+        let errorMessage = 'Error creating assignment';
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Permission denied - Check Firebase security rules';
+        } else if (error.code === 'unavailable') {
+            errorMessage = 'Database temporarily unavailable - Please try again';
+        } else if (error.code === 'deadline-exceeded') {
+            errorMessage = 'Request timeout - Please check your internet connection';
+        } else if (error.code === 'resource-exhausted') {
+            errorMessage = 'Database quota exceeded - Please try again later';
+        } else if (error.message) {
+            errorMessage = `Quick assign error: ${error.message}`;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -4013,7 +4058,7 @@ async function executeQuickAssignToClass(classId) {
             studentCount: studentsInClass.length
         };
         
-        const docRef = await window.db.collection('assignments').add(classAssignmentData);
+        const docRef = await createAssignmentWithValidation(classAssignmentData);
         assignments.push({ id: docRef.id, ...classAssignmentData });
         
         closeModal();
@@ -4025,7 +4070,22 @@ async function executeQuickAssignToClass(classId) {
         
     } catch (error) {
         console.error('Error creating class assignment:', error);
-        showNotification('Error creating class assignment', 'error');
+        
+        // Provide more specific error messages
+        let errorMessage = 'Error creating class assignment';
+        if (error.code === 'permission-denied') {
+            errorMessage = 'Permission denied - Check Firebase security rules';
+        } else if (error.code === 'unavailable') {
+            errorMessage = 'Database temporarily unavailable - Please try again';
+        } else if (error.code === 'deadline-exceeded') {
+            errorMessage = 'Request timeout - Please check your internet connection';
+        } else if (error.code === 'resource-exhausted') {
+            errorMessage = 'Database quota exceeded - Please try again later';
+        } else if (error.message) {
+            errorMessage = `Class assignment error: ${error.message}`;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -4577,3 +4637,142 @@ async function deleteAllStudentAssignments(studentId) {
         showNotification('Error deleting student assignments. Please try again.', 'error');
     }
 }
+
+// Enhanced Firebase connection and validation functions
+async function checkFirebaseConnection() {
+    try {
+        // Try a simple read operation to test connection
+        await window.db.collection('test').limit(1).get();
+        return true;
+    } catch (error) {
+        console.error('Firebase connection test failed:', error);
+        return false;
+    }
+}
+
+function validateAssignmentData(assignmentData) {
+    const errors = [];
+    
+    if (!assignmentData.wordSetId) {
+        errors.push('Word Set ID is required');
+    }
+    
+    if (!assignmentData.assignedAt) {
+        errors.push('Assignment date is required');
+    }
+    
+    if (!assignmentData.type) {
+        errors.push('Assignment type is required');
+    }
+    
+    if (assignmentData.type === 'individual' && !assignmentData.studentId) {
+        errors.push('Student ID is required for individual assignments');
+    }
+    
+    if (assignmentData.type === 'class' && !assignmentData.classId) {
+        errors.push('Class ID is required for class assignments');
+    }
+    
+    return errors;
+}
+
+async function createAssignmentWithValidation(assignmentData, retryCount = 0) {
+    const maxRetries = 3;
+    
+    try {
+        // Check Firebase connection first
+        const isConnected = await checkFirebaseConnection();
+        if (!isConnected) {
+            throw new Error('No connection to database. Please check your internet connection.');
+        }
+        
+        // Validate assignment data
+        const validationErrors = validateAssignmentData(assignmentData);
+        if (validationErrors.length > 0) {
+            throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+        }
+        
+        // Create the assignment
+        const docRef = await window.db.collection('assignments').add(assignmentData);
+        return docRef;
+    } catch (error) {
+        // Retry for network-related errors
+        if (retryCount < maxRetries && (
+            error.code === 'unavailable' || 
+            error.code === 'deadline-exceeded' ||
+            error.message.includes('network') ||
+            error.message.includes('connection')
+        )) {
+            console.log(`Assignment creation failed, retrying... (${retryCount + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+            return createAssignmentWithValidation(assignmentData, retryCount + 1);
+        }
+        
+        throw error; // Re-throw if not retryable or max retries reached
+    }
+}
+
+// Add connection status indicator
+function showConnectionStatus() {
+    const statusDiv = document.createElement('div');
+    statusDiv.id = 'connection-status';
+    statusDiv.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        z-index: 10001;
+        transition: all 0.3s ease;
+    `;
+    
+    // Check connection and update status
+    checkFirebaseConnection().then(isConnected => {
+        if (isConnected) {
+            statusDiv.textContent = '🟢 Connected';
+            statusDiv.style.background = '#22c55e';
+            statusDiv.style.color = 'white';
+        } else {
+            statusDiv.textContent = '🔴 Disconnected';
+            statusDiv.style.background = '#ef4444';
+            statusDiv.style.color = 'white';
+        }
+    });
+    
+    // Remove existing status indicator
+    const existing = document.getElementById('connection-status');
+    if (existing) {
+        existing.remove();
+    }
+    
+    document.body.appendChild(statusDiv);
+    
+    // Auto-hide after 5 seconds if connected
+    setTimeout(() => {
+        if (statusDiv.textContent.includes('Connected')) {
+            statusDiv.style.opacity = '0';
+            setTimeout(() => {
+                if (document.body.contains(statusDiv)) {
+                    document.body.removeChild(statusDiv);
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Initialize connection monitoring when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    showConnectionStatus();
+    
+    // Check connection status periodically
+    setInterval(() => {
+        checkFirebaseConnection().then(isConnected => {
+            const statusDiv = document.getElementById('connection-status');
+            if (!isConnected && !statusDiv) {
+                showConnectionStatus();
+            }
+        });
+    }, 30000); // Check every 30 seconds
+});
