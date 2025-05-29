@@ -7,6 +7,14 @@ let assignments = [];
 let quizResults = [];
 let filteredResults = []; // For analytics filtering
 
+// Global variables for bulk operations
+let bulkSelectionMode = false;
+let selectedItems = {
+    classes: new Set(),
+    students: new Set(),
+    assignments: new Set()
+};
+
 // DOM Elements
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
@@ -315,9 +323,30 @@ function renderClasses() {
             </div>
             <div class="section-actions">
                 <input type="text" id="classSearchInput" placeholder="🔍 Search classes..." class="search-input" onkeyup="filterClasses()">
+                <button class="btn-enhanced ${bulkSelectionMode ? 'btn-danger' : 'btn-secondary'}" onclick="toggleBulkSelectionMode('classes')">
+                    ${bulkSelectionMode ? '❌ Cancel Selection' : '☑️ Bulk Select'}
+                </button>
                 <button class="btn btn-primary" onclick="showCreateClassModal()">➕ Add Class</button>
             </div>
         </div>
+        
+        ${bulkSelectionMode ? `
+            <div class="bulk-actions-bar">
+                <div class="bulk-actions-left">
+                    <label class="bulk-select-all">
+                        <input type="checkbox" id="selectAllClasses" onchange="toggleSelectAllClasses()">
+                        <span>Select All Classes</span>
+                    </label>
+                    <span class="selected-count" id="selectedClassesCount">0 selected</span>
+                </div>
+                <div class="bulk-actions-right">
+                    <button class="btn-bulk btn-danger" onclick="bulkDeleteClasses()" id="bulkDeleteClassesBtn" disabled>
+                        🗑️ Delete Selected Classes
+                    </button>
+                </div>
+            </div>
+        ` : ''}
+        
         <div class="classes-grid" id="classesGrid">
             ${classes.map(cls => {
                 const studentsInClass = students.filter(s => s.classId === cls.id);
@@ -325,7 +354,13 @@ function renderClasses() {
                 const defaultWordSet = wordSets.find(ws => ws.id === cls.defaultWordSetId);
                 
                 return `
-                    <div class="enhanced-class-card" data-class-name="${cls.name.toLowerCase()}">
+                    <div class="enhanced-class-card ${bulkSelectionMode ? 'selection-mode' : ''}" data-class-name="${cls.name.toLowerCase()}">
+                        ${bulkSelectionMode ? `
+                            <div class="selection-checkbox">
+                                <input type="checkbox" class="class-checkbox" data-class-id="${cls.id}" onchange="updateClassSelection('${cls.id}')">
+                            </div>
+                        ` : ''}
+                        
                         <div class="card-header-enhanced">
                             <div class="card-title-section">
                                 <h4 class="card-title">📚 ${cls.name}</h4>
@@ -370,12 +405,17 @@ function renderClasses() {
                                 <div class="assignments-section">
                                     <div class="section-header-mini">
                                         <h5 class="section-title-mini">📋 Class Assignments</h5>
-                                        <button class="btn-toggle" onclick="toggleClassAssignments('${cls.id}')" id="toggleClassBtn_${cls.id}">
-                                            ${classAssignments.length > 3 ? 'Show All' : 'Hide'}
-                                        </button>
+                                        <div class="assignment-controls">
+                                            <button class="btn-toggle" onclick="toggleClassAssignments('${cls.id}')" id="toggleClassBtn_${cls.id}">
+                                                ${classAssignments.length > 3 ? 'Show All' : 'Hide'}
+                                            </button>
+                                            <button class="btn-danger-small" onclick="deleteAllClassAssignments('${cls.id}')" title="Delete all assignments for this class">
+                                                🗑️ Delete All
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="assignments-container" id="classAssignments_${cls.id}">
-                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class')}
+                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class', cls.id)}
                                         ${classAssignments.length > 3 ? `
                                             <div class="more-indicator">
                                                 <span class="more-text">+ ${classAssignments.length - 3} more assignments</span>
@@ -420,11 +460,13 @@ function renderClasses() {
                             `}
                         </div>
                         
-                        <div class="card-actions-enhanced">
-                            <button class="btn-enhanced btn-secondary" onclick="editClass('${cls.id}')">✏️ Edit</button>
-                            <button class="btn-enhanced btn-primary" onclick="showQuickAssignToClass('${cls.id}')">📝 Quick Assign</button>
-                            <button class="btn-enhanced btn-danger" onclick="deleteClass('${cls.id}')">🗑️ Delete</button>
-                        </div>
+                        ${!bulkSelectionMode ? `
+                            <div class="card-actions-enhanced">
+                                <button class="btn-enhanced btn-secondary" onclick="editClass('${cls.id}')">✏️ Edit</button>
+                                <button class="btn-enhanced btn-primary" onclick="showQuickAssignToClass('${cls.id}')">📝 Quick Assign</button>
+                                <button class="btn-enhanced btn-danger" onclick="deleteClass('${cls.id}')">🗑️ Delete</button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('')}
@@ -458,9 +500,30 @@ function renderStudents() {
                     <option value="">All Classes</option>
                     ${classes.map(cls => `<option value="${cls.id}">${cls.name}</option>`).join('')}
                 </select>
+                <button class="btn-enhanced ${bulkSelectionMode ? 'btn-danger' : 'btn-secondary'}" onclick="toggleBulkSelectionMode('students')">
+                    ${bulkSelectionMode ? '❌ Cancel Selection' : '☑️ Bulk Select'}
+                </button>
                 <button class="btn btn-primary" onclick="showAddStudentModal()">➕ Add Student</button>
             </div>
         </div>
+        
+        ${bulkSelectionMode ? `
+            <div class="bulk-actions-bar">
+                <div class="bulk-actions-left">
+                    <label class="bulk-select-all">
+                        <input type="checkbox" id="selectAllStudents" onchange="toggleSelectAllStudents()">
+                        <span>Select All Students</span>
+                    </label>
+                    <span class="selected-count" id="selectedStudentsCount">0 selected</span>
+                </div>
+                <div class="bulk-actions-right">
+                    <button class="btn-bulk btn-danger" onclick="bulkDeleteStudents()" id="bulkDeleteStudentsBtn" disabled>
+                        🗑️ Delete Selected Students
+                    </button>
+                </div>
+            </div>
+        ` : ''}
+        
         <div class="students-grid" id="studentsGrid">
             ${students.map(student => {
                 const studentClass = classes.find(c => c.id === student.classId);
@@ -470,9 +533,15 @@ function renderStudents() {
                 const totalAssignments = studentAssignments.length + classAssignments.length;
                 
                 return `
-                    <div class="enhanced-student-card" id="student_${student.id}" 
+                    <div class="enhanced-student-card ${bulkSelectionMode ? 'selection-mode' : ''}" id="student_${student.id}" 
                          data-student-name="${student.name.toLowerCase()}" 
                          data-class-id="${student.classId || ''}">
+                        ${bulkSelectionMode ? `
+                            <div class="selection-checkbox">
+                                <input type="checkbox" class="student-checkbox" data-student-id="${student.id}" onchange="updateStudentSelection('${student.id}')">
+                            </div>
+                        ` : ''}
+                        
                         <div class="card-header-enhanced">
                             <div class="card-title-section">
                                 <h4 class="card-title">👤 ${student.name}</h4>
@@ -526,7 +595,7 @@ function renderStudents() {
                                         <span class="assignment-count">${classAssignments.length} assignments</span>
                                     </div>
                                     <div class="assignments-container">
-                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class-inherited')}
+                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class-inherited', student.id)}
                                         ${classAssignments.length > 3 ? `
                                             <div class="more-indicator">
                                                 <span class="more-text">+ ${classAssignments.length - 3} more class assignments</span>
@@ -545,10 +614,13 @@ function renderStudents() {
                                             <button class="btn-toggle" onclick="toggleStudentAssignments('${student.id}')" id="toggleStudentBtn_${student.id}">
                                                 ${studentAssignments.length > 5 ? 'Show All' : 'Hide'}
                                             </button>
+                                            <button class="btn-danger-small" onclick="deleteAllStudentAssignments('${student.id}')" title="Delete all individual assignments for this student">
+                                                🗑️ Delete All
+                                            </button>
                                         </div>
                                     </div>
                                     <div class="assignments-container" id="studentAssignments_${student.id}">
-                                        ${renderAssignmentsList(studentAssignments.slice(0, 5), 'individual')}
+                                        ${renderAssignmentsList(studentAssignments.slice(0, 5), 'individual', student.id)}
                                         ${studentAssignments.length > 5 ? `
                                             <div class="more-indicator">
                                                 <span class="more-text">+ ${studentAssignments.length - 5} more individual assignments</span>
@@ -570,11 +642,13 @@ function renderStudents() {
                             `}
                         </div>
                         
-                        <div class="card-actions-enhanced">
-                            <button class="btn-enhanced btn-secondary" onclick="editStudent('${student.id}')">✏️ Edit</button>
-                            <button class="btn-enhanced btn-primary" onclick="showQuickAssignToStudent('${student.id}')">📝 Quick Assign</button>
-                            <button class="btn-enhanced btn-danger" onclick="deleteStudent('${student.id}')">🗑️ Delete</button>
-                        </div>
+                        ${!bulkSelectionMode ? `
+                            <div class="card-actions-enhanced">
+                                <button class="btn-enhanced btn-secondary" onclick="editStudent('${student.id}')">✏️ Edit</button>
+                                <button class="btn-enhanced btn-primary" onclick="showQuickAssignToStudent('${student.id}')">📝 Quick Assign</button>
+                                <button class="btn-enhanced btn-danger" onclick="deleteStudent('${student.id}')">🗑️ Delete</button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }).join('')}
@@ -583,7 +657,7 @@ function renderStudents() {
 }
 
 // Helper function to render assignments list with consistent formatting
-function renderAssignmentsList(assignmentsList, type) {
+function renderAssignmentsList(assignmentsList, type, parentId = null) {
     return assignmentsList.map(assignment => {
         const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
@@ -4203,111 +4277,356 @@ function addTestData() {
 
 // Enhanced duplicate assignment cleanup function
 async function cleanupDuplicateAssignments() {
-    if (!confirm('This will scan for and remove duplicate assignments. This action cannot be undone. Continue?')) {
+    if (!confirm('This will scan and remove duplicate assignments from the database.\n\nDuplicates are identified by:\n- Same student + same word set\n- Same class + same word set\n\nThis action cannot be undone. Continue?')) {
         return;
     }
     
     try {
-        console.log('=== STARTING DUPLICATE ASSIGNMENT CLEANUP ===');
+        showNotification('Scanning for duplicate assignments...', 'info');
         
-        // Reload assignments to get the latest data
-        await loadAssignments();
+        // Get all assignments from Firebase
+        const assignmentsSnapshot = await window.db.collection('assignments').get();
+        const allAssignments = [];
         
-        const duplicatesFound = [];
-        const assignmentsToKeep = [];
-        const assignmentsToDelete = [];
-        
-        // Group assignments by student+wordSet combination
-        const assignmentGroups = {};
-        
-        assignments.forEach(assignment => {
-            // Create a unique key for each student+wordSet combination
-            const key = `${assignment.studentId || 'no-student'}_${assignment.wordSetId || 'no-wordset'}`;
-            
-            if (!assignmentGroups[key]) {
-                assignmentGroups[key] = [];
-            }
-            assignmentGroups[key].push(assignment);
+        assignmentsSnapshot.forEach(doc => {
+            allAssignments.push({
+                id: doc.id,
+                ...doc.data()
+            });
         });
         
-        // Process each group to find duplicates
-        Object.keys(assignmentGroups).forEach(key => {
-            const group = assignmentGroups[key];
+        console.log(`Found ${allAssignments.length} total assignments`);
+        
+        // Find duplicates
+        const duplicatesToDelete = [];
+        const seen = new Set();
+        
+        // Sort by creation date to keep the oldest assignment
+        allAssignments.sort((a, b) => {
+            const dateA = a.assignedAt ? a.assignedAt.toDate() : new Date(0);
+            const dateB = b.assignedAt ? b.assignedAt.toDate() : new Date(0);
+            return dateA - dateB;
+        });
+        
+        for (const assignment of allAssignments) {
+            let key;
             
-            if (group.length > 1) {
-                // Sort by creation date (keep the oldest one)
-                group.sort((a, b) => {
-                    const dateA = a.assignedAt ? new Date(a.assignedAt.seconds ? a.assignedAt.seconds * 1000 : a.assignedAt) : new Date(0);
-                    const dateB = b.assignedAt ? new Date(b.assignedAt.seconds ? b.assignedAt.seconds * 1000 : b.assignedAt) : new Date(0);
-                    return dateA - dateB;
-                });
-                
-                // Keep the first (oldest) assignment
-                assignmentsToKeep.push(group[0]);
-                
-                // Mark the rest as duplicates to delete
-                for (let i = 1; i < group.length; i++) {
-                    assignmentsToDelete.push(group[i]);
-                    duplicatesFound.push({
-                        studentId: group[i].studentId,
-                        wordSetId: group[i].wordSetId,
-                        assignmentId: group[i].id
-                    });
-                }
+            // Create unique key based on assignment type
+            if (assignment.studentId && assignment.wordSetId) {
+                // Individual assignment
+                key = `student_${assignment.studentId}_wordset_${assignment.wordSetId}`;
+            } else if (assignment.classId && assignment.wordSetId) {
+                // Class assignment
+                key = `class_${assignment.classId}_wordset_${assignment.wordSetId}`;
             } else {
-                // No duplicates, keep the single assignment
-                assignmentsToKeep.push(group[0]);
+                // Invalid assignment - mark for deletion
+                console.warn('Invalid assignment found:', assignment);
+                duplicatesToDelete.push(assignment);
+                continue;
             }
-        });
+            
+            if (seen.has(key)) {
+                // This is a duplicate
+                duplicatesToDelete.push(assignment);
+                console.log(`Duplicate found: ${key}`, assignment);
+            } else {
+                // First occurrence - keep it
+                seen.add(key);
+            }
+        }
         
-        console.log(`Found ${duplicatesFound.length} duplicate assignments to remove`);
-        console.log('Duplicates:', duplicatesFound);
-        
-        if (duplicatesFound.length === 0) {
-            showNotification('✅ No duplicate assignments found!', 'success');
+        if (duplicatesToDelete.length === 0) {
+            showNotification('No duplicate assignments found!', 'success');
             return;
         }
         
-        // Show confirmation with details
-        const studentNames = await Promise.all(
-            duplicatesFound.map(async (dup) => {
-                const student = students.find(s => s.id === dup.studentId);
-                const wordSet = wordSets.find(ws => ws.id === dup.wordSetId);
-                return `• ${student?.name || 'Unknown Student'} - ${wordSet?.name || 'Unknown Word Set'}`;
-            })
-        );
-        
-        const confirmMessage = `Found ${duplicatesFound.length} duplicate assignments:\n\n${studentNames.join('\n')}\n\nDelete these duplicates?`;
-        
-        if (!confirm(confirmMessage)) {
+        // Confirm deletion
+        if (!confirm(`Found ${duplicatesToDelete.length} duplicate assignments.\n\nDo you want to delete them now?`)) {
             return;
         }
         
-        // Delete duplicate assignments from Firebase
+        // Delete duplicates in batches
+        const batchSize = 500; // Firestore batch limit
         let deletedCount = 0;
-        for (const assignment of assignmentsToDelete) {
-            try {
-                await window.db.collection('assignments').doc(assignment.id).delete();
-                deletedCount++;
-                console.log(`Deleted duplicate assignment: ${assignment.id}`);
-            } catch (error) {
-                console.error(`Error deleting assignment ${assignment.id}:`, error);
-            }
+        
+        for (let i = 0; i < duplicatesToDelete.length; i += batchSize) {
+            const batch = window.db.batch();
+            const batchItems = duplicatesToDelete.slice(i, i + batchSize);
+            
+            batchItems.forEach(assignment => {
+                const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+                batch.delete(assignmentRef);
+            });
+            
+            await batch.commit();
+            deletedCount += batchItems.length;
+            
+            showNotification(`Deleted ${deletedCount}/${duplicatesToDelete.length} duplicates...`, 'info');
         }
         
-        // Update local assignments array
-        assignments = assignmentsToKeep;
+        showNotification(`Successfully removed ${duplicatesToDelete.length} duplicate assignments!`, 'success');
         
-        // Refresh the display
-        renderAssignments();
+        // Reload data and refresh display
+        await loadAllData();
         renderStudentsAndClasses();
-        
-        showNotification(`✅ Successfully removed ${deletedCount} duplicate assignments!`, 'success');
-        
-        console.log('=== DUPLICATE ASSIGNMENT CLEANUP COMPLETE ===');
+        renderAssignments();
         
     } catch (error) {
-        console.error('Error during duplicate cleanup:', error);
-        showNotification('❌ Error during cleanup: ' + error.message, 'error');
+        console.error('Error cleaning up duplicates:', error);
+        showNotification('Error cleaning up duplicates. Please try again.', 'error');
+    }
+}
+
+// Bulk selection functions
+function toggleBulkSelectionMode(section) {
+    bulkSelectionMode = !bulkSelectionMode;
+    
+    // Clear selections when toggling
+    selectedItems.classes.clear();
+    selectedItems.students.clear();
+    selectedItems.assignments.clear();
+    
+    // Re-render the appropriate section
+    if (section === 'classes') {
+        renderClasses();
+    } else if (section === 'students') {
+        renderStudents();
+    }
+}
+
+function updateClassSelection(classId) {
+    const checkbox = document.querySelector(`input[data-class-id="${classId}"]`);
+    if (checkbox.checked) {
+        selectedItems.classes.add(classId);
+    } else {
+        selectedItems.classes.delete(classId);
+    }
+    updateBulkActionButtons('classes');
+}
+
+function updateStudentSelection(studentId) {
+    const checkbox = document.querySelector(`input[data-student-id="${studentId}"]`);
+    if (checkbox.checked) {
+        selectedItems.students.add(studentId);
+    } else {
+        selectedItems.students.delete(studentId);
+    }
+    updateBulkActionButtons('students');
+}
+
+function toggleSelectAllClasses() {
+    const selectAllCheckbox = document.getElementById('selectAllClasses');
+    const classCheckboxes = document.querySelectorAll('.class-checkbox');
+    
+    if (selectAllCheckbox.checked) {
+        classCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            selectedItems.classes.add(checkbox.dataset.classId);
+        });
+    } else {
+        classCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+            selectedItems.classes.delete(checkbox.dataset.classId);
+        });
+    }
+    updateBulkActionButtons('classes');
+}
+
+function toggleSelectAllStudents() {
+    const selectAllCheckbox = document.getElementById('selectAllStudents');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    
+    if (selectAllCheckbox.checked) {
+        studentCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+            selectedItems.students.add(checkbox.dataset.studentId);
+        });
+    } else {
+        studentCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+            selectedItems.students.delete(checkbox.dataset.studentId);
+        });
+    }
+    updateBulkActionButtons('students');
+}
+
+function updateBulkActionButtons(section) {
+    if (section === 'classes') {
+        const count = selectedItems.classes.size;
+        const countElement = document.getElementById('selectedClassesCount');
+        const deleteButton = document.getElementById('bulkDeleteClassesBtn');
+        
+        if (countElement) countElement.textContent = `${count} selected`;
+        if (deleteButton) deleteButton.disabled = count === 0;
+    } else if (section === 'students') {
+        const count = selectedItems.students.size;
+        const countElement = document.getElementById('selectedStudentsCount');
+        const deleteButton = document.getElementById('bulkDeleteStudentsBtn');
+        
+        if (countElement) countElement.textContent = `${count} selected`;
+        if (deleteButton) deleteButton.disabled = count === 0;
+    }
+}
+
+// Bulk delete functions
+async function bulkDeleteClasses() {
+    if (selectedItems.classes.size === 0) return;
+    
+    const classNames = Array.from(selectedItems.classes).map(id => {
+        const cls = classes.find(c => c.id === id);
+        return cls ? cls.name : 'Unknown';
+    });
+    
+    if (!confirm(`Are you sure you want to delete ${selectedItems.classes.size} classes?\n\nClasses to delete:\n${classNames.join('\n')}\n\nThis will also delete all students and assignments in these classes.`)) {
+        return;
+    }
+    
+    try {
+        const batch = window.db.batch();
+        
+        for (const classId of selectedItems.classes) {
+            // Delete class
+            const classRef = window.db.collection('classes').doc(classId);
+            batch.delete(classRef);
+            
+            // Delete students in class
+            const studentsInClass = students.filter(s => s.classId === classId);
+            studentsInClass.forEach(student => {
+                const studentRef = window.db.collection('students').doc(student.id);
+                batch.delete(studentRef);
+            });
+            
+            // Delete class assignments
+            const classAssignments = assignments.filter(a => a.classId === classId);
+            classAssignments.forEach(assignment => {
+                const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+                batch.delete(assignmentRef);
+            });
+            
+            // Delete individual assignments for students in class
+            const studentIds = studentsInClass.map(s => s.id);
+            const individualAssignments = assignments.filter(a => studentIds.includes(a.studentId));
+            individualAssignments.forEach(assignment => {
+                const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+                batch.delete(assignmentRef);
+            });
+        }
+        
+        await batch.commit();
+        
+        showNotification(`Successfully deleted ${selectedItems.classes.size} classes and all related data`, 'success');
+        selectedItems.classes.clear();
+        bulkSelectionMode = false;
+        await loadAllData();
+        renderStudentsAndClasses();
+    } catch (error) {
+        console.error('Error bulk deleting classes:', error);
+        showNotification('Error deleting classes. Please try again.', 'error');
+    }
+}
+
+async function bulkDeleteStudents() {
+    if (selectedItems.students.size === 0) return;
+    
+    const studentNames = Array.from(selectedItems.students).map(id => {
+        const student = students.find(s => s.id === id);
+        return student ? student.name : 'Unknown';
+    });
+    
+    if (!confirm(`Are you sure you want to delete ${selectedItems.students.size} students?\n\nStudents to delete:\n${studentNames.join('\n')}\n\nThis will also delete all their individual assignments.`)) {
+        return;
+    }
+    
+    try {
+        const batch = window.db.batch();
+        
+        for (const studentId of selectedItems.students) {
+            // Delete student
+            const studentRef = window.db.collection('students').doc(studentId);
+            batch.delete(studentRef);
+            
+            // Delete student's individual assignments
+            const studentAssignments = assignments.filter(a => a.studentId === studentId);
+            studentAssignments.forEach(assignment => {
+                const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+                batch.delete(assignmentRef);
+            });
+        }
+        
+        await batch.commit();
+        
+        showNotification(`Successfully deleted ${selectedItems.students.size} students and their assignments`, 'success');
+        selectedItems.students.clear();
+        bulkSelectionMode = false;
+        await loadAllData();
+        renderStudentsAndClasses();
+    } catch (error) {
+        console.error('Error bulk deleting students:', error);
+        showNotification('Error deleting students. Please try again.', 'error');
+    }
+}
+
+// Delete all assignments functions
+async function deleteAllClassAssignments(classId) {
+    const cls = classes.find(c => c.id === classId);
+    const classAssignments = assignments.filter(a => a.classId === classId);
+    
+    if (classAssignments.length === 0) {
+        showNotification('No assignments to delete for this class', 'info');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ALL ${classAssignments.length} assignments for class "${cls.name}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const batch = window.db.batch();
+        
+        classAssignments.forEach(assignment => {
+            const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+            batch.delete(assignmentRef);
+        });
+        
+        await batch.commit();
+        
+        showNotification(`Successfully deleted all ${classAssignments.length} assignments for class "${cls.name}"`, 'success');
+        await loadAllData();
+        renderStudentsAndClasses();
+    } catch (error) {
+        console.error('Error deleting class assignments:', error);
+        showNotification('Error deleting class assignments. Please try again.', 'error');
+    }
+}
+
+async function deleteAllStudentAssignments(studentId) {
+    const student = students.find(s => s.id === studentId);
+    const studentAssignments = assignments.filter(a => a.studentId === studentId);
+    
+    if (studentAssignments.length === 0) {
+        showNotification('No individual assignments to delete for this student', 'info');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to delete ALL ${studentAssignments.length} individual assignments for "${student.name}"?\n\nThis will not affect class assignments.\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    try {
+        const batch = window.db.batch();
+        
+        studentAssignments.forEach(assignment => {
+            const assignmentRef = window.db.collection('assignments').doc(assignment.id);
+            batch.delete(assignmentRef);
+        });
+        
+        await batch.commit();
+        
+        showNotification(`Successfully deleted all ${studentAssignments.length} individual assignments for "${student.name}"`, 'success');
+        await loadAllData();
+        renderStudentsAndClasses();
+    } catch (error) {
+        console.error('Error deleting student assignments:', error);
+        showNotification('Error deleting student assignments. Please try again.', 'error');
     }
 }
