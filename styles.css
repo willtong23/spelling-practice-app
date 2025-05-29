@@ -514,7 +514,7 @@ h1 {
 }
 
 .letter-hint {
-    margin: 8px 0;
+    margin: 4px 0;
     min-height: 80px;
     display: flex;
     align-items: center;
@@ -870,6 +870,11 @@ h1 {
     
     .celebration-text {
         font-size: 0.8rem;
+    }
+
+    .alphabet-keyboard {
+        margin: 4px 0;
+        padding: 12px;
     }
 }
 
@@ -1426,7 +1431,7 @@ h1 {
 
 /* Virtual Alphabet Keyboard */
 .alphabet-keyboard {
-    margin: 12px 0;
+    margin: 4px 0;
     padding: 16px;
     background: rgba(255, 255, 255, 0.95);
     border-radius: 16px;
@@ -1513,7 +1518,7 @@ h1 {
 /* Mobile responsive alphabet keyboard */
 @media (max-width: 768px) {
     .alphabet-keyboard {
-        margin: 8px 0;
+        margin: 4px 0;
         padding: 12px;
     }
     
