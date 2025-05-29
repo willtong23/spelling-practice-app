@@ -497,13 +497,34 @@ let isCheckingSpelling = false; // Prevent double-checking
 function promptUserName() {
     // Check if name is already stored
     const storedName = localStorage.getItem('userName');
-    if (storedName && storedName !== 'unknown' && storedName.trim()) {
-        userName = storedName.trim();
-        return;
-    }
+    console.log('=== AUTHENTICATION DEBUG ===');
+    console.log('Raw stored name:', storedName);
+    console.log('Stored name type:', typeof storedName);
+    console.log('Stored name length:', storedName ? storedName.length : 'null');
+    console.log('Trimmed stored name:', storedName ? storedName.trim() : 'null');
+    console.log('All localStorage keys:', Object.keys(localStorage));
+    console.log('=== END DEBUG ===');
     
-    // Show professional name entry modal
-    showNameModal();
+    if (storedName && storedName !== 'unknown' && storedName.trim()) {
+        console.log('Found stored name:', storedName);
+        userName = storedName.trim();
+        
+        // Wait for Firebase to load, then initialize
+        if (typeof firebase !== 'undefined' && window.db) {
+            initializeApp();
+        } else {
+            // Wait a bit for Firebase to load
+            setTimeout(() => {
+                initializeApp();
+            }, 1000);
+        }
+    } else {
+        console.log('No stored name found, showing name modal...');
+        // No stored name, show the name entry modal
+        setTimeout(() => {
+            showNameModal();
+        }, 300); // Small delay to ensure DOM is fully ready
+    }
 }
 
 function showNameModal() {
@@ -1557,6 +1578,23 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Results toggle button not found');
     }
     
+    // Set up clear data button event listener
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    if (clearDataBtn) {
+        clearDataBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all stored data? This will reset your name and require you to log in again.')) {
+                localStorage.clear();
+                showNotification('✅ Data cleared! Reloading page...', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+        });
+        console.log('Clear data button event listener added');
+    } else {
+        console.log('Clear data button not found');
+    }
+    
     // Check if name is already stored
     const storedName = localStorage.getItem('userName');
     if (storedName && storedName !== 'unknown' && storedName.trim()) {
@@ -1576,8 +1614,8 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('No stored name found, showing name modal...');
         // No stored name, show the name entry modal
         setTimeout(() => {
-            promptUserName();
-        }, 500); // Small delay to ensure DOM is fully ready
+            showNameModal();
+        }, 300); // Small delay to ensure DOM is fully ready
     }
 });
 
