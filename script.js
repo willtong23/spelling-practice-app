@@ -2260,18 +2260,12 @@ function handleAlphabetKeyClick(event) {
 let isVoiceInputActive = false;
 let recognition = null;
 let voiceInputButton = null;
-let voiceInputDisplay = null; // For showing real-time voice feedback
-let lastProcessedTranscript = ''; // To avoid duplicate processing
-let processedLetters = new Set(); // Track which letters we've already processed
 
 // Initialize voice input when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOMContentLoaded - initializing voice input');
     voiceInputButton = document.getElementById('voiceInputButton');
     console.log('voiceInputButton found:', !!voiceInputButton);
-    
-    // Create voice input display element for real-time feedback
-    createVoiceInputDisplay();
     
     // Check if browser supports speech recognition
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -2302,51 +2296,25 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('voiceInputButton not found in DOMContentLoaded!');
     }
     
-    // Configure speech recognition for fast response
+    // Configure speech recognition
     recognition.continuous = true;
-    recognition.interimResults = true; // This is key for immediate feedback
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
-    recognition.maxAlternatives = 5; // Get more alternatives for better recognition
+    recognition.maxAlternatives = 1;
     
-    // Handle speech recognition results - IMPROVED for immediate feedback
+    // Handle speech recognition results
     recognition.onresult = function(event) {
-        let interimTranscript = '';
         let finalTranscript = '';
         
-        // Process all results, including alternatives for better accuracy
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            
-            // Get the best transcript (first alternative)
-            const transcript = result[0].transcript;
-            
-            if (result.isFinal) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
                 finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
-                
-                // Also check alternatives for interim results to catch more letters
-                for (let j = 1; j < Math.min(result.length, 3); j++) {
-                    const altTranscript = result[j].transcript;
-                    if (altTranscript && altTranscript !== transcript) {
-                        interimTranscript += ' ' + altTranscript;
-                    }
-                }
             }
         }
         
-        // Show immediate visual feedback for interim results
-        if (interimTranscript) {
-            showVoiceInputFeedback(interimTranscript, false); // false = interim
-            // Process interim results immediately for faster response
-            processVoiceInputImmediate(interimTranscript.toLowerCase().trim());
-        }
-        
-        // Process final results
-        if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
-            showVoiceInputFeedback(finalTranscript, true); // true = final
+        if (finalTranscript) {
             processVoiceInput(finalTranscript.toLowerCase().trim());
-            lastProcessedTranscript = finalTranscript;
         }
     };
     
@@ -2368,9 +2336,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle speech recognition start
     recognition.onstart = function() {
         console.log('Speech recognition started');
-        // Reset processed letters when starting
-        processedLetters.clear();
-        lastProcessedTranscript = '';
     };
     
     // Handle speech recognition end
@@ -2391,205 +2356,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
-
-// Create voice input display element for real-time feedback
-function createVoiceInputDisplay() {
-    // Create a display element to show what's being heard
-    voiceInputDisplay = document.createElement('div');
-    voiceInputDisplay.id = 'voiceInputDisplay';
-    voiceInputDisplay.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: rgba(59, 130, 246, 0.95);
-        color: white;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        z-index: 1000;
-        display: none;
-        max-width: 300px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border: 2px solid rgba(255, 255, 255, 0.2);
-    `;
-    document.body.appendChild(voiceInputDisplay);
-}
-
-// Show voice input feedback in real-time
-function showVoiceInputFeedback(transcript, isFinal) {
-    if (!voiceInputDisplay) return;
-    
-    const status = isFinal ? '✓ Final' : '🎤 Listening';
-    const bgColor = isFinal ? 'rgba(34, 197, 94, 0.95)' : 'rgba(59, 130, 246, 0.95)';
-    
-    voiceInputDisplay.style.background = bgColor;
-    voiceInputDisplay.innerHTML = `
-        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px;">${status}</div>
-        <div style="font-size: 1rem;">"${transcript}"</div>
-    `;
-    voiceInputDisplay.style.display = 'block';
-    
-    // Auto-hide after a delay
-    setTimeout(() => {
-        if (voiceInputDisplay && voiceInputDisplay.style.display === 'block') {
-            voiceInputDisplay.style.display = 'none';
-        }
-    }, isFinal ? 2000 : 1500);
-}
-
-// Process voice input immediately (for interim results)
-function processVoiceInputImmediate(transcript) {
-    console.log('Processing immediate voice input:', transcript);
-    
-    // Clean up the transcript and extract letters
-    const words = transcript.split(/\s+/);
-    
-    for (const word of words) {
-        let letter = null;
-        
-        // Check if it's a single letter (a-z)
-        if (word.length === 1 && /^[a-z]$/.test(word)) {
-            letter = word;
-        } else {
-            // Try to extract letters from common speech patterns
-            letter = extractLetterFromSpeech(word);
-        }
-        
-        if (letter) {
-            console.log(`Detected letter: "${letter}" from word: "${word}"`);
-            
-            // Check if we have empty boxes that need this letter
-            const emptyBoxes = letterInputs.filter(box => box.value === '');
-            
-            if (emptyBoxes.length > 0) {
-                // Only prevent duplicates if we recently processed this exact letter (within 300ms)
-                const now = Date.now();
-                const recentKey = `${letter}_${now}`;
-                const recentThreshold = 300; // 300ms threshold (reduced from 500ms)
-                
-                // Clean old entries from processedLetters
-                const cutoffTime = now - recentThreshold;
-                for (const key of processedLetters) {
-                    const [, timestamp] = key.split('_');
-                    if (parseInt(timestamp) < cutoffTime) {
-                        processedLetters.delete(key);
-                    }
-                }
-                
-                // Check if this letter was processed very recently
-                const wasRecentlyProcessed = Array.from(processedLetters).some(key => {
-                    const [keyLetter, timestamp] = key.split('_');
-                    return keyLetter === letter && (now - parseInt(timestamp)) < recentThreshold;
-                });
-                
-                if (!wasRecentlyProcessed) {
-                    processedLetters.add(recentKey);
-                    inputLetterToBoxImmediate(letter);
-                } else {
-                    console.log(`Letter "${letter}" was recently processed, skipping to avoid rapid duplicates`);
-                }
-            } else {
-                console.log('No empty boxes available for letter input');
-            }
-        }
-    }
-}
-
-// Input letter to box immediately with visual feedback
-function inputLetterToBoxImmediate(letter) {
-    console.log(`Attempting to input letter "${letter}" immediately`);
-    
-    if (!letterInputs || letterInputs.length === 0) {
-        console.log('No letter inputs available');
-        return;
-    }
-    
-    // Find the first empty box
-    let targetBox = letterInputs.find(box => box.value === '');
-    
-    if (!targetBox) {
-        // If no empty boxes, check if all boxes are filled
-        const allFilled = letterInputs.every(box => box.value !== '');
-        if (allFilled) {
-            // All boxes are filled, stop voice input and check spelling
-            console.log('All boxes filled, stopping voice input');
-            stopVoiceInput();
-            showNotification('🎉 All letters filled! Checking spelling...', 'success');
-            setTimeout(() => {
-                checkSpelling();
-            }, 500);
-            return;
-        }
-        // If not all filled but no empty box found, use the first box
-        targetBox = letterInputs[0];
-        console.log('No empty box found, using first box as fallback');
-    }
-    
-    if (targetBox) {
-        const boxIndex = letterInputs.indexOf(targetBox);
-        console.log(`Inputting "${letter}" into box ${boxIndex + 1}/${letterInputs.length}`);
-        
-        // Input the letter (convert to lowercase for consistency)
-        targetBox.value = letter.toLowerCase();
-        targetBox.disabled = false;
-        
-        // Focus on the target box
-        targetBox.focus();
-        
-        // Enhanced visual feedback for immediate input
-        targetBox.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
-        targetBox.style.color = 'white';
-        targetBox.style.transform = 'scale(1.15)';
-        targetBox.style.boxShadow = '0 0 20px rgba(34, 197, 94, 0.5)';
-        targetBox.style.border = '3px solid #10b981';
-        
-        // Trigger input event to simulate keyboard input
-        const inputEvent = new Event('input', { bubbles: true });
-        targetBox.dispatchEvent(inputEvent);
-        
-        setTimeout(() => {
-            targetBox.style.background = '';
-            targetBox.style.color = '';
-            targetBox.style.transform = '';
-            targetBox.style.boxShadow = '';
-            targetBox.style.border = '';
-        }, 800);
-        
-        // Move to next box logic
-        if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
-            // Move to next box if not the last one
-            if (letterInputs[boxIndex + 1]) {
-                setTimeout(() => {
-                    letterInputs[boxIndex + 1].focus();
-                    currentFocusedLetterBox = letterInputs[boxIndex + 1];
-                }, 150);
-            }
-        } else if (targetBox.value.length === 1 && boxIndex === letterInputs.length - 1) {
-            // Auto-check when last letter is entered
-            setTimeout(() => {
-                if (!quizComplete && words[currentWordIndex]) {
-                    console.log('Last letter entered, auto-checking spelling');
-                    checkSpelling();
-                }
-            }, 300);
-        }
-        
-        console.log(`✓ Voice input SUCCESS: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
-        
-        // Show immediate feedback about recognized letter
-        const remainingEmpty = letterInputs.filter(box => box.value === '').length;
-        if (remainingEmpty > 0) {
-            showNotification(`🎤 "${letter.toUpperCase()}" ✓ - ${remainingEmpty} more needed`, 'success');
-        } else {
-            // All boxes filled
-            stopVoiceInput();
-            showNotification('🎉 All letters filled! Checking spelling...', 'success');
-        }
-    } else {
-        console.error('Could not find target box for letter input');
-    }
-}
 
 // --- Celebration Animation Functions ---
 function triggerCelebrationAnimation(isCorrectWithoutHints = false) {
@@ -2934,7 +2700,7 @@ function startVoiceInput() {
         
         // Show helpful instructions
         const emptyCount = letterInputs.filter(box => box.value === '').length;
-        showNotification(`🎤 Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
+        showNotification(`Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
         console.log('Voice input started');
     } catch (error) {
         console.error('Error starting voice input:', error);
@@ -2959,38 +2725,28 @@ function stopVoiceInput() {
             voiceInputButton.textContent = '🎤 Voice Input';
         }
         
-        // Hide voice input display
-        if (voiceInputDisplay) {
-            voiceInputDisplay.style.display = 'none';
-        }
-        
         showNotification('Voice input stopped', 'info');
         console.log('Voice input stopped');
     }
 }
 
-// Function to process voice input and convert to letters (for final results)
+// Function to process voice input and convert to letters
 function processVoiceInput(transcript) {
-    console.log('Processing final voice input:', transcript);
+    console.log('Processing voice input:', transcript);
     
     // Clean up the transcript and extract letters
     const words = transcript.split(/\s+/);
     
     for (const word of words) {
-        let letter = null;
-        
         // Check if it's a single letter (a-z)
         if (word.length === 1 && /^[a-z]$/.test(word)) {
-            letter = word;
+            inputLetterToBox(word);
         } else {
             // Try to extract letters from common speech patterns
-            letter = extractLetterFromSpeech(word);
-        }
-        
-        if (letter && !processedLetters.has(letter)) {
-            // Mark this letter as processed to avoid duplicates
-            processedLetters.add(letter);
-            inputLetterToBox(letter);
+            const letter = extractLetterFromSpeech(word);
+            if (letter) {
+                inputLetterToBox(letter);
+            }
         }
     }
 }
@@ -3030,7 +2786,7 @@ function extractLetterFromSpeech(word) {
     return letterMappings[word.toLowerCase()] || null;
 }
 
-// Function to input a letter to the appropriate box (for final results)
+// Function to input a letter to the appropriate box
 function inputLetterToBox(letter) {
     if (!letterInputs || letterInputs.length === 0) {
         return;
@@ -3065,14 +2821,6 @@ function inputLetterToBox(letter) {
         // Focus on the target box
         targetBox.focus();
         
-        // Standard visual feedback
-        targetBox.style.background = '#e7fbe9';
-        targetBox.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            targetBox.style.background = '';
-            targetBox.style.transform = '';
-        }, 300);
-        
         // Simulate the same logic as keyboard input
         if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
             // Move to next box if not the last one
@@ -3090,7 +2838,15 @@ function inputLetterToBox(letter) {
             }, 100);
         }
         
-        console.log(`Voice input FINAL: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
+        // Visual feedback
+        targetBox.style.background = '#e7fbe9';
+        targetBox.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            targetBox.style.background = '';
+            targetBox.style.transform = '';
+        }, 300);
+        
+        console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
         // Show feedback about recognized letter
         const remainingEmpty = letterInputs.filter(box => box.value === '').length;
