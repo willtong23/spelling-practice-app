@@ -308,105 +308,123 @@ function renderClasses() {
     }
     
     container.innerHTML = `
-        <div class="section-header">
-            <h3>Classes</h3>
-            <button class="btn btn-primary" onclick="showCreateClassModal()">Add Class</button>
+        <div class="section-header-enhanced">
+            <div class="section-title-group">
+                <h3>📚 Classes Overview</h3>
+                <span class="section-count">${classes.length} ${classes.length === 1 ? 'class' : 'classes'}</span>
+            </div>
+            <div class="section-actions">
+                <input type="text" id="classSearchInput" placeholder="🔍 Search classes..." class="search-input" onkeyup="filterClasses()">
+                <button class="btn btn-primary" onclick="showCreateClassModal()">➕ Add Class</button>
+            </div>
         </div>
-        <div class="classes-list">
+        <div class="classes-grid" id="classesGrid">
             ${classes.map(cls => {
                 const studentsInClass = students.filter(s => s.classId === cls.id);
                 const classAssignments = assignments.filter(a => a.classId === cls.id);
                 const defaultWordSet = wordSets.find(ws => ws.id === cls.defaultWordSetId);
                 
                 return `
-                    <div class="class-card">
-                        <div class="class-header">
-                            <div class="class-info">
-                                <h4>${cls.name}</h4>
-                                <p>${cls.description || 'No description'}</p>
-                                <div class="class-stats">
-                                    <span class="stat-item">${studentsInClass.length} students</span>
-                                    <span class="stat-item">${classAssignments.length} class assignments</span>
-                                </div>
+                    <div class="enhanced-class-card" data-class-name="${cls.name.toLowerCase()}">
+                        <div class="card-header-enhanced">
+                            <div class="card-title-section">
+                                <h4 class="card-title">📚 ${cls.name}</h4>
+                                <p class="card-description">${cls.description || 'No description provided'}</p>
                             </div>
-                            <div class="class-actions">
-                                <button class="btn-small btn-edit" onclick="editClass('${cls.id}')">Edit</button>
-                                <button class="btn-small btn-assign" onclick="showQuickAssignToClass('${cls.id}')">Quick Assign</button>
-                                <button class="btn-small btn-delete" onclick="deleteClass('${cls.id}')">Delete</button>
+                            <div class="card-stats-grid">
+                                <div class="stat-box students-stat">
+                                    <span class="stat-number">${studentsInClass.length}</span>
+                                    <span class="stat-label">Students</span>
+                                </div>
+                                <div class="stat-box assignments-stat">
+                                    <span class="stat-number">${classAssignments.length}</span>
+                                    <span class="stat-label">Assignments</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="default-word-set-section">
-                            <div class="default-set-header">
-                                <span class="default-set-label">Default Word Set:</span>
-                                <span class="default-set-name">${defaultWordSet ? defaultWordSet.name : 'None set'}</span>
-                            </div>
-                            <div class="default-set-controls">
-                                <select class="default-set-select" id="classDefaultSet_${cls.id}">
-                                    <option value="">No default set</option>
-                                    ${wordSets.map(ws => `
-                                        <option value="${ws.id}" ${ws.id === cls.defaultWordSetId ? 'selected' : ''}>
-                                            ${ws.name} (${ws.words.length} words)
-                                        </option>
-                                    `).join('')}
-                                </select>
-                                <button class="btn-small btn-primary" onclick="setClassDefaultWordSet('${cls.id}')">
-                                    Set Default
-                                </button>
-                            </div>
-                        </div>
-
-                        ${classAssignments.length > 0 ? `
-                            <div class="class-assignments">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <h5 style="margin: 0;">Class Assignments (${classAssignments.length})</h5>
-                                    <button class="btn-small btn-secondary" onclick="toggleClassAssignments('${cls.id}')" id="toggleClassBtn_${cls.id}">
-                                        Show All
+                        <div class="card-content-section">
+                            <div class="default-word-set-enhanced">
+                                <div class="setting-row">
+                                    <span class="setting-label">🎯 Default Word Set:</span>
+                                    <span class="setting-value ${defaultWordSet ? 'has-value' : 'no-value'}">
+                                        ${defaultWordSet ? defaultWordSet.name : 'None set'}
+                                    </span>
+                                </div>
+                                <div class="setting-controls">
+                                    <select class="enhanced-select" id="classDefaultSet_${cls.id}">
+                                        <option value="">Choose default word set...</option>
+                                        ${wordSets.map(ws => `
+                                            <option value="${ws.id}" ${ws.id === cls.defaultWordSetId ? 'selected' : ''}>
+                                                ${ws.name} (${ws.words.length} words)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                    <button class="btn-enhanced btn-primary" onclick="setClassDefaultWordSet('${cls.id}')">
+                                        Set Default
                                     </button>
                                 </div>
-                                <div class="assignment-tags" id="classAssignments_${cls.id}">
-                                    ${classAssignments.slice(0, 2).map(assignment => {
-                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-                                        
-                                        return `
-                                            <div class="assignment-tag-detailed">
-                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                                                <div class="assignment-meta">
-                                                    <span class="assignment-date">${assignedDate}</span>
-                                                    <span class="assignment-type">class-wide</span>
-                                                    <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
-                                                </div>
+                            </div>
+
+                            ${classAssignments.length > 0 ? `
+                                <div class="assignments-section">
+                                    <div class="section-header-mini">
+                                        <h5 class="section-title-mini">📋 Class Assignments</h5>
+                                        <button class="btn-toggle" onclick="toggleClassAssignments('${cls.id}')" id="toggleClassBtn_${cls.id}">
+                                            ${classAssignments.length > 3 ? 'Show All' : 'Hide'}
+                                        </button>
+                                    </div>
+                                    <div class="assignments-container" id="classAssignments_${cls.id}">
+                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class')}
+                                        ${classAssignments.length > 3 ? `
+                                            <div class="more-indicator">
+                                                <span class="more-text">+ ${classAssignments.length - 3} more assignments</span>
+                                                <span class="more-hint">Click "Show All" to view</span>
                                             </div>
-                                        `;
-                                    }).join('')}
-                                    ${classAssignments.length > 2 ? `
-                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
-                                            ... and ${classAssignments.length - 2} more
-                                        </div>
-                                    ` : ''}
+                                        ` : ''}
+                                    </div>
                                 </div>
-                            </div>
-                        ` : `
-                            <div class="class-assignments">
-                                <h5>No class assignments yet</h5>
-                                <button class="btn-small btn-primary" onclick="showQuickAssignToClass('${cls.id}')" style="margin-top: 8px;">
-                                    Assign Word Set to Class
-                                </button>
-                            </div>
-                        `}
+                            ` : `
+                                <div class="assignments-section empty">
+                                    <div class="empty-assignments">
+                                        <span class="empty-icon">📝</span>
+                                        <span class="empty-text">No class assignments yet</span>
+                                        <button class="btn-enhanced btn-primary" onclick="showQuickAssignToClass('${cls.id}')">
+                                            Assign Word Set
+                                        </button>
+                                    </div>
+                                </div>
+                            `}
+                            
+                            ${studentsInClass.length > 0 ? `
+                                <div class="students-section">
+                                    <h5 class="section-title-mini">👥 Students in this class</h5>
+                                    <div class="students-grid">
+                                        ${studentsInClass.map(student => {
+                                            const studentAssignments = assignments.filter(a => a.studentId === student.id);
+                                            return `
+                                                <div class="student-chip ${studentAssignments.length > 0 ? 'has-assignments' : ''}" 
+                                                     onclick="scrollToStudent('${student.id}')" 
+                                                     title="Click to view ${student.name}'s details">
+                                                    <span class="student-name">${student.name}</span>
+                                                    <span class="student-assignment-count">${studentAssignments.length}</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="students-section empty">
+                                    <span class="empty-text">No students in this class yet</span>
+                                </div>
+                            `}
+                        </div>
                         
-                        ${studentsInClass.length > 0 ? `
-                            <div class="class-students">
-                                <h5>Students in this class:</h5>
-                                <div class="student-tags">
-                                    ${studentsInClass.map(student => {
-                                        const studentAssignments = assignments.filter(a => a.studentId === student.id);
-                                        return `<span class="student-tag ${studentAssignments.length > 0 ? 'has-assignment' : ''}" onclick="scrollToStudent('${student.id}')" style="cursor: pointer;" title="Click to view ${student.name}'s details">${student.name}</span>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        ` : ''}
+                        <div class="card-actions-enhanced">
+                            <button class="btn-enhanced btn-secondary" onclick="editClass('${cls.id}')">✏️ Edit</button>
+                            <button class="btn-enhanced btn-primary" onclick="showQuickAssignToClass('${cls.id}')">📝 Quick Assign</button>
+                            <button class="btn-enhanced btn-danger" onclick="deleteClass('${cls.id}')">🗑️ Delete</button>
+                        </div>
                     </div>
                 `;
             }).join('')}
@@ -429,129 +447,216 @@ function renderStudents() {
     }
     
     container.innerHTML = `
-        <div class="section-header">
-            <h3>Students</h3>
-            <button class="btn btn-primary" onclick="showAddStudentModal()">Add Student</button>
+        <div class="section-header-enhanced">
+            <div class="section-title-group">
+                <h3>👥 Students Overview</h3>
+                <span class="section-count">${students.length} ${students.length === 1 ? 'student' : 'students'}</span>
+            </div>
+            <div class="section-actions">
+                <input type="text" id="studentSearchInput" placeholder="🔍 Search students..." class="search-input" onkeyup="filterStudents()">
+                <select id="classFilterSelect" class="filter-select" onchange="filterStudentsByClass()">
+                    <option value="">All Classes</option>
+                    ${classes.map(cls => `<option value="${cls.id}">${cls.name}</option>`).join('')}
+                </select>
+                <button class="btn btn-primary" onclick="showAddStudentModal()">➕ Add Student</button>
+            </div>
         </div>
-        <div class="students-list">
+        <div class="students-grid" id="studentsGrid">
             ${students.map(student => {
                 const studentClass = classes.find(c => c.id === student.classId);
                 const studentAssignments = assignments.filter(a => a.studentId === student.id);
                 const classAssignments = studentClass ? assignments.filter(a => a.classId === studentClass.id) : [];
                 const defaultWordSet = wordSets.find(ws => ws.id === student.defaultWordSetId);
+                const totalAssignments = studentAssignments.length + classAssignments.length;
                 
                 return `
-                    <div class="student-card" id="student_${student.id}">
-                        <div class="student-header">
-                            <div class="student-info">
-                                <h4>${student.name}</h4>
-                                <p>Class: ${studentClass ? studentClass.name : 'No class assigned'}</p>
-                                <div class="student-stats">
-                                    <span class="stat-item">${studentAssignments.length} individual assignments</span>
-                                    ${classAssignments.length > 0 ? `<span class="stat-item">${classAssignments.length} class assignments</span>` : ''}
-                                </div>
+                    <div class="enhanced-student-card" id="student_${student.id}" 
+                         data-student-name="${student.name.toLowerCase()}" 
+                         data-class-id="${student.classId || ''}">
+                        <div class="card-header-enhanced">
+                            <div class="card-title-section">
+                                <h4 class="card-title">👤 ${student.name}</h4>
+                                <p class="card-description">
+                                    Class: ${studentClass ? `📚 ${studentClass.name}` : '❌ No class assigned'}
+                                </p>
                             </div>
-                            <div class="student-actions">
-                                <button class="btn-small btn-assign" onclick="showQuickAssignToStudent('${student.id}')">Quick Assign</button>
-                                <button class="btn-small btn-edit" onclick="editStudent('${student.id}')">Edit</button>
-                                <button class="btn-small btn-delete" onclick="deleteStudent('${student.id}')">Delete</button>
+                            <div class="card-stats-grid">
+                                <div class="stat-box individual-stat">
+                                    <span class="stat-number">${studentAssignments.length}</span>
+                                    <span class="stat-label">Individual</span>
+                                </div>
+                                <div class="stat-box class-stat">
+                                    <span class="stat-number">${classAssignments.length}</span>
+                                    <span class="stat-label">From Class</span>
+                                </div>
+                                <div class="stat-box total-stat">
+                                    <span class="stat-number">${totalAssignments}</span>
+                                    <span class="stat-label">Total</span>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="default-word-set-section">
-                            <div class="default-set-header">
-                                <span class="default-set-label">Default Word Set:</span>
-                                <span class="default-set-name">${defaultWordSet ? defaultWordSet.name : 'None set'}</span>
-                            </div>
-                            <div class="default-set-controls">
-                                <select class="default-set-select" id="studentDefaultSet_${student.id}">
-                                    <option value="">No default set</option>
-                                    ${wordSets.map(ws => `
-                                        <option value="${ws.id}" ${ws.id === student.defaultWordSetId ? 'selected' : ''}>
-                                            ${ws.name} (${ws.words.length} words)
-                                        </option>
-                                    `).join('')}
-                                </select>
-                                <button class="btn-small btn-primary" onclick="setStudentDefaultWordSet('${student.id}')">
-                                    Set Default
-                                </button>
-                            </div>
-                        </div>
-
-                        ${classAssignments.length > 0 ? `
-                            <div class="class-assignments-for-student">
-                                <h5 style="color: #2563eb;">Class Assignments (${classAssignments.length})</h5>
-                                <div class="assignment-tags">
-                                    ${classAssignments.slice(0, 2).map(assignment => {
-                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-                                        
-                                        return `
-                                            <div class="assignment-tag-detailed class-assignment">
-                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                                                <div class="assignment-meta">
-                                                    <span class="assignment-date">${assignedDate}</span>
-                                                    <span class="assignment-type">from class</span>
-                                                    <span class="assignment-status">✓ auto-assigned</span>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                    ${classAssignments.length > 2 ? `
-                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
-                                            ... and ${classAssignments.length - 2} more class assignments
-                                        </div>
-                                    ` : ''}
+                        <div class="card-content-section">
+                            <div class="default-word-set-enhanced">
+                                <div class="setting-row">
+                                    <span class="setting-label">🎯 Default Word Set:</span>
+                                    <span class="setting-value ${defaultWordSet ? 'has-value' : 'no-value'}">
+                                        ${defaultWordSet ? defaultWordSet.name : 'None set'}
+                                    </span>
                                 </div>
-                            </div>
-                        ` : ''}
-                        
-                        ${studentAssignments.length > 0 ? `
-                            <div class="student-assignments">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <h5 style="margin: 0;">Individual Assignments (${studentAssignments.length})</h5>
-                                    <button class="btn-small btn-secondary" onclick="toggleStudentAssignments('${student.id}')" id="toggleStudentBtn_${student.id}">
-                                        ${studentAssignments.length > 3 ? 'Show All' : 'Hide'}
+                                <div class="setting-controls">
+                                    <select class="enhanced-select" id="studentDefaultSet_${student.id}">
+                                        <option value="">Choose default word set...</option>
+                                        ${wordSets.map(ws => `
+                                            <option value="${ws.id}" ${ws.id === student.defaultWordSetId ? 'selected' : ''}>
+                                                ${ws.name} (${ws.words.length} words)
+                                            </option>
+                                        `).join('')}
+                                    </select>
+                                    <button class="btn-enhanced btn-primary" onclick="setStudentDefaultWordSet('${student.id}')">
+                                        Set Default
                                     </button>
                                 </div>
-                                <div class="assignment-tags" id="studentAssignments_${student.id}">
-                                    ${studentAssignments.slice(0, 3).map(assignment => {
-                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-                                        const assignmentType = assignment.type || 'individual';
-                                        
-                                        return `
-                                            <div class="assignment-tag-detailed">
-                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                                                <div class="assignment-meta">
-                                                    <span class="assignment-date">${assignedDate}</span>
-                                                    <span class="assignment-type">${assignmentType}</span>
-                                                    <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${student.id}')" title="Edit this assignment">✏️</button>
-                                                    <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
-                                                </div>
+                            </div>
+
+                            ${classAssignments.length > 0 ? `
+                                <div class="assignments-section class-assignments">
+                                    <div class="section-header-mini">
+                                        <h5 class="section-title-mini">📚 Class Assignments</h5>
+                                        <span class="assignment-count">${classAssignments.length} assignments</span>
+                                    </div>
+                                    <div class="assignments-container">
+                                        ${renderAssignmentsList(classAssignments.slice(0, 3), 'class-inherited')}
+                                        ${classAssignments.length > 3 ? `
+                                            <div class="more-indicator">
+                                                <span class="more-text">+ ${classAssignments.length - 3} more class assignments</span>
                                             </div>
-                                        `;
-                                    }).join('')}
-                                    ${studentAssignments.length > 3 ? `
-                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
-                                            ... and ${studentAssignments.length - 3} more
-                                        </div>
-                                    ` : ''}
+                                        ` : ''}
+                                    </div>
                                 </div>
-                            </div>
-                        ` : `
-                            <div class="student-assignments">
-                                <h5>No individual assignments yet</h5>
-                                <button class="btn-small btn-primary" onclick="showQuickAssignToStudent('${student.id}')" style="margin-top: 8px;">
-                                    Assign Word Set
-                                </button>
-                            </div>
-                        `}
+                            ` : ''}
+                            
+                            ${studentAssignments.length > 0 ? `
+                                <div class="assignments-section individual-assignments">
+                                    <div class="section-header-mini">
+                                        <h5 class="section-title-mini">👤 Individual Assignments</h5>
+                                        <div class="assignment-controls">
+                                            <span class="assignment-count">${studentAssignments.length} assignments</span>
+                                            <button class="btn-toggle" onclick="toggleStudentAssignments('${student.id}')" id="toggleStudentBtn_${student.id}">
+                                                ${studentAssignments.length > 5 ? 'Show All' : 'Hide'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="assignments-container" id="studentAssignments_${student.id}">
+                                        ${renderAssignmentsList(studentAssignments.slice(0, 5), 'individual')}
+                                        ${studentAssignments.length > 5 ? `
+                                            <div class="more-indicator">
+                                                <span class="more-text">+ ${studentAssignments.length - 5} more individual assignments</span>
+                                                <span class="more-hint">Click "Show All" to view all ${studentAssignments.length} assignments</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="assignments-section individual-assignments empty">
+                                    <div class="empty-assignments">
+                                        <span class="empty-icon">📝</span>
+                                        <span class="empty-text">No individual assignments yet</span>
+                                        <button class="btn-enhanced btn-primary" onclick="showQuickAssignToStudent('${student.id}')">
+                                            Assign Word Set
+                                        </button>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                        
+                        <div class="card-actions-enhanced">
+                            <button class="btn-enhanced btn-secondary" onclick="editStudent('${student.id}')">✏️ Edit</button>
+                            <button class="btn-enhanced btn-primary" onclick="showQuickAssignToStudent('${student.id}')">📝 Quick Assign</button>
+                            <button class="btn-enhanced btn-danger" onclick="deleteStudent('${student.id}')">🗑️ Delete</button>
+                        </div>
                     </div>
                 `;
             }).join('')}
         </div>
     `;
+}
+
+// Helper function to render assignments list with consistent formatting
+function renderAssignmentsList(assignmentsList, type) {
+    return assignmentsList.map(assignment => {
+        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+        
+        return `
+            <div class="assignment-item ${type}">
+                <div class="assignment-main">
+                    <div class="assignment-name">
+                        <span class="assignment-icon">${type === 'class' || type === 'class-inherited' ? '📚' : '👤'}</span>
+                        <span class="assignment-title">${wordSet ? wordSet.name : 'Unknown set'}</span>
+                        <span class="word-count">${wordSet ? wordSet.words.length : '?'} words</span>
+                    </div>
+                    <div class="assignment-meta">
+                        <span class="assignment-date">📅 ${assignedDate}</span>
+                        <span class="assignment-type-badge ${type}">${type === 'class' || type === 'class-inherited' ? 'Class' : 'Individual'}</span>
+                    </div>
+                </div>
+                <div class="assignment-actions">
+                    ${type === 'individual' ? `
+                        <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${assignment.studentId}')" title="Edit assignment">
+                            ✏️
+                        </button>
+                    ` : ''}
+                    <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove assignment">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Enhanced search and filter functions
+function filterClasses() {
+    const searchTerm = document.getElementById('classSearchInput').value.toLowerCase();
+    const classCards = document.querySelectorAll('.enhanced-class-card');
+    
+    classCards.forEach(card => {
+        const className = card.getAttribute('data-class-name');
+        if (className.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function filterStudents() {
+    const searchTerm = document.getElementById('studentSearchInput').value.toLowerCase();
+    const studentCards = document.querySelectorAll('.enhanced-student-card');
+    
+    studentCards.forEach(card => {
+        const studentName = card.getAttribute('data-student-name');
+        if (studentName.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function filterStudentsByClass() {
+    const selectedClassId = document.getElementById('classFilterSelect').value;
+    const studentCards = document.querySelectorAll('.enhanced-student-card');
+    
+    studentCards.forEach(card => {
+        const studentClassId = card.getAttribute('data-class-id');
+        if (!selectedClassId || studentClassId === selectedClassId) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
 }
 
 // Assignments Management
@@ -4013,108 +4118,58 @@ async function deleteClassAssignment(assignmentId) {
 
 function toggleStudentAssignments(studentId) {
     const container = document.getElementById(`studentAssignments_${studentId}`);
-    const button = document.getElementById(`toggleStudentBtn_${studentId}`);
-    const student = students.find(s => s.id === studentId);
+    const toggleBtn = document.getElementById(`toggleStudentBtn_${studentId}`);
     
-    if (!container || !button || !student) return;
+    if (!container || !toggleBtn) return;
+    
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
     
     const studentAssignments = assignments.filter(a => a.studentId === studentId);
     
-    if (button.textContent === 'Show All') {
+    if (toggleBtn.textContent.trim() === 'Show All') {
         // Show all assignments
-        container.innerHTML = studentAssignments.map(assignment => {
-            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-            const assignmentType = assignment.type || 'individual';
-            
-            return `
-                <div class="assignment-tag-detailed">
-                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                    <div class="assignment-meta">
-                        <span class="assignment-date">${assignedDate}</span>
-                        <span class="assignment-type">${assignmentType}</span>
-                        <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${studentId}')" title="Edit this assignment">✏️</button>
-                        <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        button.textContent = 'Show Less';
+        container.innerHTML = renderAssignmentsList(studentAssignments, 'individual');
+        toggleBtn.textContent = 'Hide';
     } else {
-        // Show only first 3
-        container.innerHTML = studentAssignments.slice(0, 3).map(assignment => {
-            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-            const assignmentType = assignment.type || 'individual';
-            
-            return `
-                <div class="assignment-tag-detailed">
-                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                    <div class="assignment-meta">
-                        <span class="assignment-date">${assignedDate}</span>
-                        <span class="assignment-type">${assignmentType}</span>
-                        <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${studentId}')" title="Edit this assignment">✏️</button>
-                        <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
-                    </div>
+        // Show only first 5 assignments
+        container.innerHTML = `
+            ${renderAssignmentsList(studentAssignments.slice(0, 5), 'individual')}
+            ${studentAssignments.length > 5 ? `
+                <div class="more-indicator">
+                    <span class="more-text">+ ${studentAssignments.length - 5} more individual assignments</span>
+                    <span class="more-hint">Click "Show All" to view all ${studentAssignments.length} assignments</span>
                 </div>
-            `;
-        }).join('') + (studentAssignments.length > 3 ? `
-            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
-                ... and ${studentAssignments.length - 3} more
-            </div>
-        ` : '');
-        button.textContent = 'Show All';
+            ` : ''}
+        `;
+        toggleBtn.textContent = 'Show All';
     }
 }
 
 function toggleClassAssignments(classId) {
     const container = document.getElementById(`classAssignments_${classId}`);
-    const button = document.getElementById(`toggleClassBtn_${classId}`);
+    const toggleBtn = document.getElementById(`toggleClassBtn_${classId}`);
     
-    if (!container || !button) return;
+    if (!container || !toggleBtn) return;
     
     const classAssignments = assignments.filter(a => a.classId === classId);
     
-    if (button.textContent === 'Show All') {
+    if (toggleBtn.textContent.trim() === 'Show All') {
         // Show all assignments
-        container.innerHTML = classAssignments.map(assignment => {
-            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-            
-            return `
-                <div class="assignment-tag-detailed">
-                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                    <div class="assignment-meta">
-                        <span class="assignment-date">${assignedDate}</span>
-                        <span class="assignment-type">class-wide</span>
-                        <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-        button.textContent = 'Show Less';
+        container.innerHTML = renderAssignmentsList(classAssignments, 'class');
+        toggleBtn.textContent = 'Hide';
     } else {
-        // Show only first 2
-        container.innerHTML = classAssignments.slice(0, 2).map(assignment => {
-            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
-            
-            return `
-                <div class="assignment-tag-detailed">
-                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
-                    <div class="assignment-meta">
-                        <span class="assignment-date">${assignedDate}</span>
-                        <span class="assignment-type">class-wide</span>
-                        <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
-                    </div>
+        // Show only first 3 assignments
+        container.innerHTML = `
+            ${renderAssignmentsList(classAssignments.slice(0, 3), 'class')}
+            ${classAssignments.length > 3 ? `
+                <div class="more-indicator">
+                    <span class="more-text">+ ${classAssignments.length - 3} more assignments</span>
+                    <span class="more-hint">Click "Show All" to view</span>
                 </div>
-            `;
-        }).join('') + (classAssignments.length > 2 ? `
-            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
-                ... and ${classAssignments.length - 2} more
-            </div>
-        ` : '');
-        button.textContent = 'Show All';
+            ` : ''}
+        `;
+        toggleBtn.textContent = 'Show All';
     }
 }
 
