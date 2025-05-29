@@ -1712,11 +1712,27 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Sign out button not found');
     }
     
-    // Always require fresh sign-in on page load
-    console.log('DOM loaded, requiring fresh authentication...');
-    
-    // Always prompt for authentication - no auto-login
-    promptUserName();
+    // Check if name is already stored
+    const storedName = localStorage.getItem('userName');
+    if (storedName && storedName !== 'unknown' && storedName.trim()) {
+        console.log('Found stored name:', storedName);
+        userName = storedName.trim();
+        
+        // Wait for Firebase to load, then initialize
+        if (typeof firebase !== 'undefined' && window.db) {
+            initializeApp();
+        } else {
+            // Wait a bit for Firebase to load
+            setTimeout(() => {
+                initializeApp();
+            }, 1000);
+        }
+    } else {
+        console.log('No stored name found, showing name modal...');
+        // No stored name, show the name entry modal
+        setTimeout(() => {
+            showNameModal();
+        }, 300); // Small delay to ensure DOM is fully ready
     }
 });
 

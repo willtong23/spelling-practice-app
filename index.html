@@ -86,7 +86,7 @@
                             <div class="celebration-text" id="celebrationText">Perfect!</div>
                         </div>
                     </div>
-                    <button id="clearDataBtn" class="control-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); font-size: 0.8rem; padding: 6px 12px;">🗑️ Clear Data</button>
+                    <button id="clearDataBtn" class="control-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); font-size: 0.8rem; padding: 6px 12px;">�� Sign Out</button>
                     <a href="teacher.html" class="teacher-link">👨‍🏫 Teacher Dashboard</a>
                 </div>
             </div>
@@ -267,7 +267,7 @@
             <div class="password-modal-header student-header">
                 <img src="logo.png" alt="Logo" class="password-modal-logo">
                 <h2>Welcome to Spelling Practice!</h2>
-                <p>Please enter your name to get started</p>
+                <p>Please enter your name and password to sign in</p>
             </div>
             
             <div class="password-modal-body">
@@ -278,19 +278,26 @@
                     </button>
                 </div>
                 
+                <div class="password-input-container" style="margin-top: 12px;">
+                    <input type="password" id="studentPasswordInput" placeholder="Enter password" maxlength="20" autocomplete="current-password">
+                    <button type="button" id="toggleStudentPasswordVisibility" class="password-toggle">
+                        <span class="password-toggle-icon">👁️</span>
+                    </button>
+                </div>
+                
                 <div class="password-modal-actions">
                     <button id="cancelNameBtn" class="btn-cancel">Cancel</button>
-                    <button id="submitNameBtn" class="btn-submit">Start Practicing</button>
+                    <button id="submitNameBtn" class="btn-submit">Sign In</button>
                 </div>
                 
                 <div id="nameError" class="password-error" style="display: none;">
                     <span class="error-icon">⚠️</span>
-                    <span class="error-text">Please enter a valid name.</span>
+                    <span class="error-text">Please enter a valid name and password.</span>
                 </div>
             </div>
             
             <div class="password-modal-footer">
-                <p>📚 Ready to improve your spelling skills?</p>
+                <p>🔒 Secure access for registered students only</p>
             </div>
         </div>
     </div>
