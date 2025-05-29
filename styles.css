@@ -2011,4 +2011,443 @@ h1 {
     .word-counter {
         font-size: 0.9rem;
     }
+}
+
+/* Practice Layout with Results Panel */
+.practice-layout {
+    display: grid;
+    grid-template-columns: 1fr 350px;
+    gap: 20px;
+    align-items: start;
+}
+
+.practice-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Results Panel Styles */
+.results-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 20px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 20px;
+    display: block !important; /* Force visibility */
+}
+
+.results-header {
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.results-header h3 {
+    color: #2563eb;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 6px 0;
+}
+
+.score-summary {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.score-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+#currentScore {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.results-content {
+    min-height: 150px;
+}
+
+.results-placeholder {
+    text-align: center;
+    color: #6b7280;
+    padding: 25px 15px;
+}
+
+.placeholder-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.results-placeholder p {
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Individual Result Items - Compact Version */
+.result-item {
+    background: #f8fafc;
+    border: 1px solid #e0e7ef;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+.result-item.correct {
+    border-color: #22c55e;
+    background: #f0fdf4;
+}
+
+.result-item.incorrect {
+    border-color: #ef4444;
+    background: #fef2f2;
+}
+
+.result-item.hint-used {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.result-word {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.result-status {
+    font-size: 1rem;
+}
+
+.result-details {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.result-attempts {
+    font-size: 0.8rem;
+    color: #374151;
+}
+
+.attempt-correct {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.attempt-incorrect {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.hint-indicator {
+    background: #fbbf24;
+    color: #92400e;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.new-badge {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: 6px;
+    animation: pulse 2s infinite;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.8;
+        transform: scale(1.05);
+    }
+}
+
+/* Results Footer */
+.results-footer {
+    border-top: 2px solid rgba(102, 126, 234, 0.2);
+    padding-top: 15px;
+    margin-top: 20px;
+}
+
+.final-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+/* Responsive Design for Results Panel */
+@media (max-width: 1200px) {
+    .practice-layout {
+        grid-template-columns: 1fr 300px;
+        gap: 15px;
+    }
+    
+    .results-panel {
+        padding: 15px;
+        display: block !important; /* Force visibility */
+    }
+}
+
+@media (max-width: 1000px) {
+    .practice-layout {
+        grid-template-columns: 1fr 280px;
+        gap: 15px;
+    }
+    
+    .results-panel {
+        position: static;
+        max-height: 60vh;
+        padding: 15px;
+        display: block !important; /* Force visibility */
+    }
+    
+    /* On smaller screens, always show the toggle button */
+    .results-toggle-btn {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 768px) {
+    .practice-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .results-panel {
+        padding: 15px;
+        border-radius: 15px;
+        max-height: 50vh;
+        order: 2;
+        display: block !important; /* Force visibility */
+    }
+    
+    .results-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .result-item {
+        padding: 12px;
+    }
+    
+    .result-word {
+        font-size: 1rem;
+    }
+}
+
+/* Results toggle button */
+.results-toggle-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.results-toggle-btn:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Hidden results panel state */
+.practice-layout.results-hidden {
+    grid-template-columns: 1fr;
+}
+
+.results-panel.hidden {
+    display: none;
+}
+
+/* Animation for new result items */
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Newest result highlighting */
+.result-item:first-child {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    border-width: 3px;
+}
+
+.highlighted-letter {
+    background: #fef3c7;
+    color: #92400e;
+    font-weight: 800;
+    text-decoration: underline;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+/* Results Footer */
+.results-footer {
+    border-top: 2px solid rgba(102, 126, 234, 0.2);
+    padding-top: 15px;
+    margin-top: 20px;
+}
+
+.final-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+/* Responsive Design for Results Panel */
+@media (max-width: 1200px) {
+    .practice-layout {
+        grid-template-columns: 1fr 300px;
+        gap: 15px;
+    }
+    
+    .results-panel {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 1000px) {
+    .practice-layout {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .results-panel {
+        position: static;
+        max-height: none;
+        order: 2;
+    }
+    
+    /* On mobile, always show the toggle button */
+    .results-toggle-btn {
+        display: inline-block;
+    }
+}
+
+@media (max-width: 768px) {
+    .results-panel {
+        padding: 15px;
+        border-radius: 15px;
+    }
+    
+    .results-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .result-item {
+        padding: 12px;
+    }
+    
+    .result-word {
+        font-size: 1rem;
+    }
+}
+
+/* Results toggle button */
+.results-toggle-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.results-toggle-btn:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Hidden results panel state */
+.practice-layout.results-hidden {
+    grid-template-columns: 1fr;
+}
+
+.results-panel.hidden {
+    display: none;
+}
+
+/* Animation for new result items */
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Newest result highlighting */
+.result-item:first-child {
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    border-width: 3px;
 } 

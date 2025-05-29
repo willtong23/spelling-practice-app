@@ -491,6 +491,7 @@ let originalWords = [];
 let practiceResults = [];
 let isAlphabetKeyboardVisible = false;
 let currentFocusedLetterBox = null;
+let isCheckingSpelling = false; // Prevent double-checking
 
 // --- Name Prompt ---
 function promptUserName() {
@@ -664,6 +665,33 @@ function speakWord(word) {
     speechSynthesis.speak(utterance);
 }
 
+// Play encouragement sound for incorrect answers
+function playEncouragementSound() {
+    try {
+        // Create a simple encouraging tone using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Create a gentle, encouraging tone sequence
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A note
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.1); // C note
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.2); // E note
+        
+        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+        // Fallback: just log if audio context fails
+        console.log('Encouragement sound not available');
+    }
+}
+
 // --- UI Update Functions ---
 function updateLetterHint() {
     if (!words.length) {
@@ -733,9 +761,6 @@ function updateLetterHint() {
             if (e.key === ' ') {
                 e.preventDefault();
                 if (words[currentWordIndex] && words[currentWordIndex][i]) {
-                    // Play hint sound when spacebar is pressed
-                    playHintSound();
-                    
                     box.value = words[currentWordIndex][i];
                     box.disabled = true;
                     
@@ -858,6 +883,9 @@ function updateDisplay() {
         stopVoiceInput();
     }
 
+    // Reset double-check prevention flag when navigating
+    isCheckingSpelling = false;
+
     // Ensure currentWordIndex is within bounds
     if (currentWordIndex < 0) currentWordIndex = 0;
     if (currentWordIndex >= words.length) currentWordIndex = words.length - 1;
@@ -867,6 +895,9 @@ function updateDisplay() {
     resultMessage.innerHTML = '';
     resultMessage.className = 'result-message';
     updateLetterHint();
+    
+    // Update results panel
+    updateResultsPanel();
     
     if (progressBar) {
         const percent = ((currentWordIndex + 1) / words.length) * 100;
@@ -891,6 +922,7 @@ function resetQuizState() {
     currentWordIndex = 0;
     quizComplete = false;
     lastQuizComplete = false;
+    isCheckingSpelling = false; // Reset double-check prevention flag
     
     // Start time tracking
     window.quizStartTime = new Date();
@@ -991,6 +1023,13 @@ function moveToNextWord() {
 function checkSpelling() {
     if (words.length === 0 || quizComplete) return;
     
+    // Prevent double-checking
+    if (isCheckingSpelling) {
+        console.log('Already checking spelling, skipping...');
+        return;
+    }
+    isCheckingSpelling = true;
+    
     let userAnswer = letterInputs.map((box, idx) => box.value ? box.value.toLowerCase() : '').join('');
     const correctWord = words[currentWordIndex];
     
@@ -1010,23 +1049,15 @@ function checkSpelling() {
     console.log('Is correct:', isCorrect);
     console.log('=== END CHECKING SPELLING ===');
     
+    // Check if hints were used for this word
+    const usedHintsForThisWord = Array.isArray(hintUsed[currentWordIndex]) ? hintUsed[currentWordIndex].length > 0 : hintUsed[currentWordIndex];
+    
     if (isCorrect && userAnswers[currentWordIndex].correct) {
         // Check if this word was completed without hints
-        const usedHintsForThisWord = Array.isArray(hintUsed[currentWordIndex]) ? hintUsed[currentWordIndex].length > 0 : hintUsed[currentWordIndex];
         const isCorrectWithoutHints = !usedHintsForThisWord;
         
-        // Play success sound immediately
-        if (isCorrectWithoutHints) {
-            playSuccessSound();
-        } else {
-            // Still correct but with hints - play a gentler success sound
-            setTimeout(() => {
-                playTone(523.25, 0.3, 'sine', 0.3); // Single C5 note
-                setTimeout(() => {
-                    playTone(659.25, 0.3, 'sine', 0.3); // E5
-                }, 150);
-            }, 100);
-        }
+        // Add to results panel
+        addResultToPanel(currentWordIndex, true, userAnswer, usedHintsForThisWord);
         
         // Trigger celebration animation
         triggerCelebrationAnimation(isCorrectWithoutHints);
@@ -1040,6 +1071,7 @@ function checkSpelling() {
         feedbackTimeout = setTimeout(() => {
             resultMessage.innerHTML = '';
             resultMessage.className = 'result-message';
+            isCheckingSpelling = false; // Reset flag
             moveToNextWord();
             if (!quizComplete && words[currentWordIndex]) speakWord(words[currentWordIndex]);
         }, 2000);
@@ -1049,7 +1081,11 @@ function checkSpelling() {
             playEncouragementSound();
         }, 200);
         
-        resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
+        // Add to results panel
+        addResultToPanel(currentWordIndex, false, userAnswer, usedHintsForThisWord);
+        
+        // Don't show the correct answer to prevent cheating - just show it's wrong
+        resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>Your answer: <b style='color:#ef4444;'>${userAnswer}</b><br><small style='color:#6b7280;'>Try again or use hints (press SPACE on letter boxes)</small></div>`;
         resultMessage.className = 'result-message incorrect';
         letterInputs.forEach(box => box.value = '');
         letterInputs.forEach(box => box.disabled = false);
@@ -1058,6 +1094,7 @@ function checkSpelling() {
         feedbackTimeout = setTimeout(() => {
             resultMessage.innerHTML = '';
             resultMessage.className = 'result-message';
+            isCheckingSpelling = false; // Reset flag
         }, 3000);
     }
 }
@@ -1202,87 +1239,53 @@ function showEndOfQuizFeedback() {
         }
     }
     
-    // Play appropriate completion sound
-    if (allPerfectFirstTry) {
-        // Perfect score - play magical sound
-        setTimeout(() => {
-            playPerfectSound();
-        }, 500);
-    } else {
-        // Good job but not perfect - play success sound
-        setTimeout(() => {
-            playSuccessSound();
-        }, 500);
+    let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
+    
+    // Show which word set was used
+    if (currentWordSetName && !isPracticeMode) {
+        html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
+    } else if (isPracticeMode) {
+        html += `<div style="color:#f59e0b;font-size:0.9rem;margin-bottom:12px;">📚 <strong>Practice Mode Complete!</strong></div>`;
     }
     
-    // Calculate score as fraction
-    const firstTryCorrectCount = words.filter((word, i) => {
-        const attempts = (userAnswers[i] || {}).attempts || [];
-        return attempts.length > 0 && attempts[0] === word;
-    }).length;
-    
-    let html = `<div style="text-align:center;margin-bottom:20px;">
-        <div style="font-size:2.5rem;font-weight:800;color:#0c4a6e;margin-bottom:8px;">${firstTryCorrectCount}/${words.length}</div>
-    </div>`;
-    
-    // Show practice button if there are words that need practice (only for main quiz)
-    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
-        html += `<div style="text-align:center;margin-bottom:20px;">
-            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:14px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem;box-shadow:0 2px 8px rgba(255,193,7,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(255,193,7,0.4)';" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(255,193,7,0.3)';">
-                🎯 Practice These Words
-            </button>
-        </div>`;
+    if (allPerfectFirstTry && !isPracticeMode) {
+        // Trigger perfect quiz celebration animation
+        triggerPerfectQuizCelebration();
+        
+        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
+    } else if (isPracticeMode) {
+        html += '<div style="color:#3b82f6;font-size:1.2em;font-weight:700;margin-bottom:18px;background:#dbeafe;padding:10px 0;border-radius:8px;">🎯 Practice Session Complete!</div>';
     }
     
-    // Compact results table with highlighted hints
-    html += '<div style="margin-top:16px;"><table style="width:100%;border-collapse:collapse;font-size:0.9rem;">';
-    html += '<tr style="background:#f9fafb;"><th style="text-align:left;padding:8px;border-bottom:1px solid #e5e7eb;">Word</th><th style="text-align:center;padding:8px;border-bottom:1px solid #e5e7eb;">Result</th><th style="text-align:left;padding:8px;border-bottom:1px solid #e5e7eb;">Attempts</th></tr>';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
+    html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">First Try</th><th style="text-align:left;padding:4px 8px;">All Attempts</th></tr>';
     
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const attempts = entry.attempts || [];
         const correctWord = words[i];
-        const hintLetters = Array.isArray(hintUsed[i]) ? hintUsed[i] : [];
         
         // Check if first attempt was correct
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        const eventuallyCorrect = attempts.includes(correctWord);
         
-        html += `<tr style="border-bottom:1px solid #f3f4f6;">`;
+        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
         
-        // Word column with highlighted hints
-        html += `<td style="font-weight:600;padding:8px;">`;
-        if (hintLetters.length > 0) {
-            // Show word with hinted letters highlighted in yellow
-            let wordDisplay = '';
-            for (let j = 0; j < correctWord.length; j++) {
-                if (hintLetters.includes(j)) {
-                    wordDisplay += `<span style="background:#fef3c7;color:#92400e;font-weight:800;text-decoration:underline;">${correctWord[j]}</span>`;
-                } else {
-                    wordDisplay += correctWord[j];
-                }
-            }
-            html += wordDisplay;
-        } else {
-            html += correctWord;
-        }
-        html += `</td>`;
-        
-        // Result column
-        html += `<td style="text-align:center;padding:8px;">`;
+        // Show first try result
         if (firstTryCorrect) {
-            html += `<span style='font-size:1.2em;color:#22c55e;'>✅</span>`;
+            html += `<span style='font-size:1.5em;color:#22c55e;'>✅</span>`;
         } else {
-            html += `<span style='font-size:1.2em;color:#ef4444;'>❌</span>`;
+            html += `<span style='font-size:1.5em;color:#ef4444;'>❌</span>`;
         }
         
         // Add hint indicator
-        if (hintLetters.length > 0) {
-            html += `<span style='color:#fbbf24;font-weight:700;font-size:0.9em;margin-left:4px;' title='Hint used'>H</span>`;
+        if (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i]) {
+            html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
         }
-        html += `</td>`;
         
-        // Attempts column
-        html += `<td style="color:#6b7280;padding:8px;font-size:0.85rem;">`;
+        html += `</td><td style="color:#888;padding:4px 8px;">`;
+        
+        // Show all attempts
         if (attempts.length > 0) {
             const attemptsList = attempts.map((attempt, idx) => {
                 if (attempt === correctWord) {
@@ -1292,25 +1295,67 @@ function showEndOfQuizFeedback() {
                 }
             }).join(' → ');
             html += attemptsList;
+            
+            // Add status if eventually correct but not first try
+            if (!firstTryCorrect && eventuallyCorrect) {
+                html += ` <span style="color:#f59e0b;font-size:0.8em;">(eventually correct)</span>`;
+            }
         } else {
             html += 'No attempts';
         }
+        
         html += '</td></tr>';
     }
     html += '</table></div>';
+    
+    // Calculate and show first-try score (only for main quiz, not practice)
+    if (!isPracticeMode) {
+        const firstTryCorrectCount = words.filter((word, i) => {
+            const attempts = (userAnswers[i] || {}).attempts || [];
+            return attempts.length > 0 && attempts[0] === word;
+        }).length;
+        
+        const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
+        
+        html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
+            <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
+        </div>`;
+    }
+    
+    // Show practice option if there are words that need practice (only for main quiz)
+    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
+        html += `<div style="margin-top:20px;padding:16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;">
+            <h3 style="margin:0 0 12px 0;color:#856404;">🎯 Practice Opportunity!</h3>
+            <p style="margin:0 0 12px 0;color:#856404;">You have <strong>${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''}</strong> that could use more practice:</p>
+            <div style="margin:8px 0;font-weight:600;color:#856404;">`;
+        
+        wordsNeedingPractice.forEach((item, index) => {
+            const reason = item.usedHint && item.gotWrong ? 'hint + wrong' : 
+                         item.usedHint ? 'used hint' : 'got wrong';
+            html += `${item.word} (${reason})`;
+            if (index < wordsNeedingPractice.length - 1) html += ', ';
+        });
+        
+        html += `</div>
+            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px;">
+                🎯 Practice These Words
+            </button>
+            <p style="margin:8px 0 0 0;font-size:0.85em;color:#856404;font-style:italic;">Practice sessions don't affect your quiz records</p>
+        </div>`;
+    }
     
     showModal(html);
     lastQuizComplete = true;
     
     // Save quiz results to Firebase (only for main quiz, not practice)
-    if (!isPracticeMode && !isIndividualWordPractice) {
+    if (!isPracticeMode) {
         console.log('About to call saveQuizResults...');
         console.log('Current userAnswers:', userAnswers);
         console.log('Current hintUsed:', hintUsed);
         console.log('Current words:', words);
         saveQuizResults();
     } else {
-        console.log('Practice mode or individual word practice complete - not saving results to Firebase');
+        console.log('Practice mode complete - not saving results to Firebase');
     }
 }
 
@@ -1391,8 +1436,6 @@ async function saveQuizResults() {
         const quizData = {
             user: userName,  // Changed from userName to user
             date: now.toISOString(), // Use ISO string for consistent parsing
-            startTime: window.quizStartTime ? window.quizStartTime.toISOString() : now.toISOString(), // Quiz start time
-            finishTime: now.toISOString(), // Quiz finish time
             words: wordsData,  // Changed to array of word objects
             wordSetId: currentWordSetId, // Include word set ID for tracking
             wordSetName: currentWordSetName, // Include word set name for display
@@ -1505,8 +1548,14 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, checking for user name...');
     
-    // Clear stored name on page refresh to always prompt for name
-    localStorage.removeItem('userName');
+    // Set up results toggle button event listener
+    const resultsToggleButton = document.getElementById('resultsToggleButton');
+    if (resultsToggleButton) {
+        resultsToggleButton.addEventListener('click', toggleResultsPanel);
+        console.log('Results toggle button event listener added');
+    } else {
+        console.log('Results toggle button not found');
+    }
     
     // Check if name is already stored
     const storedName = localStorage.getItem('userName');
@@ -2002,40 +2051,19 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
     
-    // Optimize for faster response
-    if ('webkitSpeechRecognition' in window) {
-        recognition.webkitSpeechRecognition = true;
-    }
-    
     // Handle speech recognition results
     recognition.onresult = function(event) {
         let finalTranscript = '';
-        let interimTranscript = '';
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
                 finalTranscript += transcript;
-            } else {
-                interimTranscript += transcript;
             }
         }
         
-        // Process interim results immediately for faster response
-        if (interimTranscript) {
-            console.log('Interim transcript:', interimTranscript);
-            // Show visual feedback that we're hearing something
-            showVoiceInputFeedback(interimTranscript, false);
-            // Process interim results more aggressively
-            processVoiceInputAggressively(interimTranscript.toLowerCase().trim(), true);
-        }
-        
-        // Process final results with high priority
         if (finalTranscript) {
-            console.log('Final transcript:', finalTranscript);
-            showVoiceInputFeedback(finalTranscript, true);
-            // Process final results immediately and aggressively
-            processVoiceInputAggressively(finalTranscript.toLowerCase().trim(), false);
+            processVoiceInput(finalTranscript.toLowerCase().trim());
         }
     };
     
@@ -2063,28 +2091,17 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.onend = function() {
         console.log('Speech recognition ended');
         if (isVoiceInputActive) {
-            // Restart recognition immediately for continuous listening
+            // Restart recognition if it's still supposed to be active
             setTimeout(() => {
                 if (isVoiceInputActive && recognition) {
                     try {
                         recognition.start();
-                        console.log('Recognition restarted for continuous listening');
                     } catch (e) {
                         console.log('Recognition restart failed:', e);
-                        // Try again after a shorter delay
-                        setTimeout(() => {
-                            if (isVoiceInputActive && recognition) {
-                                try {
-                                    recognition.start();
-                                } catch (e2) {
-                                    console.log('Second restart attempt failed:', e2);
-                                    stopVoiceInput();
-                                }
-                            }
-                        }, 100);
+                        stopVoiceInput();
                     }
                 }
-            }, 50); // Reduced from 100ms to 50ms for faster restart
+            }, 100);
         }
     };
 });
@@ -2128,18 +2145,15 @@ function startVoiceInput() {
         isVoiceInputActive = true;
         recognition.start();
         
-        // Play voice input start sound
-        playVoiceInputSound();
-        
-        // Update button appearance with listening status
+        // Update button appearance
         if (voiceInputButton) {
             voiceInputButton.classList.add('listening');
-            voiceInputButton.textContent = '🔴 Listening...';
+            voiceInputButton.textContent = '🔴 Stop Voice';
         }
         
         // Show helpful instructions
         const emptyCount = letterInputs.filter(box => box.value === '').length;
-        showNotification(`🎤 Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly. I'm listening...`, 'info');
+        showNotification(`Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
         console.log('Voice input started');
     } catch (error) {
         console.error('Error starting voice input:', error);
@@ -2170,8 +2184,8 @@ function stopVoiceInput() {
 }
 
 // Function to process voice input and convert to letters
-function processVoiceInput(transcript, isInterim = false) {
-    console.log('Processing voice input:', transcript, 'isInterim:', isInterim);
+function processVoiceInput(transcript) {
+    console.log('Processing voice input:', transcript);
     
     // Clean up the transcript and extract letters
     const words = transcript.split(/\s+/);
@@ -2179,12 +2193,12 @@ function processVoiceInput(transcript, isInterim = false) {
     for (const word of words) {
         // Check if it's a single letter (a-z)
         if (word.length === 1 && /^[a-z]$/.test(word)) {
-            inputLetterToBox(word, isInterim);
+            inputLetterToBox(word);
         } else {
             // Try to extract letters from common speech patterns
             const letter = extractLetterFromSpeech(word);
             if (letter) {
-                inputLetterToBox(letter, isInterim);
+                inputLetterToBox(letter);
             }
         }
     }
@@ -2226,30 +2240,12 @@ function extractLetterFromSpeech(word) {
 }
 
 // Function to input a letter to the appropriate box
-function inputLetterToBox(letter, isInterim = false) {
+function inputLetterToBox(letter) {
     if (!letterInputs || letterInputs.length === 0) {
         return;
     }
     
-    // For interim results, just show visual feedback without actually inputting
-    if (isInterim) {
-        // Find the next empty box and show preview
-        let targetBox = letterInputs.find(box => box.value === '');
-        if (targetBox) {
-            // Add a subtle visual hint that we're hearing this letter
-            targetBox.style.background = '#e0f2fe';
-            targetBox.style.borderColor = '#0ea5e9';
-            setTimeout(() => {
-                if (targetBox.value === '') {
-                    targetBox.style.background = '';
-                    targetBox.style.borderColor = '';
-                }
-            }, 500);
-        }
-        return;
-    }
-    
-    // Find the first empty box for final input
+    // Find the first empty box
     let targetBox = letterInputs.find(box => box.value === '');
     
     if (!targetBox) {
@@ -2295,20 +2291,13 @@ function inputLetterToBox(letter, isInterim = false) {
             }, 100);
         }
         
-        // Enhanced visual feedback for successful input
-        targetBox.style.background = '#dcfce7';
-        targetBox.style.borderColor = '#22c55e';
+        // Visual feedback
+        targetBox.style.background = '#e7fbe9';
         targetBox.style.transform = 'scale(1.1)';
         setTimeout(() => {
             targetBox.style.background = '';
-            targetBox.style.borderColor = '';
             targetBox.style.transform = '';
-        }, 600);
-        
-        // Play gentle success sound for voice input
-        setTimeout(() => {
-            playTone(659.25, 0.15, 'sine', 0.2); // Quick E5 note
-        }, 50);
+        }, 300);
         
         console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
@@ -2472,348 +2461,168 @@ function triggerPerfectQuizCelebration() {
     }, 500);
 }
 
-// Function to show visual feedback for voice input
-function showVoiceInputFeedback(transcript, isFinal) {
-    if (!voiceInputButton) return;
+// --- Results Panel Functions ---
+
+// Update the results panel with current progress
+function updateResultsPanel() {
+    console.log('=== UPDATE RESULTS PANEL ===');
     
-    // Update button text to show what we're hearing
-    if (isFinal) {
-        voiceInputButton.textContent = `🎤 Heard: "${transcript}"`;
-        // Reset after a short delay
-        setTimeout(() => {
-            if (isVoiceInputActive) {
-                voiceInputButton.textContent = '🔴 Listening...';
+    const resultsContent = document.getElementById('resultsContent');
+    const scoreSummary = document.getElementById('scoreSummary');
+    const currentScore = document.getElementById('currentScore');
+    
+    console.log('Elements found - resultsContent:', !!resultsContent, 'currentScore:', !!currentScore);
+    
+    if (!resultsContent || !currentScore) {
+        console.error('Required elements not found for results panel update');
+        return;
+    }
+    
+    // Calculate current score (only first-try correct answers)
+    let correctCount = 0;
+    let totalAttempted = 0;
+    
+    for (let i = 0; i < words.length; i++) {
+        const userAnswer = userAnswers[i];
+        if (userAnswer && userAnswer.attempts && userAnswer.attempts.length > 0) {
+            totalAttempted++;
+            // Check if first attempt was correct
+            if (userAnswer.attempts[0] === words[i]) {
+                correctCount++;
             }
-        }, 1000);
+        }
+    }
+    
+    console.log('Score calculation - correctCount:', correctCount, 'totalAttempted:', totalAttempted);
+    
+    // Update score display
+    currentScore.textContent = `${correctCount}/${totalAttempted}`;
+    console.log('Score updated to:', currentScore.textContent);
+    
+    // Clear placeholder if we have results
+    if (totalAttempted > 0) {
+        const placeholder = resultsContent.querySelector('.results-placeholder');
+        if (placeholder) {
+            placeholder.remove();
+            console.log('Placeholder removed');
+        }
+    }
+    
+    console.log('=== UPDATE RESULTS PANEL COMPLETE ===');
+}
+
+// Add a new result to the panel (compact version)
+function addResultToPanel(wordIndex, isCorrect, userAttempt, usedHint = false) {
+    console.log('=== ADD RESULT TO PANEL ===');
+    console.log('wordIndex:', wordIndex, 'isCorrect:', isCorrect, 'userAttempt:', userAttempt, 'usedHint:', usedHint);
+    
+    const resultsContent = document.getElementById('resultsContent');
+    console.log('resultsContent element found:', !!resultsContent);
+    
+    if (!resultsContent) {
+        console.error('Results content element not found!');
+        return;
+    }
+    
+    const word = words[wordIndex];
+    const userAnswer = userAnswers[wordIndex];
+    
+    console.log('word:', word, 'userAnswer:', userAnswer);
+    
+    // Create result item
+    const resultItem = document.createElement('div');
+    resultItem.className = `result-item ${isCorrect ? 'correct' : 'incorrect'}${usedHint ? ' hint-used' : ''}`;
+    
+    // Status icon
+    let statusIcon = isCorrect ? '✅' : '❌';
+    if (usedHint) statusIcon += ' 💡';
+    
+    // Compact content - NO correct spelling shown for wrong answers
+    let resultContent = `
+        <div class="result-word">
+            <span>${word}</span>
+            <span class="result-status">${statusIcon}</span>
+        </div>
+    `;
+    
+    if (!isCorrect) {
+        // For wrong answers, only show their attempt and hint info - NO correct spelling
+        resultContent += `
+            <div class="result-details">Your answer: <strong style="color:#ef4444;">${userAttempt}</strong></div>
+        `;
+        if (usedHint) {
+            resultContent += `<div class="result-details">💡 Hint used</div>`;
+        }
+        resultContent += `<div class="result-details" style="color:#6b7280; font-size:0.7rem;">Try again or use hints (SPACE on boxes)</div>`;
     } else {
-        // Show interim results in real-time
-        voiceInputButton.textContent = `🎤 Hearing: "${transcript}"`;
-    }
-}
-
-// More aggressive voice processing function for better reliability
-function processVoiceInputAggressively(transcript, isInterim = false) {
-    console.log('Aggressive processing:', transcript, 'isInterim:', isInterim);
-    
-    if (!transcript || transcript.length === 0) return;
-    
-    // Clean up the transcript more thoroughly
-    const cleanTranscript = transcript.replace(/[^\w\s]/g, '').trim();
-    const words = cleanTranscript.split(/\s+/);
-    
-    let letterFound = false;
-    
-    for (const word of words) {
-        // Method 1: Direct single letter detection (a-z)
-        if (word.length === 1 && /^[a-z]$/.test(word)) {
-            console.log('Direct letter detected:', word);
-            inputLetterToBoxAggressively(word, isInterim);
-            letterFound = true;
-            continue;
-        }
-        
-        // Method 2: Common speech patterns
-        const letter = extractLetterFromSpeech(word);
-        if (letter) {
-            console.log('Speech pattern letter detected:', letter, 'from word:', word);
-            inputLetterToBoxAggressively(letter, isInterim);
-            letterFound = true;
-            continue;
-        }
-        
-        // Method 3: Partial matching for common mispronunciations
-        const partialLetter = extractLetterFromPartialMatch(word);
-        if (partialLetter) {
-            console.log('Partial match letter detected:', partialLetter, 'from word:', word);
-            inputLetterToBoxAggressively(partialLetter, isInterim);
-            letterFound = true;
-            continue;
-        }
-        
-        // Method 4: First letter extraction for unclear speech
-        if (!isInterim && word.length > 1 && /^[a-z]/.test(word)) {
-            const firstLetter = word.charAt(0);
-            console.log('First letter extraction:', firstLetter, 'from word:', word);
-            inputLetterToBoxAggressively(firstLetter, false);
-            letterFound = true;
-        }
-    }
-    
-    // If no letter found but we have transcript, try to extract any single character
-    if (!letterFound && !isInterim && cleanTranscript.length > 0) {
-        const singleChars = cleanTranscript.match(/[a-z]/g);
-        if (singleChars && singleChars.length > 0) {
-            console.log('Fallback single char extraction:', singleChars[0]);
-            inputLetterToBoxAggressively(singleChars[0], false);
-        }
-    }
-}
-
-// Enhanced letter extraction for partial matches and mispronunciations
-function extractLetterFromPartialMatch(word) {
-    const partialMappings = {
-        // Common mispronunciations and partial matches
-        'a': 'a', 'ah': 'a', 'ay': 'a', 'eh': 'a',
-        'b': 'b', 'be': 'b', 'bee': 'b', 'bi': 'b',
-        'c': 'c', 'see': 'c', 'sea': 'c', 'si': 'c',
-        'd': 'd', 'dee': 'd', 'di': 'd',
-        'e': 'e', 'ee': 'e', 'ea': 'e',
-        'f': 'f', 'eff': 'f', 'ef': 'f',
-        'g': 'g', 'gee': 'g', 'gi': 'g',
-        'h': 'h', 'aitch': 'h', 'ach': 'h',
-        'i': 'i', 'eye': 'i', 'ai': 'i',
-        'j': 'j', 'jay': 'j', 'ja': 'j',
-        'k': 'k', 'kay': 'k', 'ka': 'k',
-        'l': 'l', 'ell': 'l', 'el': 'l',
-        'm': 'm', 'em': 'm', 'mm': 'm',
-        'n': 'n', 'en': 'n', 'nn': 'n',
-        'o': 'o', 'oh': 'o', 'ow': 'o',
-        'p': 'p', 'pee': 'p', 'pi': 'p',
-        'q': 'q', 'cue': 'q', 'queue': 'q', 'qu': 'q',
-        'r': 'r', 'are': 'r', 'ar': 'r',
-        's': 's', 'ess': 's', 'es': 's',
-        't': 't', 'tee': 't', 'tea': 't', 'ti': 't',
-        'u': 'u', 'you': 'u', 'yu': 'u',
-        'v': 'v', 'vee': 'v', 'vi': 'v',
-        'w': 'w', 'double': 'w', 'dub': 'w',
-        'x': 'x', 'ex': 'x', 'eks': 'x',
-        'y': 'y', 'why': 'y', 'wi': 'y',
-        'z': 'z', 'zee': 'z', 'zed': 'z', 'zi': 'z'
-    };
-    
-    const lowerWord = word.toLowerCase();
-    
-    // Direct match
-    if (partialMappings[lowerWord]) {
-        return partialMappings[lowerWord];
-    }
-    
-    // Partial match - check if word starts with or contains known patterns
-    for (const [pattern, letter] of Object.entries(partialMappings)) {
-        if (pattern.length > 1 && (lowerWord.includes(pattern) || pattern.includes(lowerWord))) {
-            return letter;
-        }
-    }
-    
-    return null;
-}
-
-// More aggressive letter input function
-function inputLetterToBoxAggressively(letter, isInterim = false) {
-    if (!letterInputs || letterInputs.length === 0) {
-        return;
-    }
-    
-    // For interim results, show stronger visual feedback
-    if (isInterim) {
-        let targetBox = letterInputs.find(box => box.value === '');
-        if (targetBox) {
-            // Stronger visual hint for interim results
-            targetBox.style.background = '#bfdbfe';
-            targetBox.style.borderColor = '#3b82f6';
-            targetBox.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                if (targetBox.value === '') {
-                    targetBox.style.background = '';
-                    targetBox.style.borderColor = '';
-                    targetBox.style.transform = '';
-                }
-            }, 300);
-        }
-        return;
-    }
-    
-    // Find the first empty box for final input
-    let targetBox = letterInputs.find(box => box.value === '');
-    
-    if (!targetBox) {
-        // If no empty boxes, check if all boxes are filled
-        const allFilled = letterInputs.every(box => box.value !== '');
-        if (allFilled) {
-            // All boxes are filled, stop voice input and check spelling
-            stopVoiceInput();
-            showNotification('All letters filled! Checking spelling...', 'success');
-            setTimeout(() => {
-                checkSpelling();
-            }, 300);
-            return;
-        }
-        // If not all filled but no empty box found, use the first box
-        targetBox = letterInputs[0];
-    }
-    
-    if (targetBox) {
-        const boxIndex = letterInputs.indexOf(targetBox);
-        
-        // Input the letter immediately
-        targetBox.value = letter.toLowerCase();
-        targetBox.disabled = false;
-        
-        // Focus on the target box
-        targetBox.focus();
-        
-        // Trigger input event for consistency
-        const inputEvent = new Event('input', { bubbles: true });
-        targetBox.dispatchEvent(inputEvent);
-        
-        // Enhanced visual feedback for successful input
-        targetBox.style.background = '#dcfce7';
-        targetBox.style.borderColor = '#22c55e';
-        targetBox.style.transform = 'scale(1.15)';
-        
-        // Play immediate success sound for aggressive input
-        playTone(659.25, 0.12, 'sine', 0.25); // Quick E5 note
-        
-        // Reset visual feedback
-        setTimeout(() => {
-            targetBox.style.background = '';
-            targetBox.style.borderColor = '';
-            targetBox.style.transform = '';
-        }, 800);
-        
-        console.log(`AGGRESSIVE: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
-        
-        // Show immediate feedback
-        const remainingEmpty = letterInputs.filter(box => box.value === '').length;
-        if (remainingEmpty > 0) {
-            showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more needed`, 'success');
+        // For correct answers, show minimal info
+        if (userAnswer.attempts.length > 1) {
+            resultContent += `<div class="result-details">Correct after ${userAnswer.attempts.length} attempts</div>`;
         } else {
-            // All boxes filled - auto-check
-            stopVoiceInput();
-            showNotification('All letters complete! Checking...', 'success');
-            setTimeout(() => {
-                checkSpelling();
-            }, 500);
+            resultContent += `<div class="result-details">Perfect first try! 🎯</div>`;
         }
-        
-        // Move focus to next box if available
-        if (boxIndex < letterInputs.length - 1 && letterInputs[boxIndex + 1]) {
-            setTimeout(() => {
-                letterInputs[boxIndex + 1].focus();
-            }, 100);
+        if (usedHint) {
+            resultContent += `<div class="result-details">💡 Hint used</div>`;
         }
     }
+    
+    // Add NEW badge for latest result
+    if (resultsContent.children.length === 0 || !resultsContent.querySelector('.new-badge')) {
+        resultContent = resultContent.replace('<span class="result-status">', '<span class="result-status">') + '<span class="new-badge">NEW</span>';
+    }
+    
+    resultItem.innerHTML = resultContent;
+    
+    // Insert at the beginning (latest first)
+    if (resultsContent.firstChild) {
+        resultsContent.insertBefore(resultItem, resultsContent.firstChild);
+        console.log('Result item inserted at beginning');
+    } else {
+        resultsContent.appendChild(resultItem);
+        console.log('Result item appended (first item)');
+    }
+    
+    // Remove NEW badge from previous items
+    const existingBadges = resultsContent.querySelectorAll('.new-badge');
+    existingBadges.forEach((badge, index) => {
+        if (index > 0) badge.remove();
+    });
+    
+    // Scroll to top to show latest result
+    resultsContent.scrollTop = 0;
+    
+    // Update the overall score
+    updateResultsPanel();
+    
+    console.log('=== ADD RESULT TO PANEL COMPLETE ===');
+    console.log('Total result items now:', resultsContent.children.length);
 }
 
-// Sound feedback system for student encouragement
-let audioContext = null;
-let soundEnabled = true;
-
-// Initialize audio context
-function initializeAudio() {
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        console.log('Audio context initialized');
-    } catch (error) {
-        console.log('Audio not supported:', error);
-        soundEnabled = false;
+// Toggle results panel visibility
+function toggleResultsPanel() {
+    const resultsPanel = document.getElementById('resultsPanel');
+    const practiceLayout = document.querySelector('.practice-layout');
+    const toggleBtn = document.querySelector('.results-toggle-btn');
+    
+    if (!resultsPanel || !practiceLayout || !toggleBtn) return;
+    
+    const isHidden = resultsPanel.classList.contains('hidden');
+    
+    if (isHidden) {
+        // Show panel
+        resultsPanel.classList.remove('hidden');
+        practiceLayout.classList.remove('results-hidden');
+        toggleBtn.innerHTML = '📊 Hide Results';
+    } else {
+        // Hide panel
+        resultsPanel.classList.add('hidden');
+        practiceLayout.classList.add('results-hidden');
+        toggleBtn.innerHTML = '📊 Show Results';
     }
 }
 
-// Create and play a tone
-function playTone(frequency, duration, type = 'sine', volume = 0.3) {
-    if (!soundEnabled || !audioContext) return;
-    
-    try {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
-        oscillator.type = type;
-        
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + duration);
-    } catch (error) {
-        console.log('Error playing tone:', error);
-    }
-}
+// --- End Results Panel Functions ---
 
-// Success sound - happy ascending melody
-function playSuccessSound() {
-    if (!soundEnabled) return;
-    
-    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
-    notes.forEach((freq, index) => {
-        setTimeout(() => {
-            playTone(freq, 0.2, 'sine', 0.4);
-        }, index * 100);
-    });
-    
-    // Add a final celebratory chord
-    setTimeout(() => {
-        playTone(1046.5, 0.4, 'sine', 0.3); // C6
-    }, 400);
-}
+// ... existing code ...
 
-// Perfect score sound - magical ascending arpeggio
-function playPerfectSound() {
-    if (!soundEnabled) return;
-    
-    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5]; // C5, E5, G5, C6, E6
-    notes.forEach((freq, index) => {
-        setTimeout(() => {
-            playTone(freq, 0.15, 'sine', 0.4);
-        }, index * 80);
-    });
-    
-    // Add sparkle effect
-    setTimeout(() => {
-        playTone(1568, 0.3, 'sine', 0.2);
-        playTone(2093, 0.3, 'sine', 0.2);
-    }, 500);
-}
-
-// Encouragement sound - gentle, supportive tone
-function playEncouragementSound() {
-    if (!soundEnabled) return;
-    
-    // Gentle descending then ascending pattern
-    const notes = [440, 392, 440, 523.25]; // A4, G4, A4, C5
-    notes.forEach((freq, index) => {
-        setTimeout(() => {
-            playTone(freq, 0.25, 'sine', 0.3);
-        }, index * 150);
-    });
-}
-
-// Hint sound - soft notification
-function playHintSound() {
-    if (!soundEnabled) return;
-    
-    playTone(880, 0.15, 'sine', 0.25); // A5
-    setTimeout(() => {
-        playTone(1174.66, 0.15, 'sine', 0.25); // D6
-    }, 100);
-}
-
-// Voice input feedback sound
-function playVoiceInputSound() {
-    if (!soundEnabled) return;
-    
-    playTone(659.25, 0.1, 'sine', 0.2); // E5 - short beep
-}
-
-// Initialize audio on first user interaction
-function enableAudioOnInteraction() {
-    if (audioContext && audioContext.state === 'suspended') {
-        audioContext.resume().then(() => {
-            console.log('Audio context resumed');
-        });
-    }
-}
-
-// Add click listeners to enable audio
-document.addEventListener('click', enableAudioOnInteraction);
-document.addEventListener('keydown', enableAudioOnInteraction);
-
-// Initialize audio when DOM loads
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(initializeAudio, 500);
-});
+// ... existing code ...

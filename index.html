@@ -78,90 +78,124 @@
                 </div>
             </div>
             
-            <div class="practice-card">
-                <div class="word-counter-navigation">
-                    <button class="nav-btn" id="prevButton" disabled>← Previous</button>
-                    <div class="word-counter">
-                        <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
-                    </div>
-                    <button class="nav-btn" id="nextButton">Next →</button>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressBar"></div>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button class="control-btn speak-btn" id="speakButton">🔊 Listen</button>
-                    <button class="control-btn" id="allWordsButton">📋 Wordlist</button>
-                    <button class="control-btn hint-btn" id="hintButton">💡 Hint</button>
-                    <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
-                    <button class="control-btn voice-input-btn" id="voiceInputButton">🎤 Voice Input</button>
-                    <button class="control-btn exit-practice-btn" id="exitPracticeButton" style="display:none;">🚪 Exit Practice</button>
-                </div>
-                
-                <div class="letter-hint" id="letterHint">
-                    <!-- Letter input boxes will be generated here -->
-                </div>
-                
-                <!-- Virtual Alphabet Keyboard -->
-                <div class="alphabet-keyboard" id="alphabetKeyboard" style="display:none;">
-                    <div class="alphabet-grid">
-                        <!-- First row: A-M -->
-                        <div class="alphabet-row">
-                            <button class="alphabet-key" data-letter="a">a</button>
-                            <button class="alphabet-key" data-letter="b">b</button>
-                            <button class="alphabet-key" data-letter="c">c</button>
-                            <button class="alphabet-key" data-letter="d">d</button>
-                            <button class="alphabet-key" data-letter="e">e</button>
-                            <button class="alphabet-key" data-letter="f">f</button>
-                            <button class="alphabet-key" data-letter="g">g</button>
-                            <button class="alphabet-key" data-letter="h">h</button>
-                            <button class="alphabet-key" data-letter="i">i</button>
-                            <button class="alphabet-key" data-letter="j">j</button>
-                            <button class="alphabet-key" data-letter="k">k</button>
-                            <button class="alphabet-key" data-letter="l">l</button>
-                            <button class="alphabet-key" data-letter="m">m</button>
+            <div class="practice-layout">
+                <!-- Left side: Practice area -->
+                <div class="practice-card">
+                    <div class="word-counter-navigation">
+                        <button class="nav-btn" id="prevButton" disabled>← Previous</button>
+                        <div class="word-counter">
+                            <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
                         </div>
-                        <!-- Second row: N-Z -->
-                        <div class="alphabet-row">
-                            <button class="alphabet-key" data-letter="n">n</button>
-                            <button class="alphabet-key" data-letter="o">o</button>
-                            <button class="alphabet-key" data-letter="p">p</button>
-                            <button class="alphabet-key" data-letter="q">q</button>
-                            <button class="alphabet-key" data-letter="r">r</button>
-                            <button class="alphabet-key" data-letter="s">s</button>
-                            <button class="alphabet-key" data-letter="t">t</button>
-                            <button class="alphabet-key" data-letter="u">u</button>
-                            <button class="alphabet-key" data-letter="v">v</button>
-                            <button class="alphabet-key" data-letter="w">w</button>
-                            <button class="alphabet-key" data-letter="x">x</button>
-                            <button class="alphabet-key" data-letter="y">y</button>
-                            <button class="alphabet-key" data-letter="z">z</button>
+                        <button class="nav-btn" id="nextButton">Next →</button>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar"></div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Celebration Animation Area -->
-                <div class="celebration-area" id="celebrationArea">
-                    <div class="celebration-animation" id="celebrationAnimation">
-                        <div class="celebration-stars">
-                            <div class="star star-1">⭐</div>
-                            <div class="star star-2">✨</div>
-                            <div class="star star-3">🌟</div>
-                            <div class="star star-4">⭐</div>
-                            <div class="star star-5">✨</div>
+                    
+                    <div class="controls">
+                        <button class="control-btn speak-btn" id="speakButton">🔊 Listen</button>
+                        <button class="control-btn" id="allWordsButton">📋 Wordlist</button>
+                        <button class="control-btn hint-btn" id="hintButton">💡 Hint</button>
+                        <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
+                        <button class="control-btn voice-input-btn" id="voiceInputButton">🎤 Voice Input</button>
+                        <button class="control-btn results-toggle-btn" id="resultsToggleButton">📊 Hide Results</button>
+                        <button class="control-btn exit-practice-btn" id="exitPracticeButton" style="display:none;">🚪 Exit Practice</button>
+                    </div>
+                    
+                    <div class="letter-hint" id="letterHint">
+                        <!-- Letter input boxes will be generated here -->
+                    </div>
+                    
+                    <!-- Virtual Alphabet Keyboard -->
+                    <div class="alphabet-keyboard" id="alphabetKeyboard" style="display:none;">
+                        <div class="alphabet-grid">
+                            <!-- First row: A-M -->
+                            <div class="alphabet-row">
+                                <button class="alphabet-key" data-letter="a">a</button>
+                                <button class="alphabet-key" data-letter="b">b</button>
+                                <button class="alphabet-key" data-letter="c">c</button>
+                                <button class="alphabet-key" data-letter="d">d</button>
+                                <button class="alphabet-key" data-letter="e">e</button>
+                                <button class="alphabet-key" data-letter="f">f</button>
+                                <button class="alphabet-key" data-letter="g">g</button>
+                                <button class="alphabet-key" data-letter="h">h</button>
+                                <button class="alphabet-key" data-letter="i">i</button>
+                                <button class="alphabet-key" data-letter="j">j</button>
+                                <button class="alphabet-key" data-letter="k">k</button>
+                                <button class="alphabet-key" data-letter="l">l</button>
+                                <button class="alphabet-key" data-letter="m">m</button>
+                            </div>
+                            <!-- Second row: N-Z -->
+                            <div class="alphabet-row">
+                                <button class="alphabet-key" data-letter="n">n</button>
+                                <button class="alphabet-key" data-letter="o">o</button>
+                                <button class="alphabet-key" data-letter="p">p</button>
+                                <button class="alphabet-key" data-letter="q">q</button>
+                                <button class="alphabet-key" data-letter="r">r</button>
+                                <button class="alphabet-key" data-letter="s">s</button>
+                                <button class="alphabet-key" data-letter="t">t</button>
+                                <button class="alphabet-key" data-letter="u">u</button>
+                                <button class="alphabet-key" data-letter="v">v</button>
+                                <button class="alphabet-key" data-letter="w">w</button>
+                                <button class="alphabet-key" data-letter="x">x</button>
+                                <button class="alphabet-key" data-letter="y">y</button>
+                                <button class="alphabet-key" data-letter="z">z</button>
+                            </div>
                         </div>
-                        <div class="celebration-text" id="celebrationText">Great Job!</div>
+                    </div>
+                    
+                    <!-- Celebration Animation Area -->
+                    <div class="celebration-area" id="celebrationArea">
+                        <div class="celebration-animation" id="celebrationAnimation">
+                            <div class="celebration-stars">
+                                <div class="star star-1">⭐</div>
+                                <div class="star star-2">✨</div>
+                                <div class="star star-3">🌟</div>
+                                <div class="star star-4">⭐</div>
+                                <div class="star star-5">✨</div>
+                            </div>
+                            <div class="celebration-text" id="celebrationText">Great Job!</div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-message" id="resultMessage"></div>
+                    
+                    <div class="action-controls">
+                        <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
                     </div>
                 </div>
                 
-                <div class="result-message" id="resultMessage"></div>
-                
-                <div class="action-controls">
-                    <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
+                <!-- Right side: Results panel -->
+                <div class="results-panel" id="resultsPanel">
+                    <div class="results-header">
+                        <h3>📊 Your Progress</h3>
+                        <div class="score-summary" id="scoreSummary">
+                            <span class="score-text">Score: <span id="currentScore">0/0</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="results-content" id="resultsContent">
+                        <div class="results-placeholder">
+                            <div class="placeholder-icon">🎯</div>
+                            <p>Start spelling to see your results here!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="results-footer" id="resultsFooter" style="display: none;">
+                        <div class="final-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Perfect First Try:</span>
+                                <span class="stat-value" id="perfectCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Used Hints:</span>
+                                <span class="stat-value" id="hintCount">0</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
