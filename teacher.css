@@ -192,78 +192,87 @@
 
 /* Enhanced visual separation for student cards specifically */
 .enhanced-student-card {
-    background: white;
-    border: 5px solid #dc2626;
-    border-radius: 24px;
-    padding: 0;
+    background: white !important;
+    border: 8px solid #dc2626 !important; /* Very thick red border */
+    border-radius: 24px !important;
+    padding: 0 !important;
+    margin: 30px 0 !important; /* Large margin for separation */
     box-shadow: 
-        0 6px 20px rgba(0, 0, 0, 0.08),
-        0 2px 8px rgba(0, 0, 0, 0.06),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-    position: relative;
-    margin-bottom: 32px;
+        0 12px 40px rgba(220, 38, 38, 0.25) !important,
+        0 6px 20px rgba(220, 38, 38, 0.15) !important,
+        inset 0 2px 0 rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    overflow: hidden !important;
+    position: relative !important;
+    display: block !important;
+    min-height: 350px !important; /* Ensure substantial height */
 }
 
 .enhanced-student-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-8px) !important;
     box-shadow: 
-        0 16px 40px rgba(0, 0, 0, 0.12),
-        0 8px 20px rgba(0, 0, 0, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    border-color: #b91c1c;
+        0 24px 60px rgba(220, 38, 38, 0.3) !important,
+        0 12px 30px rgba(220, 38, 38, 0.2) !important,
+        inset 0 2px 0 rgba(255, 255, 255, 0.2) !important;
+    border-color: #b91c1c !important; /* Darker red on hover */
 }
 
-/* Add a distinctive header background for students */
-.enhanced-student-card .card-header-enhanced {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    margin: -28px -28px 20px -28px;
-    padding: 20px 28px;
-    border-bottom: 2px solid #e5e7eb;
+/* Add a very obvious inner border for students */
+.enhanced-student-card::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 15px !important;
+    left: 15px !important;
+    right: 15px !important;
+    bottom: 15px !important;
+    border: 6px solid #fbbf24 !important; /* Thick yellow inner border */
+    border-radius: 16px !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
 }
 
-/* Make student names more prominent */
-.enhanced-student-card .card-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #1e293b;
-    margin-bottom: 4px;
+/* Make sure the content is above the inner border */
+.enhanced-student-card .card-header-enhanced,
+.enhanced-student-card .card-content-section,
+.enhanced-student-card .card-actions-enhanced {
+    position: relative !important;
+    z-index: 2 !important;
 }
 
-/* Add visual indicators for different student states */
-.enhanced-student-card.has-assignments::after {
-    content: '✓';
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 24px;
-    height: 24px;
-    background: #10b981;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: bold;
+/* Add a colored top stripe for extra visibility */
+.enhanced-student-card::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 15px !important;
+    background: linear-gradient(90deg, #dc2626, #f97316, #fbbf24) !important;
+    z-index: 3 !important;
 }
 
-.enhanced-student-card.no-assignments::after {
-    content: '!';
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 24px;
-    height: 24px;
-    background: #f59e0b;
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: bold;
+/* Ensure grid spacing is large enough */
+.students-grid {
+    gap: 80px !important; /* Very large gap between cards */
+    margin-bottom: 100px !important;
+}
+
+/* Make sure each student card is clearly separated */
+.students-grid .enhanced-student-card {
+    margin-bottom: 50px !important;
+}
+
+/* Add visual separator lines between students */
+.enhanced-student-card + .enhanced-student-card::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -40px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 80% !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, transparent, #dc2626, transparent) !important;
+    z-index: 0 !important;
 }
 
 /* Section Headers */
