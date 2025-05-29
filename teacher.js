@@ -2808,7 +2808,7 @@ async function exportScreenshot() {
         }
         
         // ENHANCED: Pagination - Split data into pages if too many results
-        const RESULTS_PER_PAGE = 8; // Reduced for better readability with bigger text
+        const RESULTS_PER_PAGE = 5; // Reduced to 5 for better readability with bigger text
         const totalPages = Math.ceil(validResults.length / RESULTS_PER_PAGE);
         
         const screenshots = [];
@@ -2825,31 +2825,31 @@ async function exportScreenshot() {
                 top: -10000px;
                 left: 0;
                 background: white;
-                padding: 40px;
+                padding: 50px;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                width: 1400px;
+                width: 1600px;
                 box-sizing: border-box;
-                min-height: 900px;
+                min-height: 1000px;
             `;
             
             // Add header with page info
             const header = document.createElement('div');
             header.style.cssText = `
-                margin-bottom: 30px;
-                border-bottom: 4px solid #2563eb;
-                padding-bottom: 20px;
+                margin-bottom: 40px;
+                border-bottom: 5px solid #2563eb;
+                padding-bottom: 25px;
             `;
             
             const pageInfo = totalPages > 1 ? ` (Page ${pageNum + 1} of ${totalPages})` : '';
             
             header.innerHTML = `
-                <h1 style="margin: 0 0 15px 0; color: #1e293b; font-size: 36px; font-weight: 800;">
+                <h1 style="margin: 0 0 20px 0; color: #1e293b; font-size: 42px; font-weight: 800;">
                     📚 Spelling Practice Analytics${pageInfo}
                 </h1>
-                <div style="color: #64748b; font-size: 20px; margin-bottom: 12px; font-weight: 600;">
+                <div style="color: #64748b; font-size: 24px; margin-bottom: 15px; font-weight: 600;">
                     ${filterInfo}
                 </div>
-                <div style="color: #64748b; font-size: 16px; display: flex; justify-content: space-between;">
+                <div style="color: #64748b; font-size: 18px; display: flex; justify-content: space-between;">
                     <span>Generated: ${new Date().toLocaleString()}</span>
                     <span>Results ${startIndex + 1}-${endIndex} of ${validResults.length}</span>
                 </div>
@@ -2860,10 +2860,10 @@ async function exportScreenshot() {
             table.style.cssText = `
                 width: 100%;
                 border-collapse: collapse;
-                margin-top: 20px;
-                font-size: 16px;
-                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-                border-radius: 12px;
+                margin-top: 30px;
+                font-size: 18px;
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+                border-radius: 15px;
                 overflow: hidden;
             `;
             
@@ -2871,11 +2871,11 @@ async function exportScreenshot() {
             const thead = document.createElement('thead');
             thead.innerHTML = `
                 <tr>
-                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 140px;">Student</th>
-                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 200px;">Word Set</th>
-                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 160px;">Date & Time</th>
-                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 180px;">Summary</th>
-                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px;">Learning Details</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 25px 20px; text-align: left; font-weight: 700; font-size: 22px; width: 160px;">Student</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 25px 20px; text-align: left; font-weight: 700; font-size: 22px; width: 280px;">Word Set</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 25px 20px; text-align: left; font-weight: 700; font-size: 22px; width: 180px;">Date & Time</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 25px 20px; text-align: left; font-weight: 700; font-size: 22px; width: 200px;">Summary</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 25px 20px; text-align: left; font-weight: 700; font-size: 22px;">Learning Details</th>
                 </tr>
             `;
             table.appendChild(thead);
@@ -2930,86 +2930,86 @@ async function exportScreenshot() {
                 const hintsUsed = words.filter(w => w.hint);
                 
                 // Create detailed breakdown - Focus on mistakes and hints only
-                let detailsHtml = '<div style="font-size:15px; line-height: 1.6;">';
+                let detailsHtml = '<div style="font-size:18px; line-height: 1.8;">';
                 
                 const mistakesAndHints = words.filter(w => !w.correct || w.hint);
                 
                 if (mistakesAndHints.length > 0) {
-                    detailsHtml += '<div style="font-weight:700;color:#dc2626;margin-bottom:10px;font-size:16px;">📝 Learning Areas (' + mistakesAndHints.length + '):</div>';
+                    detailsHtml += '<div style="font-weight:700;color:#dc2626;margin-bottom:15px;font-size:20px;">📝 Learning Areas (' + mistakesAndHints.length + '):</div>';
                     
-                    // Show only first 6 items to prevent overflow
-                    const displayItems = mistakesAndHints.slice(0, 6);
+                    // Show only first 4 items to prevent overflow with bigger text
+                    const displayItems = mistakesAndHints.slice(0, 4);
                     
                     displayItems.forEach(w => {
-                        detailsHtml += '<div style="margin-bottom:8px;padding:4px 0;">';
+                        detailsHtml += '<div style="margin-bottom:12px;padding:6px 0;">';
                         
                         if (!w.correct) {
                             const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                            detailsHtml += '<span style="background:#fee2e2;color:#dc2626;padding:3px 6px;border-radius:4px;text-decoration:line-through;font-weight:700;font-size:14px;">' + wrongAttempt + '</span>';
-                            detailsHtml += ' <span style="color:#6b7280;font-size:16px;">→</span> ';
-                            detailsHtml += '<span style="background:#dcfce7;color:#059669;padding:3px 6px;border-radius:4px;font-weight:700;font-size:14px;">' + w.word + '</span>';
+                            detailsHtml += '<span style="background:#fee2e2;color:#dc2626;padding:4px 8px;border-radius:6px;text-decoration:line-through;font-weight:700;font-size:18px;">' + wrongAttempt + '</span>';
+                            detailsHtml += ' <span style="color:#6b7280;font-size:20px;">→</span> ';
+                            detailsHtml += '<span style="background:#dcfce7;color:#059669;padding:4px 8px;border-radius:6px;font-weight:700;font-size:18px;">' + w.word + '</span>';
                         } else if (w.hint) {
                             let wordDisplay = '';
                             if (w.hintLetters && w.hintLetters.length > 0) {
                                 wordDisplay = w.word.split('').map((letter, letterIndex) => {
                                     if (w.hintLetters.includes(letterIndex)) {
-                                        return `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:800;">${letter}</span>`;
+                                        return `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:800;font-size:18px;">${letter}</span>`;
                                     }
-                                    return `<span style="color:#374151;">${letter}</span>`;
+                                    return `<span style="color:#374151;font-size:18px;">${letter}</span>`;
                                 }).join('');
                             } else {
-                                wordDisplay = `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:700;font-size:14px;">${w.word}</span>`;
+                                wordDisplay = `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:700;font-size:18px;">${w.word}</span>`;
                             }
-                            detailsHtml += wordDisplay + ' <span style="color:#d97706;font-size:12px;font-weight:600;">(used hint)</span>';
+                            detailsHtml += wordDisplay + ' <span style="color:#d97706;font-size:16px;font-weight:600;">(used hint)</span>';
                         }
                         
                         detailsHtml += '</div>';
                     });
                     
-                    if (mistakesAndHints.length > 6) {
-                        detailsHtml += '<div style="color:#6b7280;font-style:italic;font-size:14px;margin-top:8px;">... and ' + (mistakesAndHints.length - 6) + ' more learning areas</div>';
+                    if (mistakesAndHints.length > 4) {
+                        detailsHtml += '<div style="color:#6b7280;font-style:italic;font-size:16px;margin-top:12px;">... and ' + (mistakesAndHints.length - 4) + ' more learning areas</div>';
                     }
                 } else {
-                    detailsHtml += '<div style="color:#059669;font-weight:700;font-size:16px;">🎉 Perfect! All words spelled correctly without hints</div>';
+                    detailsHtml += '<div style="color:#059669;font-weight:700;font-size:20px;">🎉 Perfect! All words spelled correctly without hints</div>';
                 }
                 
                 detailsHtml += '</div>';
                 
-                // Add word list for this result
+                // Add word list for this result - MUCH BIGGER TEXT
                 const wordSet = wordSets.find(ws => ws.id === result.wordSetId);
                 let wordListHtml = '';
                 if (wordSet && wordSet.words) {
-                    const wordList = wordSet.words.slice(0, 15).join(', ');
-                    const moreWords = wordSet.words.length > 15 ? ` (+${wordSet.words.length - 15} more)` : '';
+                    const wordList = wordSet.words.slice(0, 12).join(', ');
+                    const moreWords = wordSet.words.length > 12 ? ` (+${wordSet.words.length - 12} more)` : '';
                     wordListHtml = `
-                        <div style="margin-top: 12px; padding: 8px 10px; background: #f0f9ff; border-radius: 6px; font-size: 13px; color: #0369a1; border-left: 4px solid #0ea5e9; line-height: 1.4;">
-                            <strong>Words:</strong> ${wordList}${moreWords}
+                        <div style="margin-top: 15px; padding: 12px 15px; background: #f0f9ff; border-radius: 8px; font-size: 18px; color: #0369a1; border-left: 5px solid #0ea5e9; line-height: 1.6; font-weight: 600;">
+                            <strong style="font-size: 20px;">Words:</strong> ${wordList}${moreWords}
                         </div>
                     `;
                 }
                 
                 const row = document.createElement('tr');
                 const rowIndex = startIndex + index;
-                row.style.cssText = `background: ${rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 1px solid #e5e7eb;`;
+                row.style.cssText = `background: ${rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 2px solid #e5e7eb;`;
                 
                 row.innerHTML = `
-                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px; font-weight: 600; color: #1e293b;">${result.user || 'Unknown'}</td>
-                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
-                        <div style="font-weight: 700; color: #1e293b; margin-bottom: 4px;">${wordSetRow1}</div>
-                        ${wordSetRow2 ? `<div style="font-weight: 700; color: #1e293b;">${wordSetRow2}</div>` : ''}
+                    <td style="padding: 25px 20px; vertical-align: top; font-size: 20px; font-weight: 600; color: #1e293b;">${result.user || 'Unknown'}</td>
+                    <td style="padding: 25px 20px; vertical-align: top; font-size: 18px;">
+                        <div style="font-weight: 700; color: #1e293b; margin-bottom: 6px; font-size: 20px;">${wordSetRow1}</div>
+                        ${wordSetRow2 ? `<div style="font-weight: 700; color: #1e293b; font-size: 20px;">${wordSetRow2}</div>` : ''}
                         ${wordListHtml}
                     </td>
-                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
-                        <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">${dateRow}</div>
-                        ${startTimeRow ? `<div style="font-size: 14px; color: #64748b;">Start: ${startTimeRow}</div>` : ''}
-                        ${finishTimeRow ? `<div style="font-size: 14px; color: #64748b;">End: ${finishTimeRow}</div>` : ''}
+                    <td style="padding: 25px 20px; vertical-align: top; font-size: 18px;">
+                        <div style="font-weight: 600; color: #1e293b; margin-bottom: 6px; font-size: 20px;">${dateRow}</div>
+                        ${startTimeRow ? `<div style="font-size: 16px; color: #64748b;">Start: ${startTimeRow}</div>` : ''}
+                        ${finishTimeRow ? `<div style="font-size: 16px; color: #64748b;">End: ${finishTimeRow}</div>` : ''}
                     </td>
-                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
-                        <div style="font-weight: 700; color: #2563eb; margin-bottom: 6px; font-size: 18px;">${firstTryCorrect}/${totalWords}</div>
-                        <div style="color: #ef4444; margin-bottom: 4px; font-size: 15px;">❌ ${mistakes.length} mistake${mistakes.length !== 1 ? 's' : ''}</div>
-                        <div style="color: #f59e0b; font-size: 15px;">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? 's' : ''}</div>
+                    <td style="padding: 25px 20px; vertical-align: top; font-size: 18px;">
+                        <div style="font-weight: 700; color: #2563eb; margin-bottom: 8px; font-size: 22px;">${firstTryCorrect}/${totalWords}</div>
+                        <div style="color: #ef4444; margin-bottom: 6px; font-size: 18px;">❌ ${mistakes.length} mistake${mistakes.length !== 1 ? 's' : ''}</div>
+                        <div style="color: #f59e0b; font-size: 18px;">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? 's' : ''}</div>
                     </td>
-                    <td style="padding: 18px 16px; vertical-align: top; max-width: 400px;">${detailsHtml}</td>
+                    <td style="padding: 25px 20px; vertical-align: top; max-width: 500px;">${detailsHtml}</td>
                 `;
                 
                 tbody.appendChild(row);
@@ -3025,12 +3025,12 @@ async function exportScreenshot() {
             if (totalPages > 1) {
                 const footer = document.createElement('div');
                 footer.style.cssText = `
-                    margin-top: 30px;
-                    padding-top: 20px;
-                    border-top: 2px solid #e5e7eb;
+                    margin-top: 40px;
+                    padding-top: 25px;
+                    border-top: 3px solid #e5e7eb;
                     text-align: center;
                     color: #64748b;
-                    font-size: 16px;
+                    font-size: 20px;
                     font-weight: 600;
                 `;
                 footer.innerHTML = `Page ${pageNum + 1} of ${totalPages} • Generated on ${new Date().toLocaleDateString()}`;
@@ -3043,10 +3043,10 @@ async function exportScreenshot() {
             // Generate screenshot with higher quality
             const canvas = await html2canvas(screenshotContainer, {
                 backgroundColor: '#ffffff',
-                scale: 2.5, // Higher quality for better text readability
+                scale: 3, // Even higher quality for better text readability
                 useCORS: true,
                 allowTaint: true,
-                width: 1400,
+                width: 1600,
                 height: screenshotContainer.scrollHeight,
                 logging: false
             });
