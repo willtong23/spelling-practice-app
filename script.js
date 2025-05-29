@@ -219,11 +219,30 @@ async function loadAvailableWordSets() {
             
             // Load only the assigned word sets
             if (assignedWordSetIds.size > 0) {
+                console.log('Loading word sets for IDs:', Array.from(assignedWordSetIds));
+                
                 for (const wordSetId of assignedWordSetIds) {
                     try {
                         const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
                         if (wordSetDoc.exists) {
-                            availableWordSets.push({ id: wordSetDoc.id, ...wordSetDoc.data() });
+                            const wordSetData = { id: wordSetDoc.id, ...wordSetDoc.data() };
+                            
+                            // Check if we already have this word set (by ID or name)
+                            const existingById = availableWordSets.find(ws => ws.id === wordSetData.id);
+                            const existingByName = availableWordSets.find(ws => ws.name === wordSetData.name);
+                            
+                            if (existingById) {
+                                console.log(`Skipping duplicate word set by ID: ${wordSetData.name} (${wordSetData.id})`);
+                                continue;
+                            }
+                            
+                            if (existingByName) {
+                                console.log(`Skipping duplicate word set by name: ${wordSetData.name} (existing: ${existingByName.id}, new: ${wordSetData.id})`);
+                                continue;
+                            }
+                            
+                            availableWordSets.push(wordSetData);
+                            console.log(`Added word set: ${wordSetData.name} (${wordSetData.id})`);
                         }
                     } catch (error) {
                         console.error(`Error loading word set ${wordSetId}:`, error);
@@ -2931,3 +2950,72 @@ function exitIndividualWordPractice() {
     
     showNotification('🔄 Returned to original practice', 'success');
 }
+
+// Function to detect and clean up duplicate word sets
+async function cleanupDuplicateWordSets() {
+    try {
+        console.log('Checking for duplicate word sets...');
+        
+        // Get all word sets
+        const wordSetsSnapshot = await window.db.collection('wordSets').get();
+        const allWordSets = [];
+        
+        wordSetsSnapshot.forEach(doc => {
+            allWordSets.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Group by name to find duplicates
+        const wordSetsByName = {};
+        const duplicates = [];
+        
+        allWordSets.forEach(wordSet => {
+            const name = wordSet.name.toLowerCase().trim();
+            if (!wordSetsByName[name]) {
+                wordSetsByName[name] = [];
+            }
+            wordSetsByName[name].push(wordSet);
+        });
+        
+        // Find duplicates
+        Object.keys(wordSetsByName).forEach(name => {
+            const sets = wordSetsByName[name];
+            if (sets.length > 1) {
+                console.log(`Found ${sets.length} word sets with name "${name}":`, sets);
+                // Keep the first one, mark others as duplicates
+                for (let i = 1; i < sets.length; i++) {
+                    duplicates.push(sets[i]);
+                }
+            }
+        });
+        
+        if (duplicates.length > 0) {
+            console.log(`Found ${duplicates.length} duplicate word sets:`, duplicates);
+            
+            if (confirm(`Found ${duplicates.length} duplicate word sets. Do you want to remove them?`)) {
+                for (const duplicate of duplicates) {
+                    try {
+                        await window.db.collection('wordSets').doc(duplicate.id).delete();
+                        console.log(`Deleted duplicate word set: ${duplicate.name} (${duplicate.id})`);
+                    } catch (error) {
+                        console.error(`Error deleting duplicate word set ${duplicate.id}:`, error);
+                    }
+                }
+                
+                showNotification(`Cleaned up ${duplicates.length} duplicate word sets`, 'success');
+                
+                // Reload the word sets
+                await loadAvailableWordSets();
+            }
+        } else {
+            console.log('No duplicate word sets found');
+            showNotification('No duplicate word sets found', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Error checking for duplicate word sets:', error);
+        showNotification('Error checking for duplicates', 'error');
+    }
+}
+
+// Add this function to the global scope for debugging
+window.cleanupDuplicateWordSets = cleanupDuplicateWordSets;
