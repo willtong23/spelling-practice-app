@@ -1968,19 +1968,39 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1;
     
+    // Optimize for faster response
+    if ('webkitSpeechRecognition' in window) {
+        recognition.webkitSpeechRecognition = true;
+    }
+    
     // Handle speech recognition results
     recognition.onresult = function(event) {
         let finalTranscript = '';
+        let interimTranscript = '';
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
                 finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
             }
         }
         
+        // Process interim results immediately for faster response
+        if (interimTranscript) {
+            console.log('Interim transcript:', interimTranscript);
+            // Show visual feedback that we're hearing something
+            showVoiceInputFeedback(interimTranscript, false);
+            // Process interim results immediately
+            processVoiceInput(interimTranscript.toLowerCase().trim(), true);
+        }
+        
+        // Process final results
         if (finalTranscript) {
-            processVoiceInput(finalTranscript.toLowerCase().trim());
+            console.log('Final transcript:', finalTranscript);
+            showVoiceInputFeedback(finalTranscript, true);
+            processVoiceInput(finalTranscript.toLowerCase().trim(), false);
         }
     };
     
@@ -2062,15 +2082,15 @@ function startVoiceInput() {
         isVoiceInputActive = true;
         recognition.start();
         
-        // Update button appearance
+        // Update button appearance with listening status
         if (voiceInputButton) {
             voiceInputButton.classList.add('listening');
-            voiceInputButton.textContent = '🔴 Stop Voice';
+            voiceInputButton.textContent = '🔴 Listening...';
         }
         
         // Show helpful instructions
         const emptyCount = letterInputs.filter(box => box.value === '').length;
-        showNotification(`Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
+        showNotification(`🎤 Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly. I'm listening...`, 'info');
         console.log('Voice input started');
     } catch (error) {
         console.error('Error starting voice input:', error);
@@ -2101,8 +2121,8 @@ function stopVoiceInput() {
 }
 
 // Function to process voice input and convert to letters
-function processVoiceInput(transcript) {
-    console.log('Processing voice input:', transcript);
+function processVoiceInput(transcript, isInterim = false) {
+    console.log('Processing voice input:', transcript, 'isInterim:', isInterim);
     
     // Clean up the transcript and extract letters
     const words = transcript.split(/\s+/);
@@ -2110,12 +2130,12 @@ function processVoiceInput(transcript) {
     for (const word of words) {
         // Check if it's a single letter (a-z)
         if (word.length === 1 && /^[a-z]$/.test(word)) {
-            inputLetterToBox(word);
+            inputLetterToBox(word, isInterim);
         } else {
             // Try to extract letters from common speech patterns
             const letter = extractLetterFromSpeech(word);
             if (letter) {
-                inputLetterToBox(letter);
+                inputLetterToBox(letter, isInterim);
             }
         }
     }
@@ -2157,12 +2177,30 @@ function extractLetterFromSpeech(word) {
 }
 
 // Function to input a letter to the appropriate box
-function inputLetterToBox(letter) {
+function inputLetterToBox(letter, isInterim = false) {
     if (!letterInputs || letterInputs.length === 0) {
         return;
     }
     
-    // Find the first empty box
+    // For interim results, just show visual feedback without actually inputting
+    if (isInterim) {
+        // Find the next empty box and show preview
+        let targetBox = letterInputs.find(box => box.value === '');
+        if (targetBox) {
+            // Add a subtle visual hint that we're hearing this letter
+            targetBox.style.background = '#e0f2fe';
+            targetBox.style.borderColor = '#0ea5e9';
+            setTimeout(() => {
+                if (targetBox.value === '') {
+                    targetBox.style.background = '';
+                    targetBox.style.borderColor = '';
+                }
+            }, 500);
+        }
+        return;
+    }
+    
+    // Find the first empty box for final input
     let targetBox = letterInputs.find(box => box.value === '');
     
     if (!targetBox) {
@@ -2208,13 +2246,15 @@ function inputLetterToBox(letter) {
             }, 100);
         }
         
-        // Visual feedback
-        targetBox.style.background = '#e7fbe9';
+        // Enhanced visual feedback for successful input
+        targetBox.style.background = '#dcfce7';
+        targetBox.style.borderColor = '#22c55e';
         targetBox.style.transform = 'scale(1.1)';
         setTimeout(() => {
             targetBox.style.background = '';
+            targetBox.style.borderColor = '';
             targetBox.style.transform = '';
-        }, 300);
+        }, 600);
         
         console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
@@ -2376,4 +2416,23 @@ function triggerPerfectQuizCelebration() {
             celebrationText.style.color = '#22c55e';
         }, 3000);
     }, 500);
+}
+
+// Function to show visual feedback for voice input
+function showVoiceInputFeedback(transcript, isFinal) {
+    if (!voiceInputButton) return;
+    
+    // Update button text to show what we're hearing
+    if (isFinal) {
+        voiceInputButton.textContent = `🎤 Heard: "${transcript}"`;
+        // Reset after a short delay
+        setTimeout(() => {
+            if (isVoiceInputActive) {
+                voiceInputButton.textContent = '🔴 Listening...';
+            }
+        }, 1000);
+    } else {
+        // Show interim results in real-time
+        voiceInputButton.textContent = `🎤 Hearing: "${transcript}"`;
+    }
 } 
