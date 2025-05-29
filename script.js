@@ -38,32 +38,57 @@ async function getWordsFromAssignment(userName) {
         if (studentDoc) {
             console.log(`Found student in database: ${studentId}`, studentData);
             
-            // Check if this student has a specific assignment (highest priority)
+            // Check if this student has a specific individual assignment (highest priority)
             const assignmentsSnapshot = await window.db.collection('assignments').where('studentId', '==', studentId).get();
             
             if (!assignmentsSnapshot.empty) {
                 const assignmentDoc = assignmentsSnapshot.docs[0];
                 const wordSetId = assignmentDoc.data().wordSetId;
                 userAssignmentId = wordSetId; // Store for panel display
-                console.log(`Found specific assignment for student: wordSetId = ${wordSetId}`);
+                console.log(`Found specific individual assignment for student: wordSetId = ${wordSetId}`);
                 
                 // Get the word set
                 const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
                 if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
-                    console.log(`Using specific assignment for ${userName}: "${wordSetDoc.data().name}"`);
+                    console.log(`Using specific individual assignment for ${userName}: "${wordSetDoc.data().name}"`);
                     return {
                         words: wordSetDoc.data().words,
                         setId: wordSetId,
                         setName: wordSetDoc.data().name
                     };
                 } else {
-                    console.log(`Assignment word set ${wordSetId} is empty or invalid, checking alternatives...`);
+                    console.log(`Individual assignment word set ${wordSetId} is empty or invalid, checking alternatives...`);
                 }
             }
             
-            // No specific assignment - check for student's default word set (second priority)
+            // No individual assignment - check for class assignments (second priority)
+            if (studentData.classId) {
+                console.log(`No individual assignment, checking class assignments for classId: ${studentData.classId}`);
+                const classAssignmentsSnapshot = await window.db.collection('assignments').where('classId', '==', studentData.classId).get();
+                
+                if (!classAssignmentsSnapshot.empty) {
+                    const classAssignmentDoc = classAssignmentsSnapshot.docs[0];
+                    const wordSetId = classAssignmentDoc.data().wordSetId;
+                    console.log(`Found class assignment: wordSetId = ${wordSetId}`);
+                    
+                    // Get the word set
+                    const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
+                    if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
+                        console.log(`Using class assignment for ${userName}: "${wordSetDoc.data().name}"`);
+                        return {
+                            words: wordSetDoc.data().words,
+                            setId: wordSetId,
+                            setName: wordSetDoc.data().name
+                        };
+                    } else {
+                        console.log(`Class assignment word set ${wordSetId} is empty or invalid, checking alternatives...`);
+                    }
+                }
+            }
+            
+            // No assignments - check for student's default word set (third priority)
             if (studentData.defaultWordSetId) {
-                console.log(`No specific assignment, checking student's default word set: ${studentData.defaultWordSetId}`);
+                console.log(`No assignments, checking student's default word set: ${studentData.defaultWordSetId}`);
                 const wordSetDoc = await window.db.collection('wordSets').doc(studentData.defaultWordSetId).get();
                 if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
                     console.log(`Using student's default word set for ${userName}: "${wordSetDoc.data().name}"`);
@@ -77,7 +102,7 @@ async function getWordsFromAssignment(userName) {
                 }
             }
             
-            // No student default - check for class default word set (third priority)
+            // No student default - check for class default word set (fourth priority)
             if (studentData.classId) {
                 console.log(`No student default, checking class default for classId: ${studentData.classId}`);
                 const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
@@ -202,19 +227,30 @@ async function loadAvailableWordSets() {
             
             assignmentsSnapshot.forEach(doc => {
                 assignedWordSetIds.add(doc.data().wordSetId);
+                console.log(`Found individual assignment: ${doc.data().wordSetId}`);
             });
+            
+            // Get class assignments if student is in a class
+            if (studentData.classId) {
+                console.log(`Student is in class: ${studentData.classId}, checking for class assignments...`);
+                const classAssignmentsSnapshot = await window.db.collection('assignments').where('classId', '==', studentData.classId).get();
+                classAssignmentsSnapshot.forEach(doc => {
+                    assignedWordSetIds.add(doc.data().wordSetId);
+                    console.log(`Found class assignment: ${doc.data().wordSetId}`);
+                });
+                
+                // Add class default word set if exists
+                const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
+                if (classDoc.exists && classDoc.data().defaultWordSetId) {
+                    assignedWordSetIds.add(classDoc.data().defaultWordSetId);
+                    console.log(`Found class default word set: ${classDoc.data().defaultWordSetId}`);
+                }
+            }
             
             // Add student's default word set if exists
             if (studentData.defaultWordSetId) {
                 assignedWordSetIds.add(studentData.defaultWordSetId);
-            }
-            
-            // Add class default word set if exists
-            if (studentData.classId) {
-                const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
-                if (classDoc.exists && classDoc.data().defaultWordSetId) {
-                    assignedWordSetIds.add(classDoc.data().defaultWordSetId);
-                }
+                console.log(`Found student default word set: ${studentData.defaultWordSetId}`);
             }
             
             // Load only the assigned word sets
