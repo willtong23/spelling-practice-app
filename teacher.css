@@ -1234,4 +1234,174 @@
         left: 50%;
         transform: translateX(-50%);
     }
-} 
+}
+
+/* MAXIMUM VISUAL SEPARATION - NEW APPROACH */
+/* Override all existing styles with background-based separation */
+
+.students-grid .enhanced-student-card {
+    background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%) !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 30px !important;
+    margin: 40px 0 !important;
+    box-shadow: 
+        0 0 0 6px #dc2626,
+        0 0 0 12px #fbbf24,
+        0 20px 40px rgba(220, 38, 38, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    position: relative !important;
+    transform: scale(1) !important;
+    transition: all 0.3s ease !important;
+}
+
+.students-grid .enhanced-student-card:hover {
+    transform: scale(1.02) !important;
+    box-shadow: 
+        0 0 0 8px #dc2626,
+        0 0 0 16px #fbbf24,
+        0 25px 50px rgba(220, 38, 38, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+.students-grid .enhanced-student-card::before {
+    content: '👤 STUDENT DATA' !important;
+    position: absolute !important;
+    top: -15px !important;
+    left: 20px !important;
+    background: #dc2626 !important;
+    color: white !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    font-size: 0.8rem !important;
+    font-weight: bold !important;
+    letter-spacing: 1px !important;
+    z-index: 10 !important;
+}
+
+.students-grid .enhanced-student-card::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -5px !important;
+    left: -5px !important;
+    right: -5px !important;
+    bottom: -5px !important;
+    background: linear-gradient(45deg, #dc2626, #fbbf24, #dc2626, #fbbf24) !important;
+    background-size: 400% 400% !important;
+    border-radius: 25px !important;
+    z-index: -1 !important;
+    animation: gradientShift 3s ease infinite !important;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Add spacing between student cards */
+.students-grid .enhanced-student-card + .enhanced-student-card {
+    margin-top: 60px !important;
+}
+
+/* Make the student name more prominent */
+.students-grid .enhanced-student-card .card-title {
+    background: linear-gradient(135deg, #dc2626, #fbbf24) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    font-size: 1.8rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    margin-bottom: 20px !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Add alternating background colors for even more separation */
+.students-grid .enhanced-student-card:nth-child(even) {
+    background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%) !important;
+    box-shadow: 
+        0 0 0 6px #2563eb,
+        0 0 0 12px #10b981,
+        0 20px 40px rgba(37, 99, 235, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.students-grid .enhanced-student-card:nth-child(even)::before {
+    background: #2563eb !important;
+}
+
+.students-grid .enhanced-student-card:nth-child(even)::after {
+    background: linear-gradient(45deg, #2563eb, #10b981, #2563eb, #10b981) !important;
+    background-size: 400% 400% !important;
+}
+
+.students-grid .enhanced-student-card:nth-child(even):hover {
+    box-shadow: 
+        0 0 0 8px #2563eb,
+        0 0 0 16px #10b981,
+        0 25px 50px rgba(37, 99, 235, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Force grid layout with large gaps */
+.students-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 80px !important;
+    padding: 40px 0 !important;
+}
+
+/* Add section dividers */
+.students-grid .enhanced-student-card:not(:last-child)::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -40px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 200px !important;
+    height: 4px !important;
+    background: linear-gradient(90deg, transparent, #dc2626, transparent) !important;
+    border-radius: 2px !important;
+    z-index: 5 !important;
+}
+
+/* FORCE MAXIMUM VISUAL SEPARATION - FINAL OVERRIDE */
+.maximum-separation-card {
+    margin: 50px 0 !important;
+    padding: 40px !important;
+    border-radius: 25px !important;
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.maximum-separation-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 100px !important;
+    padding: 50px 20px !important;
+    width: 100% !important;
+}
+
+.maximum-separation-card .card-title {
+    font-size: 2rem !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 3px !important;
+    margin-bottom: 25px !important;
+    text-align: center !important;
+}
+
+/* Ensure no other styles interfere */
+.students-grid .enhanced-student-card {
+    margin: 60px 0 !important;
+    padding: 35px !important;
+}
+
+.students-grid {
+    gap: 120px !important;
+    padding: 60px 0 !important;
+}

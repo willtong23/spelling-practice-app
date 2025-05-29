@@ -524,18 +524,43 @@ function renderStudents() {
             </div>
         ` : ''}
         
-        <div class="students-grid" id="studentsGrid">
-            ${students.map(student => {
+        <div class="students-grid maximum-separation-grid" id="studentsGrid" 
+             style="display: grid !important; 
+                    grid-template-columns: 1fr !important; 
+                    gap: 80px !important; 
+                    padding: 40px 0 !important;">
+            ${students.map((student, index) => {
                 const studentClass = classes.find(c => c.id === student.classId);
                 const studentAssignments = assignments.filter(a => a.studentId === student.id);
                 const classAssignments = studentClass ? assignments.filter(a => a.classId === studentClass.id) : [];
                 const defaultWordSet = wordSets.find(ws => ws.id === student.defaultWordSetId);
                 const totalAssignments = studentAssignments.length + classAssignments.length;
                 
+                // Alternating colors for maximum visual separation
+                const isEven = index % 2 === 0;
+                const cardStyle = isEven ? 
+                    `background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%) !important; 
+                     border: 6px solid #dc2626 !important; 
+                     box-shadow: 0 0 0 6px #dc2626, 0 0 0 12px #fbbf24, 0 20px 40px rgba(220, 38, 38, 0.3) !important;` :
+                    `background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%) !important; 
+                     border: 6px solid #2563eb !important; 
+                     box-shadow: 0 0 0 6px #2563eb, 0 0 0 12px #10b981, 0 20px 40px rgba(37, 99, 235, 0.3) !important;`;
+                
+                const titleStyle = isEven ?
+                    `background: linear-gradient(135deg, #dc2626, #fbbf24) !important;` :
+                    `background: linear-gradient(135deg, #2563eb, #10b981) !important;`;
+                
                 return `
-                    <div class="enhanced-student-card ${bulkSelectionMode ? 'selection-mode' : ''}" id="student_${student.id}" 
+                    <div class="enhanced-student-card maximum-separation-card ${bulkSelectionMode ? 'selection-mode' : ''}" 
+                         id="student_${student.id}" 
                          data-student-name="${student.name.toLowerCase()}" 
-                         data-class-id="${student.classId || ''}">
+                         data-class-id="${student.classId || ''}"
+                         style="${cardStyle}
+                                border-radius: 20px !important; 
+                                padding: 30px !important; 
+                                margin: 40px 0 !important; 
+                                position: relative !important;
+                                transform: scale(1) !important;">
                         ${bulkSelectionMode ? `
                             <div class="selection-checkbox">
                                 <input type="checkbox" class="student-checkbox" data-student-id="${student.id}" onchange="updateStudentSelection('${student.id}')">
@@ -544,7 +569,15 @@ function renderStudents() {
                         
                         <div class="card-header-enhanced">
                             <div class="card-title-section">
-                                <h4 class="card-title">👤 ${student.name}</h4>
+                                <h4 class="card-title" style="${titleStyle}
+                                                            -webkit-background-clip: text !important; 
+                                                            -webkit-text-fill-color: transparent !important; 
+                                                            background-clip: text !important; 
+                                                            font-size: 1.8rem !important; 
+                                                            font-weight: 900 !important; 
+                                                            text-transform: uppercase !important; 
+                                                            letter-spacing: 2px !important; 
+                                                            margin-bottom: 20px !important;">👤 ${student.name}</h4>
                                 <p class="card-description">
                                     Class: ${studentClass ? `📚 ${studentClass.name}` : '❌ No class assigned'}
                                 </p>
@@ -592,18 +625,39 @@ function renderStudents() {
                                 <div class="assignments-section class-assignments">
                                     <div class="section-header-mini">
                                         <h5 class="section-title-mini">📚 Class Assignments</h5>
-                                        <span class="assignment-count">${classAssignments.length} assignments</span>
+                                        <div class="assignment-controls">
+                                            <span class="assignment-count">${classAssignments.length} assignments</span>
+                                            ${classAssignments.length > 3 ? `
+                                                <button class="btn-toggle" onclick="toggleStudentClassAssignments('${student.id}')" id="toggleClassBtn_${student.id}">
+                                                    Show All
+                                                </button>
+                                            ` : ''}
+                                            <button class="btn-danger-small" onclick="deleteAllClassAssignments('${studentClass.id}')" title="Delete all class assignments for this class">
+                                                🗑️ Delete All
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="assignments-container">
+                                    <div class="assignments-container" id="classAssignments_${student.id}">
                                         ${renderAssignmentsList(classAssignments.slice(0, 3), 'class-inherited', student.id)}
                                         ${classAssignments.length > 3 ? `
                                             <div class="more-indicator">
                                                 <span class="more-text">+ ${classAssignments.length - 3} more class assignments</span>
+                                                <span class="more-hint">Click "Show All" to view all ${classAssignments.length} assignments</span>
                                             </div>
                                         ` : ''}
                                     </div>
                                 </div>
-                            ` : ''}
+                            ` : `
+                                <div class="assignments-section individual-assignments empty">
+                                    <div class="empty-assignments">
+                                        <span class="empty-icon">📝</span>
+                                        <span class="empty-text">No individual assignments yet</span>
+                                        <button class="btn-enhanced btn-primary" onclick="showQuickAssignToStudent('${student.id}')">
+                                            Assign Word Set
+                                        </button>
+                                    </div>
+                                </div>
+                            `}
                             
                             ${studentAssignments.length > 0 ? `
                                 <div class="assignments-section individual-assignments">
@@ -650,6 +704,28 @@ function renderStudents() {
                             </div>
                         ` : ''}
                     </div>
+                    ${index < students.length - 1 ? `
+                        <div style="width: 100%; 
+                                   height: 20px; 
+                                   margin: 40px 0; 
+                                   background: linear-gradient(90deg, transparent, ${isEven ? '#dc2626' : '#2563eb'}, transparent); 
+                                   border-radius: 10px; 
+                                   position: relative;">
+                            <div style="position: absolute; 
+                                       top: 50%; 
+                                       left: 50%; 
+                                       transform: translate(-50%, -50%); 
+                                       background: white; 
+                                       padding: 8px 16px; 
+                                       border-radius: 20px; 
+                                       font-size: 0.8rem; 
+                                       font-weight: bold; 
+                                       color: ${isEven ? '#dc2626' : '#2563eb'}; 
+                                       border: 2px solid ${isEven ? '#dc2626' : '#2563eb'};">
+                                ▼ NEXT STUDENT ▼
+                            </div>
+                        </div>
+                    ` : ''}
                 `;
             }).join('')}
         </div>
@@ -4776,3 +4852,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, 30000); // Check every 30 seconds
 });
+
+// New function specifically for toggling class assignments within student cards
+function toggleStudentClassAssignments(studentId) {
+    const container = document.getElementById(`classAssignments_${studentId}`);
+    const toggleBtn = document.getElementById(`toggleClassBtn_${studentId}`);
+    
+    if (!container || !toggleBtn) return;
+    
+    // Get the student and their class assignments
+    const student = students.find(s => s.id === studentId);
+    const studentClass = student ? classes.find(c => c.id === student.classId) : null;
+    const classAssignments = studentClass ? assignments.filter(a => a.classId === studentClass.id) : [];
+    
+    if (toggleBtn.textContent.trim() === 'Show All') {
+        // Show all class assignments
+        container.innerHTML = renderAssignmentsList(classAssignments, 'class-inherited', studentId);
+        toggleBtn.textContent = 'Hide';
+    } else {
+        // Show only first 3 class assignments
+        container.innerHTML = `
+            ${renderAssignmentsList(classAssignments.slice(0, 3), 'class-inherited', studentId)}
+            ${classAssignments.length > 3 ? `
+                <div class="more-indicator">
+                    <span class="more-text">+ ${classAssignments.length - 3} more class assignments</span>
+                    <span class="more-hint">Click "Show All" to view all ${classAssignments.length} assignments</span>
+                </div>
+            ` : ''}
+        `;
+        toggleBtn.textContent = 'Show All';
+    }
+}
