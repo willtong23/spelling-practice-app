@@ -736,9 +736,9 @@ h1 {
     background: white;
     border-radius: 20px;
     padding: 30px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 80vh;
+    max-width: 600px;
+    width: 95%;
+    max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }

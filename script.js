@@ -1181,26 +1181,56 @@ function showEndOfQuizFeedback() {
         }
     }
     
-    let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
+    let html = '<h2 style="margin-bottom:16px;text-align:center;">Quiz Complete!</h2>';
     
     // Show which word set was used
     if (currentWordSetName && !isPracticeMode) {
-        html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
+        html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;text-align:center;">Word Set: <strong>${currentWordSetName}</strong></div>`;
     } else if (isPracticeMode) {
-        html += `<div style="color:#f59e0b;font-size:0.9rem;margin-bottom:12px;">📚 <strong>Practice Mode Complete!</strong></div>`;
+        html += `<div style="color:#f59e0b;font-size:0.9rem;margin-bottom:12px;text-align:center;">📚 <strong>Practice Mode Complete!</strong></div>`;
+    }
+    
+    // Calculate and show first-try score prominently (only for main quiz, not practice)
+    if (!isPracticeMode) {
+        const firstTryCorrectCount = words.filter((word, i) => {
+            const attempts = (userAnswers[i] || {}).attempts || [];
+            return attempts.length > 0 && attempts[0] === word;
+        }).length;
+        
+        const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
+        
+        html += `<div style="margin-bottom:20px;padding:16px;background:linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);border:2px solid #0ea5e9;border-radius:12px;text-align:center;">
+            <div style="font-size:1.4rem;font-weight:700;color:#0369a1;margin-bottom:4px;">Your Score</div>
+            <div style="font-size:2rem;font-weight:800;color:#0c4a6e;">${firstTryScore}%</div>
+            <div style="font-size:0.9rem;color:#0369a1;">${firstTryCorrectCount} out of ${words.length} correct on first try</div>
+        </div>`;
     }
     
     if (allPerfectFirstTry && !isPracticeMode) {
         // Trigger perfect quiz celebration animation
         triggerPerfectQuizCelebration();
         
-        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
+        html += '<div style="color:#22c55e;font-size:1.2em;font-weight:700;margin-bottom:16px;background:#e7fbe9;padding:12px;border-radius:8px;text-align:center;">🎉 Perfect! You got everything correct on the first try!</div>';
     } else if (isPracticeMode) {
-        html += '<div style="color:#3b82f6;font-size:1.2em;font-weight:700;margin-bottom:18px;background:#dbeafe;padding:10px 0;border-radius:8px;">🎯 Practice Session Complete!</div>';
+        html += '<div style="color:#3b82f6;font-size:1.1em;font-weight:700;margin-bottom:16px;background:#dbeafe;padding:12px;border-radius:8px;text-align:center;">🎯 Practice Session Complete!</div>';
     }
     
-    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
-    html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">First Try</th><th style="text-align:left;padding:4px 8px;">All Attempts</th></tr>';
+    // Show practice option PROMINENTLY if there are words that need practice (only for main quiz)
+    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
+        html += `<div style="margin-bottom:20px;padding:16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;text-align:center;">
+            <h3 style="margin:0 0 8px 0;color:#856404;font-size:1.1rem;">🎯 Practice Opportunity!</h3>
+            <p style="margin:0 0 12px 0;color:#856404;font-size:0.9rem;">You have <strong>${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''}</strong> that could use more practice</p>
+            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:14px 28px;border-radius:10px;font-weight:700;cursor:pointer;font-size:1rem;box-shadow:0 2px 8px rgba(255,193,7,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(255,193,7,0.4)';" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 8px rgba(255,193,7,0.3)';">
+                🎯 Practice These Words
+            </button>
+            <p style="margin:8px 0 0 0;font-size:0.8em;color:#856404;font-style:italic;">Practice sessions don't affect your quiz records</p>
+        </div>`;
+    }
+    
+    // Compact results table
+    html += '<div style="margin-top:16px;"><h4 style="margin:0 0 8px 0;color:#374151;">Detailed Results:</h4>';
+    html += '<div style="overflow-x:auto;max-height:200px;overflow-y:auto;border:1px solid #e5e7eb;border-radius:6px;"><table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+    html += '<tr style="background:#f9fafb;"><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Word</th><th style="text-align:center;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Result</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #e5e7eb;">Attempts</th></tr>';
     
     for (let i = 0; i < words.length; i++) {
         const entry = userAnswers[i] || { attempts: [], correct: false };
@@ -1211,23 +1241,23 @@ function showEndOfQuizFeedback() {
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
         const eventuallyCorrect = attempts.includes(correctWord);
         
-        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
+        html += `<tr style="border-bottom:1px solid #f3f4f6;"><td style="font-weight:600;padding:6px 8px;">${words[i]}</td><td style="text-align:center;padding:6px 8px;">`;
         
         // Show first try result
         if (firstTryCorrect) {
-            html += `<span style='font-size:1.5em;color:#22c55e;'>✅</span>`;
+            html += `<span style='font-size:1.2em;color:#22c55e;'>✅</span>`;
         } else {
-            html += `<span style='font-size:1.5em;color:#ef4444;'>❌</span>`;
+            html += `<span style='font-size:1.2em;color:#ef4444;'>❌</span>`;
         }
         
         // Add hint indicator
         if (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i]) {
-            html += `<span style='color:#fbbf24;font-weight:700;font-size:1.2em;margin-left:6px;' title='Hint used'>H</span>`;
+            html += `<span style='color:#fbbf24;font-weight:700;font-size:0.9em;margin-left:4px;' title='Hint used'>H</span>`;
         }
         
-        html += `</td><td style="color:#888;padding:4px 8px;">`;
+        html += `</td><td style="color:#6b7280;padding:6px 8px;font-size:0.8rem;">`;
         
-        // Show all attempts
+        // Show all attempts (more compact)
         if (attempts.length > 0) {
             const attemptsList = attempts.map((attempt, idx) => {
                 if (attempt === correctWord) {
@@ -1237,54 +1267,13 @@ function showEndOfQuizFeedback() {
                 }
             }).join(' → ');
             html += attemptsList;
-            
-            // Add status if eventually correct but not first try
-            if (!firstTryCorrect && eventuallyCorrect) {
-                html += ` <span style="color:#f59e0b;font-size:0.8em;">(eventually correct)</span>`;
-            }
         } else {
             html += 'No attempts';
         }
         
         html += '</td></tr>';
     }
-    html += '</table></div>';
-    
-    // Calculate and show first-try score (only for main quiz, not practice)
-    if (!isPracticeMode) {
-        const firstTryCorrectCount = words.filter((word, i) => {
-            const attempts = (userAnswers[i] || {}).attempts || [];
-            return attempts.length > 0 && attempts[0] === word;
-        }).length;
-        
-        const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
-        
-        html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
-            <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
-        </div>`;
-    }
-    
-    // Show practice option if there are words that need practice (only for main quiz)
-    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
-        html += `<div style="margin-top:20px;padding:16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;">
-            <h3 style="margin:0 0 12px 0;color:#856404;">🎯 Practice Opportunity!</h3>
-            <p style="margin:0 0 12px 0;color:#856404;">You have <strong>${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''}</strong> that could use more practice:</p>
-            <div style="margin:8px 0;font-weight:600;color:#856404;">`;
-        
-        wordsNeedingPractice.forEach((item, index) => {
-            const reason = item.usedHint && item.gotWrong ? 'hint + wrong' : 
-                         item.usedHint ? 'used hint' : 'got wrong';
-            html += `${item.word} (${reason})`;
-            if (index < wordsNeedingPractice.length - 1) html += ', ';
-        });
-        
-        html += `</div>
-            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px;">
-                🎯 Practice These Words
-            </button>
-            <p style="margin:8px 0 0 0;font-size:0.85em;color:#856404;font-style:italic;">Practice sessions don't affect your quiz records</p>
-        </div>`;
-    }
+    html += '</table></div></div>';
     
     showModal(html);
     lastQuizComplete = true;
