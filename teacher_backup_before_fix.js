@@ -3190,11 +3190,9 @@ async function exportScreenshot() {
                                 // Get end time
                                 let endTimeText = 'Unknown';
                                 if (result.finishTime) {
-                                    const finishDate = new Date(result.finishTime);
-                                    endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                    endTimeText = new Date(result.finishTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                                 } else if (result.date) {
-                                    const resultDate = new Date(result.date);
-                                    endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                                    endTimeText = new Date(result.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                                 }
                                 
                                 // Create detailed learning information
@@ -3319,94 +3317,7 @@ async function exportScreenshot() {
                 screenshotContainer.innerHTML = `
                     <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3b82f6; padding-bottom: 30px;">
                         <h1 style="margin: 0 0 15px 0; color: #1e293b; font-size: 32px; font-weight: 700;">Learning Analytics Report</h1>
-                    </div>
-                    
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-                        <thead>
-                            <tr style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Student</th>
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
-                                <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Score</th>
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Learning Details</th>
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">End Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${pageResults.map((result, index) => {
-                                const words = result.words || [];
-                                const firstTryCorrect = words.filter(w => {
-                                    const attempts = w.attempts || [];
-                                    return attempts.length > 0 && attempts[0] === w.word;
-                                }).length;
-                                const totalWords = words.length;
-                                const scoreText = `${firstTryCorrect}/${totalWords}`;
-                                
-                                let endTimeText = 'Unknown';
-                                if (result.finishTime) {
-                                    const finishDate = new Date(result.finishTime); endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                } else if (result.date) {
-                                    const resultDate = new Date(result.date); endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                }
-                                
-                                let learningDetails = '';
-                                const mistakesAndHints = words.filter(w => !w.correct || w.hint);
-                                
-                                if (mistakesAndHints.length > 0) {
-                                    learningDetails = mistakesAndHints.map(w => {
-                                        let wordDetail = '';
-                                        
-                                        if (!w.correct) {
-                                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                                            wordDetail += `<span style="background: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; font-weight: 600; font-size: 18px;">${wrongAttempt}</span>`;
-                                            wordDetail += ` → `;
-                                            wordDetail += `<span style="background: #dcfce7; color: #059669; padding: 2px 4px; border-radius: 3px; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                        }
-                                        
-                                        if (w.hint) {
-                                            if (wordDetail) wordDetail += ' | ';
-                                            wordDetail += 'Hint: ';
-                                            
-                                            if (w.hintLetters && w.hintLetters.length > 0) {
-                                                wordDetail += w.word.split('').map((letter, letterIndex) => {
-                                                    if (w.hintLetters.includes(letterIndex)) {
-                                                        return `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 700; font-size: 18px;">${letter}</span>`;
-                                                    }
-                                                    return `<span style="color: #374151; font-size: 18px;">${letter}</span>`;
-                                                }).join('');
-                                            } else {
-                                                wordDetail += `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                            }
-                                        }
-                                        
-                                        return `<div style="margin-bottom: 8px; line-height: 1.4;">${wordDetail}</div>`;
-                                    }).join('');
-                                } else {
-                                    learningDetails = '<span style="color: #059669; font-weight: 600; font-size: 18px;">🎉 Perfect! All words correct without hints</span>';
-                                }
-                                
-                                return `
-                                    <tr style="border-bottom: 2px solid #e2e8f0; ${index % 2 === 0 ? 'background: #f8fafc;' : 'background: white;'}">
-                                        <td style="padding: 18px 15px; font-weight: 600; font-size: 20px; color: #1e293b; border-right: 1px solid #e2e8f0;">${result.user || 'Unknown'}</td>
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #475569; border-right: 1px solid #e2e8f0;">${result.wordSetName || 'Unknown Set'}</td>
-                                        <td style="padding: 18px 15px; text-align: center; border-right: 1px solid #e2e8f0;">
-                                            <span style="background: ${firstTryCorrect === totalWords ? '#dcfce7' : firstTryCorrect >= totalWords * 0.8 ? '#fef3c7' : '#fee2e2'}; 
-                                                       color: ${firstTryCorrect === totalWords ? '#166534' : firstTryCorrect >= totalWords * 0.8 ? '#92400e' : '#dc2626'}; 
-                                                       padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 20px;">
-                                                ${scoreText}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 18px 15px; border-right: 1px solid #e2e8f0; max-width: 400px;">
-                                            ${learningDetails}
-                                        </td>
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #64748b; font-weight: 600;">
-                                            ${endTimeText}
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
-                        </tbody>
-                    </table>
-                `;
+                    </div>`;
                 
                 document.body.appendChild(screenshotContainer);
                 

@@ -687,7 +687,54 @@
         <div class="tab-content" id="analytics">
             <h2 style="margin-bottom: 20px; color: #1e293b;">Learning Analytics</h2>
             
-            <!-- Detailed Results - Moved to Top -->
+            <!-- Analytics Filters & Sorting - Moved to Top -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div class="section-title">Analytics Filters & Sorting</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 16px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Filter by:</label>
+                        <select class="form-select" id="analyticsFilterType">
+                            <option value="all">All Students</option>
+                            <option value="student">Individual Student</option>
+                            <option value="class">Class</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Select:</label>
+                        <select class="form-select" id="analyticsFilterValue" disabled>
+                            <option value="">Choose...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">From Date:</label>
+                        <input type="date" class="form-input" id="analyticsFromDate">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">To Date:</label>
+                        <input type="date" class="form-input" id="analyticsToDate">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Sort by:</label>
+                        <select class="form-select" id="analyticsSortBy">
+                            <option value="date_desc">Latest End Time First</option>
+                            <option value="date_asc">Oldest End Time First</option>
+                            <option value="student_asc">Student Name (A-Z)</option>
+                            <option value="student_desc">Student Name (Z-A)</option>
+                            <option value="wordset_asc">Word Set (A-Z)</option>
+                            <option value="wordset_desc">Word Set (Z-A)</option>
+                            <option value="mistakes_asc">Fewest Mistakes First</option>
+                            <option value="mistakes_desc">Most Mistakes First</option>
+                            <option value="score_asc">Lowest Score First</option>
+                            <option value="score_desc">Highest Score First</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn-primary" id="applyAnalyticsFilter">Apply Filter & Sort</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Results -->
             <div class="section-card" style="margin-bottom: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div class="section-title">Detailed Results</div>
@@ -712,38 +759,6 @@
                         <!-- Analytics data will be displayed here -->
                     </tbody>
                 </table>
-            </div>
-            
-            <!-- Analytics Filters -->
-            <div class="section-card" style="margin-bottom: 24px;">
-                <div class="section-title">Analytics Filters</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 16px; align-items: end;">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Filter by:</label>
-                        <select class="form-select" id="analyticsFilterType">
-                            <option value="all">All Students</option>
-                            <option value="student">Individual Student</option>
-                            <option value="class">Class</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">Select:</label>
-                        <select class="form-select" id="analyticsFilterValue" disabled>
-                            <option value="">Choose...</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">From Date:</label>
-                        <input type="date" class="form-input" id="analyticsFromDate">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label">To Date:</label>
-                        <input type="date" class="form-input" id="analyticsToDate">
-                    </div>
-                    <div>
-                        <button class="btn-primary" id="applyAnalyticsFilter">Apply Filter</button>
-                    </div>
-                </div>
             </div>
             
             <!-- Analytics Stats -->
