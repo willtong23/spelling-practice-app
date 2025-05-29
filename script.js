@@ -1717,7 +1717,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Always prompt for authentication - no auto-login
     promptUserName();
-    }
 });
 
 
