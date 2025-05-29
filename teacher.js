@@ -438,15 +438,42 @@ function renderStudents() {
                         
                         ${studentAssignments.length > 0 ? `
                             <div class="student-assignments">
-                                <h5>Current assignments:</h5>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h5 style="margin: 0;">Assignments (${studentAssignments.length})</h5>
+                                    <button class="btn-small btn-secondary" onclick="showStudentAssignments('${student.id}')" style="font-size: 0.75rem; padding: 4px 8px;">
+                                        View All
+                                    </button>
+                                </div>
                                 <div class="assignment-tags">
-                                    ${studentAssignments.map(assignment => {
+                                    ${studentAssignments.slice(0, 3).map(assignment => {
                                         const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
-                                        return `<span class="assignment-tag">${wordSet ? wordSet.name : 'Unknown set'}</span>`;
+                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+                                        const assignmentType = assignment.type || 'individual';
+                                        
+                                        return `
+                                            <div class="assignment-tag-detailed">
+                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                                                <div class="assignment-meta">
+                                                    <span class="assignment-date">${assignedDate}</span>
+                                                    <span class="assignment-type">${assignmentType}</span>
+                                                    <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
+                                                </div>
+                                            </div>
+                                        `;
                                     }).join('')}
+                                    ${studentAssignments.length > 3 ? `
+                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
+                                            ... and ${studentAssignments.length - 3} more
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
-                        ` : ''}
+                        ` : `
+                            <div class="student-assignments">
+                                <h5>No assignments yet</h5>
+                                <p style="color: #64748b; font-size: 0.9rem;">Use the Assignments tab to assign word sets to this student.</p>
+                            </div>
+                        `}
                     </div>
                 `;
             }).join('')}
@@ -645,6 +672,9 @@ function setupEventListeners() {
     modalOverlay?.addEventListener('click', (e) => {
         if (e.target === modalOverlay) closeModal();
     });
+    
+    // Export screenshot
+    document.getElementById('exportScreenshotBtn').addEventListener('click', exportScreenshot);
     
     // Export PDF data
     document.getElementById('exportPdfBtn').addEventListener('click', exportAnalyticsData);
@@ -1074,15 +1104,11 @@ async function assignToStudent() {
         return;
     }
     
-    // Check if assignment already exists
-    const existingAssignment = assignments.find(a => a.studentId === studentId);
+    // Check if this specific assignment already exists
+    const existingAssignment = assignments.find(a => a.studentId === studentId && a.wordSetId === wordSetId);
     if (existingAssignment) {
-        if (!confirm('This student already has an assignment. Do you want to replace it?')) {
-            return;
-        }
-        // Delete existing assignment
-        await window.db.collection('assignments').doc(existingAssignment.id).delete();
-        assignments = assignments.filter(a => a.id !== existingAssignment.id);
+        showNotification('This student already has this word set assigned', 'warning');
+        return;
     }
     
     try {
@@ -1108,7 +1134,10 @@ async function assignToStudent() {
         
         renderAssignments();
         renderStudentsAndClasses();
-        showNotification('Assignment created successfully!', 'success');
+        
+        const studentName = students.find(s => s.id === studentId)?.name;
+        const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
+        showNotification(`Successfully assigned "${wordSetName}" to ${studentName}!`, 'success');
         
         // Clear selections
         document.getElementById('assignStudentSelect').value = '';
@@ -1138,7 +1167,7 @@ async function assignToClass() {
     const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
     
     // Show confirmation dialog
-    const confirmMessage = `This will assign "${wordSetName}" to all ${classStudents.length} students in class "${className}" and also set it as their individual default word set.\n\nDo you want to continue?`;
+    const confirmMessage = `This will assign "${wordSetName}" to all ${classStudents.length} students in class "${className}" (in addition to any existing assignments).\n\nDo you want to continue?`;
     
     if (!confirm(confirmMessage)) {
         return;
@@ -1146,16 +1175,17 @@ async function assignToClass() {
     
     try {
         let assignmentsCreated = 0;
-        let defaultsUpdated = 0;
+        let alreadyAssigned = 0;
         
-        // Create assignments for all students in the class AND set as their default
+        // Create assignments for all students in the class (don't replace existing ones)
         for (const student of classStudents) {
             try {
-                // Check if assignment already exists
-                const existingAssignment = assignments.find(a => a.studentId === student.id);
+                // Check if this specific assignment already exists
+                const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
                 if (existingAssignment) {
-                    await window.db.collection('assignments').doc(existingAssignment.id).delete();
-                    assignments = assignments.filter(a => a.id !== existingAssignment.id);
+                    console.log(`Student ${student.name} already has word set ${wordSetName} assigned`);
+                    alreadyAssigned++;
+                    continue;
                 }
                 
                 // Create new assignment
@@ -1171,18 +1201,6 @@ async function assignToClass() {
                 const docRef = await window.db.collection('assignments').add(assignmentData);
                 assignments.push({ id: docRef.id, ...assignmentData });
                 assignmentsCreated++;
-                
-                // Also set as student's default word set
-                await window.db.collection('students').doc(student.id).update({
-                    defaultWordSetId: wordSetId
-                });
-                
-                // Update local data
-                const studentIndex = students.findIndex(s => s.id === student.id);
-                if (studentIndex !== -1) {
-                    students[studentIndex].defaultWordSetId = wordSetId;
-                }
-                defaultsUpdated++;
                 
             } catch (error) {
                 console.error(`Error processing student ${student.name}:`, error);
@@ -1201,11 +1219,16 @@ async function assignToClass() {
         renderAssignments();
         renderStudentsAndClasses();
         
-        if (assignmentsCreated === classStudents.length && defaultsUpdated === classStudents.length) {
-            showNotification(`Successfully assigned "${wordSetName}" to ${assignmentsCreated} students and set as default for ${defaultsUpdated} students!`, 'success');
-        } else {
-            showNotification(`Partially completed: ${assignmentsCreated} assignments created, ${defaultsUpdated} defaults updated out of ${classStudents.length} students`, 'warning');
+        let message = `Assignment complete: `;
+        if (assignmentsCreated > 0) {
+            message += `${assignmentsCreated} new assignments created`;
         }
+        if (alreadyAssigned > 0) {
+            if (assignmentsCreated > 0) message += `, `;
+            message += `${alreadyAssigned} students already had this word set`;
+        }
+        
+        showNotification(message, assignmentsCreated > 0 ? 'success' : 'info');
         
         // Clear selections
         document.getElementById('assignClassSelect').value = '';
@@ -1994,6 +2017,20 @@ function renderFilteredAnalyticsTable() {
                 <td class="word-set-cell multi-row-cell">
                     <div class="row-1">${wordSetRow1}</div>
                     ${wordSetRow2 ? `<div class="row-2">${wordSetRow2}</div>` : ''}
+                    ${(() => {
+                        // Add word list below the word set name
+                        const wordSet = wordSets.find(ws => ws.id === result.wordSetId);
+                        if (wordSet && wordSet.words) {
+                            const wordList = wordSet.words.slice(0, 12).join(', '); // Show first 12 words for dashboard
+                            const moreWords = wordSet.words.length > 12 ? ` (+${wordSet.words.length - 12} more)` : '';
+                            return `
+                                <div style="margin-top: 6px; padding: 4px 6px; background: #f0f9ff; border-radius: 3px; font-size: 10px; color: #0369a1; border-left: 2px solid #0ea5e9; line-height: 1.3;">
+                                    <strong>Words:</strong> ${wordList}${moreWords}
+                                </div>
+                            `;
+                        }
+                        return '';
+                    })()}
                 </td>
                 <td class="date-time-cell multi-row-cell">
                     <div class="row-1">${dateRow}</div>
@@ -2654,4 +2691,248 @@ function exportAnalyticsData() {
     // Save the PDF
     doc.save(`spelling_report_${new Date().toISOString().split('T')[0]}.pdf`);
     showNotification('PDF report generated!', 'success');
+}
+
+// Export screenshot of analytics table
+async function exportScreenshot() {
+    try {
+        showNotification('Generating screenshot...', 'info');
+        
+        // Get filter information
+        const filterType = document.getElementById('analyticsFilterType').value;
+        const filterValue = document.getElementById('analyticsFilterValue').value;
+        const fromDate = document.getElementById('analyticsFromDate').value;
+        const toDate = document.getElementById('analyticsToDate').value;
+        
+        let filterInfo = '';
+        if (filterType === 'student' && filterValue) {
+            const student = students.find(s => s.id === filterValue);
+            filterInfo = `Student: ${student?.name || 'Unknown'}`;
+        } else if (filterType === 'class' && filterValue) {
+            const cls = classes.find(c => c.id === filterValue);
+            filterInfo = `Class: ${cls?.name || 'Unknown'}`;
+        } else {
+            filterInfo = 'All Students';
+        }
+        
+        if (fromDate || toDate) {
+            filterInfo += ` | ${fromDate || 'Start'} to ${toDate || 'End'}`;
+        }
+        
+        // Create a clean container for screenshot
+        const screenshotContainer = document.createElement('div');
+        screenshotContainer.style.cssText = `
+            position: fixed;
+            top: -10000px;
+            left: 0;
+            background: white;
+            padding: 30px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 1200px;
+            box-sizing: border-box;
+        `;
+        
+        // Add header
+        const header = document.createElement('div');
+        header.style.cssText = `
+            margin-bottom: 25px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+        `;
+        header.innerHTML = `
+            <h1 style="margin: 0 0 10px 0; color: #1e293b; font-size: 28px; font-weight: 800;">
+                📚 Spelling Practice Analytics
+            </h1>
+            <div style="color: #64748b; font-size: 16px; margin-bottom: 8px;">
+                ${filterInfo}
+            </div>
+            <div style="color: #64748b; font-size: 14px;">
+                Generated: ${new Date().toLocaleString()} | Total Results: ${filteredResults.filter(result => {
+                    return result.wordSetId && result.wordSetName && 
+                           result.wordSetName !== 'All Words' && 
+                           result.wordSetName !== 'Default Set' &&
+                           !result.wordSetName.includes('Practice') &&
+                           !result.wordSetName.includes('Individual');
+                }).length}
+            </div>
+        `;
+        
+        // Clone and clean up the table
+        const originalTable = document.querySelector('#analyticsTableBody').closest('table');
+        const tableClone = originalTable.cloneNode(true);
+        
+        // Remove action buttons from the cloned table
+        const actionCells = tableClone.querySelectorAll('td:last-child, th:last-child');
+        actionCells.forEach(cell => cell.remove());
+        
+        // Style the table for screenshot
+        tableClone.style.cssText = `
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        `;
+        
+        // Style table headers
+        const headers = tableClone.querySelectorAll('th');
+        headers.forEach(th => {
+            th.style.cssText = `
+                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                color: white;
+                padding: 15px 12px;
+                text-align: left;
+                font-weight: 700;
+                font-size: 14px;
+                border: none;
+            `;
+        });
+        
+        // Style table cells
+        const cells = tableClone.querySelectorAll('td');
+        cells.forEach((td, index) => {
+            const row = Math.floor(index / (headers.length - 1)); // -1 because we removed action column
+            td.style.cssText = `
+                padding: 12px;
+                border: 1px solid #e5e7eb;
+                background: ${row % 2 === 0 ? '#ffffff' : '#f9fafb'};
+                vertical-align: top;
+                line-height: 1.4;
+            `;
+        });
+        
+        // Enhance word set cells to include the actual word list
+        // REMOVED: Word lists are already included in the regular table rendering
+        // const wordSetCells = tableClone.querySelectorAll('td.word-set-cell');
+        // wordSetCells.forEach(cell => {
+        //     // Find the corresponding result to get the word set ID
+        //     const rowIndex = Array.from(cell.parentNode.parentNode.children).indexOf(cell.parentNode);
+        //     const validResults = filteredResults.filter(result => {
+        //         return result.wordSetId && result.wordSetName && 
+        //                result.wordSetName !== 'All Words' && 
+        //                result.wordSetName !== 'Default Set' &&
+        //                !result.wordSetName.includes('Practice') &&
+        //                !result.wordSetName.includes('Individual');
+        //     });
+        //     
+        //     if (validResults[rowIndex]) {
+        //         const result = validResults[rowIndex];
+        //         const wordSet = wordSets.find(ws => ws.id === result.wordSetId);
+        //         
+        //         if (wordSet && wordSet.words) {
+        //             // Get the current word set name
+        //             const currentContent = cell.innerHTML;
+        //             
+        //             // Add the word list below the word set name
+        //             const wordList = wordSet.words.slice(0, 15).join(', '); // Show first 15 words
+        //             const moreWords = wordSet.words.length > 15 ? ` (+${wordSet.words.length - 15} more)` : '';
+        //             
+        //             cell.innerHTML = currentContent + `
+        //                 <div style="margin-top: 8px; padding: 6px; background: #f0f9ff; border-radius: 4px; font-size: 11px; color: #0369a1; border-left: 3px solid #0ea5e9;">
+        //                     <strong>Words:</strong> ${wordList}${moreWords}
+        //                 </div>
+        //             `;
+        //         }
+        //     }
+        // });
+        
+        // Append to container
+        screenshotContainer.appendChild(header);
+        screenshotContainer.appendChild(tableClone);
+        
+        // Add to document temporarily
+        document.body.appendChild(screenshotContainer);
+        
+        // Generate screenshot
+        const canvas = await html2canvas(screenshotContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2, // Higher quality
+            useCORS: true,
+            allowTaint: true,
+            width: 1200,
+            height: screenshotContainer.scrollHeight
+        });
+        
+        // Remove temporary container
+        document.body.removeChild(screenshotContainer);
+        
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `spelling_analytics_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        showNotification('Screenshot exported successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error generating screenshot:', error);
+        showNotification('Error generating screenshot. Please try again.', 'error');
+    }
+}
+
+// Function to show all assignments for a specific student
+function showStudentAssignments(studentId) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) {
+        showNotification('Student not found', 'error');
+        return;
+    }
+    
+    const studentAssignments = assignments.filter(a => a.studentId === studentId);
+    
+    const content = `
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b;">All Assignments for ${student.name}</h4>
+            <p style="margin: 0; color: #64748b;">Total: ${studentAssignments.length} assignment${studentAssignments.length !== 1 ? 's' : ''}</p>
+        </div>
+        
+        ${studentAssignments.length > 0 ? `
+            <div style="max-height: 400px; overflow-y: auto;">
+                ${studentAssignments.map(assignment => {
+                    const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+                    const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+                    const assignmentType = assignment.type || 'individual';
+                    
+                    return `
+                        <div style="background: #f8fafc; border: 1px solid #e0e7ef; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                                        ${wordSet ? wordSet.name : 'Unknown Word Set'}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: #64748b;">
+                                        ${wordSet ? wordSet.words.length : 0} words • Assigned: ${assignedDate} • Type: ${assignmentType}
+                                    </div>
+                                </div>
+                                <button class="btn-small btn-delete" onclick="deleteAssignment('${assignment.id}'); closeModal(); renderStudentsAndClasses();" style="margin-left: 12px;">
+                                    Remove
+                                </button>
+                            </div>
+                            ${wordSet && wordSet.words ? `
+                                <div style="background: #f0f9ff; padding: 8px; border-radius: 4px; font-size: 0.8rem; color: #1e40af;">
+                                    <strong>Words:</strong> ${wordSet.words.slice(0, 10).join(', ')}${wordSet.words.length > 10 ? ` (+${wordSet.words.length - 10} more)` : ''}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        ` : `
+            <div style="text-align: center; padding: 40px 20px; color: #64748b;">
+                <p>No assignments found for this student.</p>
+                <p style="font-size: 0.9rem;">Use the Assignments tab to assign word sets.</p>
+            </div>
+        `}
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e0e7ef;">
+            <button class="btn-secondary" onclick="closeModal()">Close</button>
+            <button class="btn-primary" onclick="closeModal(); document.querySelector('[data-tab=\\"assignments\\"]').click();">
+                Add More Assignments
+            </button>
+        </div>
+    `;
+    
+    showModal(`Assignments for ${student.name}`, content);
 } 

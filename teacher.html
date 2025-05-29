@@ -9,6 +9,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
@@ -393,6 +394,64 @@
             color: white;
         }
 
+        /* Enhanced Assignment Display Styles */
+        .assignment-tag-detailed {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .assignment-tag-detailed:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+        }
+        .assignment-name {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 4px;
+        }
+        .assignment-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .assignment-date {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .assignment-type {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: capitalize;
+        }
+        .btn-tiny {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+        .btn-tiny.btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .btn-tiny.btn-delete:hover {
+            background: #dc2626;
+            color: white;
+        }
+
         /* Class Default Indicators */
         .class-default-indicator {
             background: #22c55e;
@@ -633,6 +692,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <div class="section-title">Detailed Results</div>
                     <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportScreenshotBtn">📸 Export Screenshot</button>
                         <button class="btn-secondary" id="exportPdfBtn">Export PDF</button>
                         <button class="btn-secondary" id="deleteAllResultsBtn" style="background: #dc2626; color: white; border: 2px solid #b91c1c;" title="⚠️ DANGER: This will permanently delete ALL quiz results from ALL students!">⚠️ Delete All Data</button>
                     </div>
