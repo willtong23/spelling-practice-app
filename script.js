@@ -236,24 +236,45 @@ async function loadAvailableWordSets() {
             console.log(`Student ${userName} not found in database - no assigned word sets`);
         }
         
-        // Populate the word set select dropdown with only assigned sets
-        const wordSetSelect = document.getElementById('wordSetSelect');
-        if (wordSetSelect) {
-            wordSetSelect.innerHTML = '<option value="">Choose a word set...</option>';
+        // Populate the simplified word set list with radio buttons
+        const wordSetList = document.getElementById('wordSetList');
+        if (wordSetList) {
+            wordSetList.innerHTML = '';
             
             if (availableWordSets.length === 0) {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = 'No word sets assigned';
-                option.disabled = true;
-                wordSetSelect.appendChild(option);
+                wordSetList.innerHTML = '<div class="no-sets-message">No word sets assigned</div>';
             } else {
-                availableWordSets.forEach(set => {
-                    const option = document.createElement('option');
-                    option.value = set.id;
-                    option.textContent = `${set.name} (${set.words.length} words)`;
-                    wordSetSelect.appendChild(option);
+                availableWordSets.forEach((set, index) => {
+                    const setItem = document.createElement('div');
+                    setItem.className = 'word-set-item';
+                    
+                    const isDefault = index === 0; // First set is default
+                    
+                    setItem.innerHTML = `
+                        <label class="word-set-label">
+                            <input type="radio" name="selectedWordSet" value="${set.id}" ${isDefault ? 'checked' : ''} class="word-set-radio">
+                            <span class="word-set-name">${set.name}</span>
+                            <span class="word-set-count">(${set.words.length} words)</span>
+                        </label>
+                    `;
+                    
+                    // Add click event listener for immediate switching
+                    const radio = setItem.querySelector('input[type="radio"]');
+                    radio.addEventListener('change', function() {
+                        if (this.checked) {
+                            switchToWordSet(set.id, set.name, set.words);
+                        }
+                    });
+                    
+                    wordSetList.appendChild(setItem);
                 });
+                
+                // Auto-select and load the first (default) word set
+                if (availableWordSets.length > 0) {
+                    const defaultSet = availableWordSets[0];
+                    selectedWordSetId = defaultSet.id;
+                    // The default set will be loaded by the main initialization
+                }
             }
         }
         
@@ -261,30 +282,27 @@ async function loadAvailableWordSets() {
     } catch (error) {
         console.error('Error loading assigned word sets:', error);
         availableWordSets = [];
+        
+        // Show error message
+        const wordSetList = document.getElementById('wordSetList');
+        if (wordSetList) {
+            wordSetList.innerHTML = '<div class="error-message">Error loading word sets</div>';
+        }
     }
 }
 
 // Update the word set panel display
 function updateWordSetPanel() {
-    const assignmentName = document.getElementById('assignmentName');
     const currentSetName = document.getElementById('currentSetName');
     const currentSetCount = document.getElementById('currentSetCount');
     
-    if (userAssignmentId) {
-        const assignedSet = availableWordSets.find(set => set.id === userAssignmentId);
-        if (assignedSet) {
-            assignmentName.textContent = assignedSet.name;
-        } else {
-            assignmentName.textContent = 'No assignment found';
-        }
-    } else {
-        assignmentName.textContent = 'No assignment found';
-    }
-    
     // Update current set info
     if (currentWordSetName) {
-        currentSetName.textContent = currentWordSetName;
-        currentSetCount.textContent = `${words.length} words`;
+        if (currentSetName) currentSetName.textContent = currentWordSetName;
+        if (currentSetCount) currentSetCount.textContent = `${words.length} words`;
+    } else {
+        if (currentSetName) currentSetName.textContent = 'No set loaded';
+        if (currentSetCount) currentSetCount.textContent = '0 words';
     }
 }
 
@@ -293,10 +311,6 @@ function setupWordSetPanel() {
     const panelToggle = document.getElementById('panelToggle');
     const wordSetPanel = document.getElementById('wordSetPanel');
     const mainContent = document.getElementById('mainContent');
-    const useAssignment = document.getElementById('useAssignment');
-    const useCustom = document.getElementById('useCustom');
-    const wordSetSelect = document.getElementById('wordSetSelect');
-    const applySelection = document.getElementById('applySelection');
     
     // Panel toggle functionality
     if (panelToggle) {
@@ -306,94 +320,8 @@ function setupWordSetPanel() {
             panelToggle.textContent = wordSetPanel.classList.contains('collapsed') ? '▶' : '◀';
         });
     }
-    
-    // Radio button change handlers
-    if (useAssignment) {
-        useAssignment.addEventListener('change', () => {
-            if (useAssignment.checked) {
-                wordSetSelect.disabled = true;
-                wordSetSelect.style.opacity = '0.5';
-            }
-        });
-    }
-    
-    if (useCustom) {
-        useCustom.addEventListener('change', () => {
-            if (useCustom.checked) {
-                wordSetSelect.disabled = false;
-                wordSetSelect.style.opacity = '1';
-            }
-        });
-    }
-    
-    // Apply selection button
-    if (applySelection) {
-        applySelection.addEventListener('click', async () => {
-            await applyWordSetSelection();
-        });
-    }
 }
 
-// Apply the selected word set
-async function applyWordSetSelection() {
-    const useAssignment = document.getElementById('useAssignment');
-    const useCustom = document.getElementById('useCustom');
-    const wordSetSelect = document.getElementById('wordSetSelect');
-    
-    try {
-        let wordData;
-        
-        if (useAssignment.checked) {
-            // Use assignment
-            wordData = await getWordsFromAssignment(userName);
-        } else if (useCustom.checked && wordSetSelect.value) {
-            // Use custom selected word set - but only if it's in the assigned sets
-            const selectedSetId = wordSetSelect.value;
-            const selectedSet = availableWordSets.find(set => set.id === selectedSetId);
-            
-            if (!selectedSet) {
-                showNotification('Selected word set is not assigned to you', 'error');
-                return;
-            }
-            
-            // Double-check that this word set is actually assigned to the student
-            const isAssigned = await verifyWordSetAssignment(userName, selectedSetId);
-            if (!isAssigned) {
-                showNotification('You do not have permission to access this word set', 'error');
-                return;
-            }
-            
-            wordData = {
-                words: selectedSet.words,
-                setId: selectedSet.id,
-                setName: selectedSet.name
-            };
-        } else {
-            showNotification('Please select a word set option', 'error');
-            return;
-        }
-        
-        // Update the current words and UI
-        words = [...wordData.words];
-        currentWordSetId = wordData.setId;
-        currentWordSetName = wordData.setName;
-        selectedWordSetId = wordData.setId;
-        
-        // Shuffle words for new session
-        if (words.length > 1) {
-            shuffleArray(words);
-        }
-        
-        // Reset quiz state and update display
-        resetQuizState();
-        updateDisplay();
-        updateWordSetPanel();
-        updatePracticeModeUI();
-        
-        showNotification(`Switched to "${wordData.setName}" (${words.length} words)`, 'success');
-        
-        // Speak the first word
-        setTimeout(() => {
             if (words.length > 0) speakWord(words[0]);
         }, 500);
         
@@ -2880,3 +2808,40 @@ console.log('DOM loaded, requiring fresh authentication...');
 
 // Always prompt for authentication - no auto-login
 promptUserName();
+
+// Switch to a new word set immediately (simplified version)
+async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
+    try {
+        console.log(`Switching to word set: ${wordSetName} (${wordSetId})`);
+        
+        // Update the current words and UI
+        words = [...wordSetWords];
+        currentWordSetId = wordSetId;
+        currentWordSetName = wordSetName;
+        selectedWordSetId = wordSetId;
+        
+        // Shuffle words for new session
+        if (words.length > 1) {
+            shuffleArray(words);
+        }
+        
+        // Reset quiz state and update display
+        resetQuizState();
+        updateDisplay();
+        updateWordSetPanel();
+        updatePracticeModeUI();
+        
+        showNotification(`Switched to "${wordSetName}" (${words.length} words)`, 'success');
+        
+        // Speak the first word
+        setTimeout(() => {
+            if (words.length > 0) speakWord(words[0]);
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error switching word set:', error);
+        showNotification('Error switching word set. Please try again.', 'error');
+    }
+}
+
+// Update the word set panel display

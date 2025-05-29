@@ -31,31 +31,10 @@
             <button class="panel-toggle" id="panelToggle">◀</button>
         </div>
         <div class="panel-content">
-            <div class="current-assignment" id="currentAssignment">
-                <div class="assignment-label">Your Assignment:</div>
-                <div class="assignment-name" id="assignmentName">Loading...</div>
+            <div class="word-set-list" id="wordSetList">
+                <!-- Word sets will be populated here -->
+                <div class="loading-message">Loading assigned word sets...</div>
             </div>
-            
-            <div class="word-set-options">
-                <div class="option-section">
-                    <label class="option-label">
-                        <input type="radio" name="wordSetChoice" value="assignment" id="useAssignment" checked>
-                        <span>Use My Assignment</span>
-                    </label>
-                </div>
-                
-                <div class="option-section">
-                    <label class="option-label">
-                        <input type="radio" name="wordSetChoice" value="custom" id="useCustom">
-                        <span>Choose from Assigned Sets</span>
-                    </label>
-                    <select class="word-set-select" id="wordSetSelect" disabled>
-                        <option value="">Loading assigned sets...</option>
-                    </select>
-                </div>
-            </div>
-            
-            <button class="apply-selection-btn" id="applySelection">Apply Selection</button>
             
             <div class="current-set-info" id="currentSetInfo">
                 <div class="info-label">Current Set:</div>

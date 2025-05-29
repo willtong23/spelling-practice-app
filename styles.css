@@ -1199,8 +1199,8 @@ h1 {
 }
 
 .info-count {
-    font-size: 0.9rem;
-    color: #0369a1;
+    color: #6b7280;
+    font-size: 0.8rem;
 }
 
 /* Main Content Area */
@@ -2529,4 +2529,83 @@ h1 {
     border-radius: 4px;
     border: 1px solid #e5e7eb;
     display: inline-block;
+}
+
+/* Simplified word set list styles */
+.word-set-list {
+    margin: 16px 0;
+}
+
+.loading-message, .no-sets-message, .error-message {
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px dashed #d1d5db;
+}
+
+.error-message {
+    color: #ef4444;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.word-set-item {
+    margin: 8px 0;
+    background: #ffffff;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.word-set-item:hover {
+    border-color: #3b82f6;
+    background: #f8fafc;
+}
+
+.word-set-label {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    gap: 12px;
+    width: 100%;
+}
+
+.word-set-radio {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: #3b82f6;
+}
+
+.word-set-name {
+    font-weight: 600;
+    color: #1f2937;
+    flex: 1;
+}
+
+.word-set-count {
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.word-set-item:has(.word-set-radio:checked) {
+    border-color: #3b82f6;
+    background: #dbeafe;
+}
+
+.word-set-item:has(.word-set-radio:checked) .word-set-name {
+    color: #1d4ed8;
+}
+
+.word-set-item:has(.word-set-radio:checked) .word-set-count {
+    color: #3b82f6;
+}
+
+.main-content {
 } 
