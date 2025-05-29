@@ -293,17 +293,14 @@ async function loadAvailableWordSets() {
 
 // Update the word set panel display
 function updateWordSetPanel() {
-    const currentSetName = document.getElementById('currentSetName');
-    const currentSetCount = document.getElementById('currentSetCount');
+    const wordSetList = document.getElementById('wordSetList');
+    if (!wordSetList) return;
     
-    // Update current set info
-    if (currentWordSetName) {
-        if (currentSetName) currentSetName.textContent = currentWordSetName;
-        if (currentSetCount) currentSetCount.textContent = `${words.length} words`;
-    } else {
-        if (currentSetName) currentSetName.textContent = 'No set loaded';
-        if (currentSetCount) currentSetCount.textContent = '0 words';
-    }
+    // Update radio button selection
+    const radioButtons = wordSetList.querySelectorAll('input[type="radio"]');
+    radioButtons.forEach(radio => {
+        radio.checked = (radio.value === currentWordSetId);
+    });
 }
 
 // Handle word set selection changes
@@ -792,6 +789,33 @@ function playSuccessSound() {
     } catch (error) {
         // Fallback: just log if audio context fails
         console.log('Success sound not available');
+    }
+}
+
+// Play success sound for correct answers with hints (gentle, assuring)
+function playHintSuccessSound() {
+    try {
+        // Create a gentle, assuring tone using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Create a gentle, assuring tone sequence (softer than full success)
+        oscillator.frequency.setValueAtTime(440, audioContext.currentTime); // A note
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime + 0.15); // C note
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.3); // E note
+        
+        gainNode.gain.setValueAtTime(0.08, audioContext.currentTime); // Softer volume
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.4);
+    } catch (error) {
+        // Fallback: just log if audio context fails
+        console.log('Hint success sound not available');
     }
 }
 
@@ -2154,12 +2178,18 @@ function handleAlphabetKeyClick(event) {
 let isVoiceInputActive = false;
 let recognition = null;
 let voiceInputButton = null;
+let voiceInputDisplay = null; // For showing real-time voice feedback
+let lastProcessedTranscript = ''; // To avoid duplicate processing
+let processedLetters = new Set(); // Track which letters we've already processed
 
 // Initialize voice input when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOMContentLoaded - initializing voice input');
     voiceInputButton = document.getElementById('voiceInputButton');
     console.log('voiceInputButton found:', !!voiceInputButton);
+    
+    // Create voice input display element for real-time feedback
+    createVoiceInputDisplay();
     
     // Check if browser supports speech recognition
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
@@ -2190,25 +2220,39 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('voiceInputButton not found in DOMContentLoaded!');
     }
     
-    // Configure speech recognition
+    // Configure speech recognition for fast response
     recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.interimResults = true; // This is key for immediate feedback
     recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
+    recognition.maxAlternatives = 3; // Get more alternatives for better recognition
     
-    // Handle speech recognition results
+    // Handle speech recognition results - IMPROVED for immediate feedback
     recognition.onresult = function(event) {
+        let interimTranscript = '';
         let finalTranscript = '';
         
+        // Process all results
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
                 finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
             }
         }
         
-        if (finalTranscript) {
+        // Show immediate visual feedback for interim results
+        if (interimTranscript) {
+            showVoiceInputFeedback(interimTranscript, false); // false = interim
+            // Process interim results immediately for faster response
+            processVoiceInputImmediate(interimTranscript.toLowerCase().trim());
+        }
+        
+        // Process final results
+        if (finalTranscript && finalTranscript !== lastProcessedTranscript) {
+            showVoiceInputFeedback(finalTranscript, true); // true = final
             processVoiceInput(finalTranscript.toLowerCase().trim());
+            lastProcessedTranscript = finalTranscript;
         }
     };
     
@@ -2230,6 +2274,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle speech recognition start
     recognition.onstart = function() {
         console.log('Speech recognition started');
+        // Reset processed letters when starting
+        processedLetters.clear();
+        lastProcessedTranscript = '';
     };
     
     // Handle speech recognition end
@@ -2251,141 +2298,80 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
-// Function to toggle voice input on/off
-function toggleVoiceInput() {
-    console.log('toggleVoiceInput called');
-    console.log('recognition available:', !!recognition);
-    console.log('isVoiceInputActive:', isVoiceInputActive);
-    
-    if (!recognition) {
-        console.log('No recognition available');
-        showNotification('Voice input not supported in this browser', 'error');
-        return;
-    }
-    
-    if (isVoiceInputActive) {
-        console.log('Stopping voice input');
-        stopVoiceInput();
-    } else {
-        console.log('Starting voice input');
-        startVoiceInput();
-    }
+// Create voice input display element for real-time feedback
+function createVoiceInputDisplay() {
+    // Create a display element to show what's being heard
+    voiceInputDisplay = document.createElement('div');
+    voiceInputDisplay.id = 'voiceInputDisplay';
+    voiceInputDisplay.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: rgba(59, 130, 246, 0.95);
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        z-index: 1000;
+        display: none;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    `;
+    document.body.appendChild(voiceInputDisplay);
 }
 
-// Function to start voice input
-function startVoiceInput() {
-    if (!recognition || !letterInputs || letterInputs.length === 0) {
-        showNotification('No word to spell or voice input not available', 'warning');
-        return;
-    }
+// Show voice input feedback in real-time
+function showVoiceInputFeedback(transcript, isFinal) {
+    if (!voiceInputDisplay) return;
     
-    // Check if there are any empty boxes
-    const hasEmptyBoxes = letterInputs.some(box => box.value === '');
-    if (!hasEmptyBoxes) {
-        showNotification('All letters are already filled! Clear some letters first.', 'warning');
-        return;
-    }
+    const status = isFinal ? '✓ Final' : '🎤 Listening';
+    const bgColor = isFinal ? 'rgba(34, 197, 94, 0.95)' : 'rgba(59, 130, 246, 0.95)';
     
-    try {
-        isVoiceInputActive = true;
-        recognition.start();
-        
-        // Update button appearance
-        if (voiceInputButton) {
-            voiceInputButton.classList.add('listening');
-            voiceInputButton.textContent = '🔴 Stop Voice';
+    voiceInputDisplay.style.background = bgColor;
+    voiceInputDisplay.innerHTML = `
+        <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 4px;">${status}</div>
+        <div style="font-size: 1rem;">"${transcript}"</div>
+    `;
+    voiceInputDisplay.style.display = 'block';
+    
+    // Auto-hide after a delay
+    setTimeout(() => {
+        if (voiceInputDisplay && voiceInputDisplay.style.display === 'block') {
+            voiceInputDisplay.style.display = 'none';
         }
-        
-        // Show helpful instructions
-        const emptyCount = letterInputs.filter(box => box.value === '').length;
-        showNotification(`Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
-        console.log('Voice input started');
-    } catch (error) {
-        console.error('Error starting voice input:', error);
-        if (error.name === 'InvalidStateError') {
-            showNotification('Voice input is already running. Please wait.', 'warning');
-        } else {
-            showNotification('Failed to start voice input. Please try again.', 'error');
-        }
-        isVoiceInputActive = false;
-    }
+    }, isFinal ? 2000 : 1500);
 }
 
-// Function to stop voice input
-function stopVoiceInput() {
-    if (recognition) {
-        isVoiceInputActive = false;
-        recognition.stop();
-        
-        // Update button appearance
-        if (voiceInputButton) {
-            voiceInputButton.classList.remove('listening');
-            voiceInputButton.textContent = '🎤 Voice Input';
-        }
-        
-        showNotification('Voice input stopped', 'info');
-        console.log('Voice input stopped');
-    }
-}
-
-// Function to process voice input and convert to letters
-function processVoiceInput(transcript) {
-    console.log('Processing voice input:', transcript);
+// Process voice input immediately (for interim results)
+function processVoiceInputImmediate(transcript) {
+    console.log('Processing immediate voice input:', transcript);
     
     // Clean up the transcript and extract letters
     const words = transcript.split(/\s+/);
     
     for (const word of words) {
+        let letter = null;
+        
         // Check if it's a single letter (a-z)
         if (word.length === 1 && /^[a-z]$/.test(word)) {
-            inputLetterToBox(word);
+            letter = word;
         } else {
             // Try to extract letters from common speech patterns
-            const letter = extractLetterFromSpeech(word);
-            if (letter) {
-                inputLetterToBox(letter);
-            }
+            letter = extractLetterFromSpeech(word);
+        }
+        
+        if (letter && !processedLetters.has(letter)) {
+            // Mark this letter as processed to avoid duplicates
+            processedLetters.add(letter);
+            inputLetterToBoxImmediate(letter);
         }
     }
 }
 
-// Function to extract letter from speech patterns
-function extractLetterFromSpeech(word) {
-    // Common ways people might say letters
-    const letterMappings = {
-        'ay': 'a', 'eh': 'a', 'alpha': 'a',
-        'bee': 'b', 'be': 'b', 'bravo': 'b',
-        'see': 'c', 'sea': 'c', 'charlie': 'c',
-        'dee': 'd', 'delta': 'd',
-        'ee': 'e', 'echo': 'e',
-        'eff': 'f', 'foxtrot': 'f',
-        'gee': 'g', 'golf': 'g',
-        'aitch': 'h', 'hotel': 'h',
-        'eye': 'i', 'india': 'i',
-        'jay': 'j', 'juliet': 'j',
-        'kay': 'k', 'kilo': 'k',
-        'ell': 'l', 'lima': 'l',
-        'em': 'm', 'mike': 'm',
-        'en': 'n', 'november': 'n',
-        'oh': 'o', 'oscar': 'o',
-        'pee': 'p', 'papa': 'p',
-        'cue': 'q', 'queue': 'q', 'quebec': 'q',
-        'are': 'r', 'romeo': 'r',
-        'ess': 's', 'sierra': 's',
-        'tee': 't', 'tea': 't', 'tango': 't',
-        'you': 'u', 'uniform': 'u',
-        'vee': 'v', 'victor': 'v',
-        'double': 'w', 'whiskey': 'w',
-        'ex': 'x', 'xray': 'x',
-        'why': 'y', 'yankee': 'y',
-        'zee': 'z', 'zed': 'z', 'zulu': 'z'
-    };
-    
-    return letterMappings[word.toLowerCase()] || null;
-}
-
-// Function to input a letter to the appropriate box
-function inputLetterToBox(letter) {
+// Input letter to box immediately with visual feedback
+function inputLetterToBoxImmediate(letter) {
     if (!letterInputs || letterInputs.length === 0) {
         return;
     }
@@ -2419,13 +2405,26 @@ function inputLetterToBox(letter) {
         // Focus on the target box
         targetBox.focus();
         
+        // Enhanced visual feedback for immediate input
+        targetBox.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+        targetBox.style.color = 'white';
+        targetBox.style.transform = 'scale(1.15)';
+        targetBox.style.boxShadow = '0 0 20px rgba(34, 197, 94, 0.5)';
+        
+        setTimeout(() => {
+            targetBox.style.background = '';
+            targetBox.style.color = '';
+            targetBox.style.transform = '';
+            targetBox.style.boxShadow = '';
+        }, 600);
+        
         // Simulate the same logic as keyboard input
         if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
             // Move to next box if not the last one
             if (letterInputs[boxIndex + 1]) {
                 setTimeout(() => {
                     letterInputs[boxIndex + 1].focus();
-                }, 50);
+                }, 100);
             }
         } else if (targetBox.value.length === 1 && boxIndex === letterInputs.length - 1) {
             // Auto-check when last letter is entered (same as keyboard input)
@@ -2433,115 +2432,21 @@ function inputLetterToBox(letter) {
                 if (!quizComplete && words[currentWordIndex]) {
                     checkSpelling();
                 }
-            }, 100);
+            }, 300);
         }
         
-        // Visual feedback
-        targetBox.style.background = '#e7fbe9';
-        targetBox.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            targetBox.style.background = '';
-            targetBox.style.transform = '';
-        }, 300);
+        console.log(`Voice input IMMEDIATE: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
-        console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
-        
-        // Show feedback about recognized letter
+        // Show immediate feedback about recognized letter
         const remainingEmpty = letterInputs.filter(box => box.value === '').length;
         if (remainingEmpty > 0) {
-            showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more letter${remainingEmpty > 1 ? 's' : ''} needed`, 'success');
+            showNotification(`🎤 "${letter.toUpperCase()}" - ${remainingEmpty} more needed`, 'success');
         } else {
             // All boxes filled
             stopVoiceInput();
-            showNotification('All letters filled! Checking spelling...', 'success');
+            showNotification('🎉 All letters filled! Checking spelling...', 'success');
         }
     }
-}
-
-// Function to practice an individual word
-function practiceIndividualWord(word) {
-    console.log(`Starting individual practice for word: ${word}`);
-    
-    // Save the current state
-    originalPracticeState = {
-        words: [...words],
-        currentWordIndex: currentWordIndex,
-        userAnswers: [...userAnswers],
-        hintUsed: [...hintUsed],
-        quizComplete: quizComplete,
-        isPracticeMode: isPracticeMode,
-        practiceWords: [...practiceWords],
-        originalWords: [...originalWords]
-    };
-    
-    // Set up for individual word practice
-    isIndividualWordPractice = true;
-    words = [word]; // Only practice this one word
-    currentWordIndex = 0;
-    quizComplete = false;
-    
-    // Reset state for this single word
-    userAnswers = [{ attempts: [], correct: false }];
-    hintUsed = [false];
-    
-    // Close modal and update display
-    closeModal();
-    updateDisplay();
-    updatePracticeModeUI();
-    
-    // Speak the word
-    setTimeout(() => {
-        speakWord(word);
-    }, 500);
-    
-    showNotification(`🎯 Individual practice: "${word}"`, 'info');
-}
-
-// Function to update UI for individual word practice
-function updateIndividualWordPracticeUI() {
-    const title = document.querySelector('.title');
-    const exitButton = document.getElementById('exitPracticeButton');
-    
-    if (title && isIndividualWordPractice) {
-        title.textContent = '🎯 Word Practice';
-        title.style.color = '#10b981';
-    }
-    
-    // Show exit button for individual practice
-    if (exitButton) {
-        exitButton.style.display = 'inline-block';
-        exitButton.textContent = '🔙 Back to Practice';
-    }
-}
-
-// Function to exit individual word practice
-function exitIndividualWordPractice() {
-    console.log('Exiting individual word practice...');
-    
-    if (!originalPracticeState) {
-        console.error('No original state to restore!');
-        return;
-    }
-    
-    // Restore the original state
-    words = [...originalPracticeState.words];
-    currentWordIndex = originalPracticeState.currentWordIndex;
-    userAnswers = [...originalPracticeState.userAnswers];
-    hintUsed = [...originalPracticeState.hintUsed];
-    quizComplete = originalPracticeState.quizComplete;
-    isPracticeMode = originalPracticeState.isPracticeMode;
-    practiceWords = [...originalPracticeState.practiceWords];
-    originalWords = [...originalPracticeState.originalWords];
-    
-    // Clear individual practice state
-    isIndividualWordPractice = false;
-    originalPracticeState = null;
-    
-    // Update display and UI
-    updateDisplay();
-    updatePracticeModeUI(); // This will restore the correct title and button state
-    
-    showNotification('🔄 Returned to original practice', 'success');
 }
 
 // --- Celebration Animation Functions ---
@@ -2840,4 +2745,305 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
     }
 }
 
-// Update the word set panel display
+// Function to toggle voice input on/off
+function toggleVoiceInput() {
+    console.log('toggleVoiceInput called');
+    console.log('recognition available:', !!recognition);
+    console.log('isVoiceInputActive:', isVoiceInputActive);
+    
+    if (!recognition) {
+        console.log('No recognition available');
+        showNotification('Voice input not supported in this browser', 'error');
+        return;
+    }
+    
+    if (isVoiceInputActive) {
+        console.log('Stopping voice input');
+        stopVoiceInput();
+    } else {
+        console.log('Starting voice input');
+        startVoiceInput();
+    }
+}
+
+// Function to start voice input
+function startVoiceInput() {
+    if (!recognition || !letterInputs || letterInputs.length === 0) {
+        showNotification('No word to spell or voice input not available', 'warning');
+        return;
+    }
+    
+    // Check if there are any empty boxes
+    const hasEmptyBoxes = letterInputs.some(box => box.value === '');
+    if (!hasEmptyBoxes) {
+        showNotification('All letters are already filled! Clear some letters first.', 'warning');
+        return;
+    }
+    
+    try {
+        isVoiceInputActive = true;
+        recognition.start();
+        
+        // Update button appearance
+        if (voiceInputButton) {
+            voiceInputButton.classList.add('listening');
+            voiceInputButton.textContent = '🔴 Stop Voice';
+        }
+        
+        // Show helpful instructions
+        const emptyCount = letterInputs.filter(box => box.value === '').length;
+        showNotification(`🎤 Voice input started! Speak ${emptyCount} letter${emptyCount > 1 ? 's' : ''} clearly, one at a time.`, 'info');
+        console.log('Voice input started');
+    } catch (error) {
+        console.error('Error starting voice input:', error);
+        if (error.name === 'InvalidStateError') {
+            showNotification('Voice input is already running. Please wait.', 'warning');
+        } else {
+            showNotification('Failed to start voice input. Please try again.', 'error');
+        }
+        isVoiceInputActive = false;
+    }
+}
+
+// Function to stop voice input
+function stopVoiceInput() {
+    if (recognition) {
+        isVoiceInputActive = false;
+        recognition.stop();
+        
+        // Update button appearance
+        if (voiceInputButton) {
+            voiceInputButton.classList.remove('listening');
+            voiceInputButton.textContent = '🎤 Voice Input';
+        }
+        
+        // Hide voice input display
+        if (voiceInputDisplay) {
+            voiceInputDisplay.style.display = 'none';
+        }
+        
+        showNotification('Voice input stopped', 'info');
+        console.log('Voice input stopped');
+    }
+}
+
+// Function to process voice input and convert to letters (for final results)
+function processVoiceInput(transcript) {
+    console.log('Processing final voice input:', transcript);
+    
+    // Clean up the transcript and extract letters
+    const words = transcript.split(/\s+/);
+    
+    for (const word of words) {
+        let letter = null;
+        
+        // Check if it's a single letter (a-z)
+        if (word.length === 1 && /^[a-z]$/.test(word)) {
+            letter = word;
+        } else {
+            // Try to extract letters from common speech patterns
+            letter = extractLetterFromSpeech(word);
+        }
+        
+        if (letter && !processedLetters.has(letter)) {
+            // Mark this letter as processed to avoid duplicates
+            processedLetters.add(letter);
+            inputLetterToBox(letter);
+        }
+    }
+}
+
+// Function to extract letter from speech patterns
+function extractLetterFromSpeech(word) {
+    // Common ways people might say letters
+    const letterMappings = {
+        'ay': 'a', 'eh': 'a', 'alpha': 'a',
+        'bee': 'b', 'be': 'b', 'bravo': 'b',
+        'see': 'c', 'sea': 'c', 'charlie': 'c',
+        'dee': 'd', 'delta': 'd',
+        'ee': 'e', 'echo': 'e',
+        'eff': 'f', 'foxtrot': 'f',
+        'gee': 'g', 'golf': 'g',
+        'aitch': 'h', 'hotel': 'h',
+        'eye': 'i', 'india': 'i',
+        'jay': 'j', 'juliet': 'j',
+        'kay': 'k', 'kilo': 'k',
+        'ell': 'l', 'lima': 'l',
+        'em': 'm', 'mike': 'm',
+        'en': 'n', 'november': 'n',
+        'oh': 'o', 'oscar': 'o',
+        'pee': 'p', 'papa': 'p',
+        'cue': 'q', 'queue': 'q', 'quebec': 'q',
+        'are': 'r', 'romeo': 'r',
+        'ess': 's', 'sierra': 's',
+        'tee': 't', 'tea': 't', 'tango': 't',
+        'you': 'u', 'uniform': 'u',
+        'vee': 'v', 'victor': 'v',
+        'double': 'w', 'whiskey': 'w',
+        'ex': 'x', 'xray': 'x',
+        'why': 'y', 'yankee': 'y',
+        'zee': 'z', 'zed': 'z', 'zulu': 'z'
+    };
+    
+    return letterMappings[word.toLowerCase()] || null;
+}
+
+// Function to input a letter to the appropriate box (for final results)
+function inputLetterToBox(letter) {
+    if (!letterInputs || letterInputs.length === 0) {
+        return;
+    }
+    
+    // Find the first empty box
+    let targetBox = letterInputs.find(box => box.value === '');
+    
+    if (!targetBox) {
+        // If no empty boxes, check if all boxes are filled
+        const allFilled = letterInputs.every(box => box.value !== '');
+        if (allFilled) {
+            // All boxes are filled, stop voice input and check spelling
+            stopVoiceInput();
+            showNotification('All letters filled! Checking spelling...', 'success');
+            setTimeout(() => {
+                checkSpelling();
+            }, 500);
+            return;
+        }
+        // If not all filled but no empty box found, use the first box
+        targetBox = letterInputs[0];
+    }
+    
+    if (targetBox) {
+        const boxIndex = letterInputs.indexOf(targetBox);
+        
+        // Input the letter (convert to lowercase for consistency)
+        targetBox.value = letter.toLowerCase();
+        targetBox.disabled = false;
+        
+        // Focus on the target box
+        targetBox.focus();
+        
+        // Standard visual feedback
+        targetBox.style.background = '#e7fbe9';
+        targetBox.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            targetBox.style.background = '';
+            targetBox.style.transform = '';
+        }, 300);
+        
+        // Simulate the same logic as keyboard input
+        if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
+            // Move to next box if not the last one
+            if (letterInputs[boxIndex + 1]) {
+                setTimeout(() => {
+                    letterInputs[boxIndex + 1].focus();
+                }, 50);
+            }
+        } else if (targetBox.value.length === 1 && boxIndex === letterInputs.length - 1) {
+            // Auto-check when last letter is entered (same as keyboard input)
+            setTimeout(() => {
+                if (!quizComplete && words[currentWordIndex]) {
+                    checkSpelling();
+                }
+            }, 100);
+        }
+        
+        console.log(`Voice input FINAL: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
+        
+        // Show feedback about recognized letter
+        const remainingEmpty = letterInputs.filter(box => box.value === '').length;
+        if (remainingEmpty > 0) {
+            showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more letter${remainingEmpty > 1 ? 's' : ''} needed`, 'success');
+        } else {
+            // All boxes filled
+            stopVoiceInput();
+            showNotification('All letters filled! Checking spelling...', 'success');
+        }
+    }
+}
+
+// Function to practice an individual word
+function practiceIndividualWord(word) {
+    console.log(`Starting individual practice for word: ${word}`);
+    
+    // Save the current state
+    originalPracticeState = {
+        words: [...words],
+        currentWordIndex: currentWordIndex,
+        userAnswers: [...userAnswers],
+        hintUsed: [...hintUsed],
+        quizComplete: quizComplete,
+        isPracticeMode: isPracticeMode,
+        practiceWords: [...practiceWords],
+        originalWords: [...originalWords]
+    };
+    
+    // Set up for individual word practice
+    isIndividualWordPractice = true;
+    words = [word]; // Only practice this one word
+    currentWordIndex = 0;
+    quizComplete = false;
+    
+    // Reset state for this single word
+    userAnswers = [{ attempts: [], correct: false }];
+    hintUsed = [false];
+    
+    // Close modal and update display
+    closeModal();
+    updateDisplay();
+    updatePracticeModeUI();
+    
+    // Speak the word
+    setTimeout(() => {
+        speakWord(word);
+    }, 500);
+    
+    showNotification(`🎯 Individual practice: "${word}"`, 'info');
+}
+
+// Function to update UI for individual word practice
+function updateIndividualWordPracticeUI() {
+    const title = document.querySelector('.title');
+    const exitButton = document.getElementById('exitPracticeButton');
+    
+    if (title && isIndividualWordPractice) {
+        title.textContent = '🎯 Word Practice';
+        title.style.color = '#10b981';
+    }
+    
+    // Show exit button for individual practice
+    if (exitButton) {
+        exitButton.style.display = 'inline-block';
+        exitButton.textContent = '🔙 Back to Practice';
+    }
+}
+
+// Function to exit individual word practice
+function exitIndividualWordPractice() {
+    console.log('Exiting individual word practice...');
+    
+    if (!originalPracticeState) {
+        console.error('No original state to restore!');
+        return;
+    }
+    
+    // Restore the original state
+    words = [...originalPracticeState.words];
+    currentWordIndex = originalPracticeState.currentWordIndex;
+    userAnswers = [...originalPracticeState.userAnswers];
+    hintUsed = [...originalPracticeState.hintUsed];
+    quizComplete = originalPracticeState.quizComplete;
+    isPracticeMode = originalPracticeState.isPracticeMode;
+    practiceWords = [...originalPracticeState.practiceWords];
+    originalWords = [...originalPracticeState.originalWords];
+    
+    // Clear individual practice state
+    isIndividualWordPractice = false;
+    originalPracticeState = null;
+    
+    // Update display and UI
+    updateDisplay();
+    updatePracticeModeUI(); // This will restore the correct title and button state
+    
+    showNotification('🔄 Returned to original practice', 'success');
+}
