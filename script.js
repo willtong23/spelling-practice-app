@@ -733,6 +733,9 @@ function updateLetterHint() {
             if (e.key === ' ') {
                 e.preventDefault();
                 if (words[currentWordIndex] && words[currentWordIndex][i]) {
+                    // Play hint sound when spacebar is pressed
+                    playHintSound();
+                    
                     box.value = words[currentWordIndex][i];
                     box.disabled = true;
                     
@@ -1012,6 +1015,19 @@ function checkSpelling() {
         const usedHintsForThisWord = Array.isArray(hintUsed[currentWordIndex]) ? hintUsed[currentWordIndex].length > 0 : hintUsed[currentWordIndex];
         const isCorrectWithoutHints = !usedHintsForThisWord;
         
+        // Play success sound immediately
+        if (isCorrectWithoutHints) {
+            playSuccessSound();
+        } else {
+            // Still correct but with hints - play a gentler success sound
+            setTimeout(() => {
+                playTone(523.25, 0.3, 'sine', 0.3); // Single C5 note
+                setTimeout(() => {
+                    playTone(659.25, 0.3, 'sine', 0.3); // E5
+                }, 150);
+            }, 100);
+        }
+        
         // Trigger celebration animation
         triggerCelebrationAnimation(isCorrectWithoutHints);
         
@@ -1028,6 +1044,11 @@ function checkSpelling() {
             if (!quizComplete && words[currentWordIndex]) speakWord(words[currentWordIndex]);
         }, 2000);
     } else if (!isCorrect) {
+        // Play encouragement sound for incorrect answers
+        setTimeout(() => {
+            playEncouragementSound();
+        }, 200);
+        
         resultMessage.innerHTML = `<div style='color:#ef4444;font-weight:600;'>❌ Incorrect</div><div style='margin-top:6px;'>The correct spelling is: <b>${correctWord}</b><br>Your answer: <b style='color:#ef4444;'>${userAnswer}</b></div>`;
         resultMessage.className = 'result-message incorrect';
         letterInputs.forEach(box => box.value = '');
@@ -1179,6 +1200,19 @@ function showEndOfQuizFeedback() {
                 gotWrong: !firstTryCorrect
             });
         }
+    }
+    
+    // Play appropriate completion sound
+    if (allPerfectFirstTry) {
+        // Perfect score - play magical sound
+        setTimeout(() => {
+            playPerfectSound();
+        }, 500);
+    } else {
+        // Good job but not perfect - play success sound
+        setTimeout(() => {
+            playSuccessSound();
+        }, 500);
     }
     
     // Calculate score as fraction
@@ -2094,6 +2128,9 @@ function startVoiceInput() {
         isVoiceInputActive = true;
         recognition.start();
         
+        // Play voice input start sound
+        playVoiceInputSound();
+        
         // Update button appearance with listening status
         if (voiceInputButton) {
             voiceInputButton.classList.add('listening');
@@ -2267,6 +2304,11 @@ function inputLetterToBox(letter, isInterim = false) {
             targetBox.style.borderColor = '';
             targetBox.style.transform = '';
         }, 600);
+        
+        // Play gentle success sound for voice input
+        setTimeout(() => {
+            playTone(659.25, 0.15, 'sine', 0.2); // Quick E5 note
+        }, 50);
         
         console.log(`Voice input: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
@@ -2619,6 +2661,9 @@ function inputLetterToBoxAggressively(letter, isInterim = false) {
         targetBox.style.borderColor = '#22c55e';
         targetBox.style.transform = 'scale(1.15)';
         
+        // Play immediate success sound for aggressive input
+        playTone(659.25, 0.12, 'sine', 0.25); // Quick E5 note
+        
         // Reset visual feedback
         setTimeout(() => {
             targetBox.style.background = '';
@@ -2648,4 +2693,127 @@ function inputLetterToBoxAggressively(letter, isInterim = false) {
             }, 100);
         }
     }
-} 
+}
+
+// Sound feedback system for student encouragement
+let audioContext = null;
+let soundEnabled = true;
+
+// Initialize audio context
+function initializeAudio() {
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('Audio context initialized');
+    } catch (error) {
+        console.log('Audio not supported:', error);
+        soundEnabled = false;
+    }
+}
+
+// Create and play a tone
+function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+    if (!soundEnabled || !audioContext) return;
+    
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+        oscillator.type = type;
+        
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(volume, audioContext.currentTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+    } catch (error) {
+        console.log('Error playing tone:', error);
+    }
+}
+
+// Success sound - happy ascending melody
+function playSuccessSound() {
+    if (!soundEnabled) return;
+    
+    const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+    notes.forEach((freq, index) => {
+        setTimeout(() => {
+            playTone(freq, 0.2, 'sine', 0.4);
+        }, index * 100);
+    });
+    
+    // Add a final celebratory chord
+    setTimeout(() => {
+        playTone(1046.5, 0.4, 'sine', 0.3); // C6
+    }, 400);
+}
+
+// Perfect score sound - magical ascending arpeggio
+function playPerfectSound() {
+    if (!soundEnabled) return;
+    
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5]; // C5, E5, G5, C6, E6
+    notes.forEach((freq, index) => {
+        setTimeout(() => {
+            playTone(freq, 0.15, 'sine', 0.4);
+        }, index * 80);
+    });
+    
+    // Add sparkle effect
+    setTimeout(() => {
+        playTone(1568, 0.3, 'sine', 0.2);
+        playTone(2093, 0.3, 'sine', 0.2);
+    }, 500);
+}
+
+// Encouragement sound - gentle, supportive tone
+function playEncouragementSound() {
+    if (!soundEnabled) return;
+    
+    // Gentle descending then ascending pattern
+    const notes = [440, 392, 440, 523.25]; // A4, G4, A4, C5
+    notes.forEach((freq, index) => {
+        setTimeout(() => {
+            playTone(freq, 0.25, 'sine', 0.3);
+        }, index * 150);
+    });
+}
+
+// Hint sound - soft notification
+function playHintSound() {
+    if (!soundEnabled) return;
+    
+    playTone(880, 0.15, 'sine', 0.25); // A5
+    setTimeout(() => {
+        playTone(1174.66, 0.15, 'sine', 0.25); // D6
+    }, 100);
+}
+
+// Voice input feedback sound
+function playVoiceInputSound() {
+    if (!soundEnabled) return;
+    
+    playTone(659.25, 0.1, 'sine', 0.2); // E5 - short beep
+}
+
+// Initialize audio on first user interaction
+function enableAudioOnInteraction() {
+    if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume().then(() => {
+            console.log('Audio context resumed');
+        });
+    }
+}
+
+// Add click listeners to enable audio
+document.addEventListener('click', enableAudioOnInteraction);
+document.addEventListener('keydown', enableAudioOnInteraction);
+
+// Initialize audio when DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(initializeAudio, 500);
+});
