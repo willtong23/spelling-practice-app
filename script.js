@@ -305,17 +305,44 @@ function updateWordSetPanel() {
 
 // Handle word set selection changes
 function setupWordSetPanel() {
+    console.log('Setting up word set panel...');
+    
     const panelToggle = document.getElementById('panelToggle');
     const wordSetPanel = document.getElementById('wordSetPanel');
     const mainContent = document.getElementById('mainContent');
     
+    console.log('Elements found:');
+    console.log('- panelToggle:', !!panelToggle);
+    console.log('- wordSetPanel:', !!wordSetPanel);
+    console.log('- mainContent:', !!mainContent);
+    
     // Panel toggle functionality
-    if (panelToggle) {
-        panelToggle.addEventListener('click', () => {
+    if (panelToggle && wordSetPanel && mainContent) {
+        console.log('Adding click event listener to panel toggle');
+        
+        // Remove any existing event listeners to avoid duplicates
+        panelToggle.removeEventListener('click', handlePanelToggle);
+        panelToggle.addEventListener('click', handlePanelToggle);
+        
+        function handlePanelToggle() {
+            console.log('Panel toggle clicked!');
+            console.log('Current collapsed state:', wordSetPanel.classList.contains('collapsed'));
+            
             wordSetPanel.classList.toggle('collapsed');
             mainContent.classList.toggle('expanded');
-            panelToggle.textContent = wordSetPanel.classList.contains('collapsed') ? '▶' : '◀';
-        });
+            
+            const isCollapsed = wordSetPanel.classList.contains('collapsed');
+            panelToggle.textContent = isCollapsed ? '▶' : '◀';
+            
+            console.log('New collapsed state:', isCollapsed);
+            console.log('Panel classes:', wordSetPanel.className);
+            console.log('Main content classes:', mainContent.className);
+        }
+    } else {
+        console.error('Missing elements for panel toggle:');
+        console.error('- panelToggle:', panelToggle);
+        console.error('- wordSetPanel:', wordSetPanel);
+        console.error('- mainContent:', mainContent);
     }
 }
 
