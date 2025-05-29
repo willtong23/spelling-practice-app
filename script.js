@@ -1290,7 +1290,15 @@ function showEndOfQuizFeedback() {
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
         const eventuallyCorrect = attempts.includes(correctWord);
         
-        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${words[i]}</td><td style="text-align:center;padding:4px 8px;">`;
+        // Anti-cheating: Hide word if never answered correctly
+        let displayWord;
+        if (eventuallyCorrect) {
+            displayWord = correctWord; // Show word if they got it right eventually
+        } else {
+            displayWord = '□'.repeat(correctWord.length); // Hide word if never correct
+        }
+        
+        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;"><span class="${eventuallyCorrect ? '' : 'letter-boxes-quiz'}">${displayWord}</span></td><td style="text-align:center;padding:4px 8px;">`;
         
         // Show first try result
         if (firstTryCorrect) {
@@ -1353,7 +1361,9 @@ function showEndOfQuizFeedback() {
         wordsNeedingPractice.forEach((item, index) => {
             const reason = item.usedHint && item.gotWrong ? 'hint + wrong' : 
                          item.usedHint ? 'used hint' : 'got wrong';
-            html += `${item.word} (${reason})`;
+            // Hide words that need practice to prevent cheating
+            const hiddenWord = '□'.repeat(item.word.length);
+            html += `<span class="letter-boxes-quiz">${hiddenWord}</span> (${reason})`;
             if (index < wordsNeedingPractice.length - 1) html += ', ';
         });
         
@@ -2575,10 +2585,20 @@ function addResultToPanel(wordIndex, isCorrect, userAttempt, usedHint = false) {
     let statusIcon = isCorrect ? '✅' : '❌';
     if (usedHint) statusIcon += ' 💡';
     
+    // For incorrect answers, show letter boxes instead of the actual word (anti-cheating)
+    let displayWord;
+    if (isCorrect) {
+        displayWord = word; // Show actual word for correct answers
+    } else {
+        // Create letter boxes for wrong answers to prevent cheating
+        displayWord = '□'.repeat(word.length); // Using box characters
+        // Alternative: displayWord = '_'.repeat(word.length); // Using underscores
+    }
+    
     // Compact content - NO correct spelling shown for wrong answers
     let resultContent = `
         <div class="result-word">
-            <span>${word}</span>
+            <span class="${isCorrect ? '' : 'letter-boxes'}" style="font-family: monospace; letter-spacing: 2px;">${displayWord}</span>
             <span class="result-status">${statusIcon}</span>
         </div>
     `;
