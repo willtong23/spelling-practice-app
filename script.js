@@ -1180,6 +1180,9 @@ function resetQuizState() {
         stopVoiceInput();
     }
     
+    // Clear the results panel for new round
+    clearResultsPanel();
+    
     for (let i = 0; i < words.length; i++) {
         userAnswers[i] = { attempts: [], correct: false };
         hintUsed[i] = []; // Change to array to track individual letter positions
@@ -1504,24 +1507,24 @@ function showEndOfQuizFeedback() {
         }
     }
     
-    let html = '<h2 style="margin-bottom:18px;">Quiz Complete!</h2>';
+    let html = '';
     
-    // Show which word set was used
-    if (currentWordSetName && !isPracticeMode) {
-        html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:12px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
-    } else if (isPracticeMode) {
-        html += `<div style="color:#f59e0b;font-size:0.9rem;margin-bottom:12px;">📚 <strong>Practice Mode Complete!</strong></div>`;
+    // COMPACT: Only show Focus Practice box if there are words that need practice (only for main quiz)
+    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
+        html += `<div style="margin-bottom:16px;padding:12px 16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <h3 style="margin:0;color:#856404;font-size:1.1rem;">🎯 Focus Practice</h3>
+                <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.9rem;">
+                    🎯 Focus Practice
+                </button>
+            </div>
+            <div style="color:#856404;font-weight:600;font-size:0.95rem;">
+                ${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''} need practice
+            </div>
+        </div>`;
     }
     
-    if (allPerfectFirstTry && !isPracticeMode) {
-        // Trigger perfect quiz celebration animation
-        triggerPerfectQuizCelebration();
-        
-        html += '<div style="color:#22c55e;font-size:1.3em;font-weight:700;margin-bottom:18px;background:#e7fbe9;padding:10px 0;border-radius:8px;">🎉 Perfect! You got everything correct on the first try!</div>';
-    } else if (isPracticeMode) {
-        html += '<div style="color:#3b82f6;font-size:1.2em;font-weight:700;margin-bottom:18px;background:#dbeafe;padding:10px 0;border-radius:8px;">🎯 Practice Session Complete!</div>';
-    }
-    
+    // Results table (always show)
     html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:separate;border-spacing:0 8px;">';
     html += '<tr><th style="text-align:left;padding:4px 8px;">Word</th><th style="text-align:center;padding:4px 8px;">First Try</th><th style="text-align:left;padding:4px 8px;">All Attempts</th></tr>';
     
@@ -1534,15 +1537,10 @@ function showEndOfQuizFeedback() {
         const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
         const eventuallyCorrect = attempts.includes(correctWord);
         
-        // Anti-cheating: Hide word if never answered correctly
-        let displayWord;
-        if (eventuallyCorrect) {
-            displayWord = correctWord; // Show word if they got it right eventually
-        } else {
-            displayWord = '□'.repeat(correctWord.length); // Hide word if never correct
-        }
+        // Always show the correct word in after-session feedback
+        const displayWord = correctWord;
         
-        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;"><span class="${eventuallyCorrect ? '' : 'letter-boxes-quiz'}">${displayWord}</span></td><td style="text-align:center;padding:4px 8px;">`;
+        html += `<tr style="background:#f8fafc;"><td style="font-weight:bold;padding:4px 8px;">${displayWord}</td><td style="text-align:center;padding:4px 8px;">`;
         
         // Show first try result
         if (firstTryCorrect) {
@@ -1581,7 +1579,7 @@ function showEndOfQuizFeedback() {
     }
     html += '</table></div>';
     
-    // Calculate and show first-try score (only for main quiz, not practice)
+    // Calculate and show first-try score (only for main quiz, not practice) - COMPACT VERSION
     if (!isPracticeMode) {
         const firstTryCorrectCount = words.filter((word, i) => {
             const attempts = (userAnswers[i] || {}).attempts || [];
@@ -1590,32 +1588,8 @@ function showEndOfQuizFeedback() {
         
         const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
         
-        html += `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;text-align:center;">
+        html += `<div style="margin-top:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;text-align:center;font-size:0.9rem;">
             <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
-        </div>`;
-    }
-    
-    // Show practice option if there are words that need practice (only for main quiz)
-    if (!isPracticeMode && wordsNeedingPractice.length > 0) {
-        html += `<div style="margin-top:20px;padding:16px;background:#fff3cd;border:2px solid #ffc107;border-radius:12px;">
-            <h3 style="margin:0 0 12px 0;color:#856404;">🎯 Practice Opportunity!</h3>
-            <p style="margin:0 0 12px 0;color:#856404;">You have <strong>${wordsNeedingPractice.length} word${wordsNeedingPractice.length > 1 ? 's' : ''}</strong> that could use more practice:</p>
-            <div style="margin:8px 0;font-weight:600;color:#856404;">`;
-        
-        wordsNeedingPractice.forEach((item, index) => {
-            const reason = item.usedHint && item.gotWrong ? 'hint + wrong' : 
-                         item.usedHint ? 'used hint' : 'got wrong';
-            // Hide words that need practice to prevent cheating
-            const hiddenWord = '□'.repeat(item.word.length);
-            html += `<span class="letter-boxes-quiz">${hiddenWord}</span> (${reason})`;
-            if (index < wordsNeedingPractice.length - 1) html += ', ';
-        });
-        
-        html += `</div>
-            <button onclick="startPracticeMode()" style="background:#ffc107;color:#856404;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;margin-top:8px;">
-                🎯 Practice These Words
-            </button>
-            <p style="margin:8px 0 0 0;font-size:0.85em;color:#856404;font-style:italic;">Practice sessions don't affect your quiz records</p>
         </div>`;
     }
     
@@ -2459,6 +2433,44 @@ function triggerPerfectQuizCelebration() {
 }
 
 // --- Results Panel Functions ---
+
+// Clear the results panel for a new round
+function clearResultsPanel() {
+    console.log('=== CLEARING RESULTS PANEL ===');
+    
+    const resultsContent = document.getElementById('resultsContent');
+    const currentScore = document.getElementById('currentScore');
+    const resultsFooter = document.getElementById('resultsFooter');
+    
+    if (resultsContent) {
+        // Clear all result items
+        resultsContent.innerHTML = '';
+        
+        // Add back the placeholder
+        const placeholder = document.createElement('div');
+        placeholder.className = 'results-placeholder';
+        placeholder.innerHTML = `
+            <div class="placeholder-icon">🎯</div>
+            <p>Start spelling to see your results here!</p>
+        `;
+        resultsContent.appendChild(placeholder);
+        console.log('Results content cleared and placeholder restored');
+    }
+    
+    if (currentScore) {
+        // Reset score display
+        currentScore.textContent = '0/0';
+        console.log('Score display reset');
+    }
+    
+    if (resultsFooter) {
+        // Hide footer stats
+        resultsFooter.style.display = 'none';
+        console.log('Results footer hidden');
+    }
+    
+    console.log('=== RESULTS PANEL CLEARED ===');
+}
 
 // Update the results panel with current progress
 function updateResultsPanel() {
