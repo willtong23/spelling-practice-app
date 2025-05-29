@@ -713,6 +713,34 @@ function playEncouragementSound() {
     }
 }
 
+// Play success sound for correct answers
+function playSuccessSound() {
+    try {
+        // Create a celebratory tone using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Create a happy, celebratory tone sequence (major chord progression)
+        oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C note
+        oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E note
+        oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2); // G note
+        oscillator.frequency.setValueAtTime(1047, audioContext.currentTime + 0.3); // High C note
+        
+        gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+        // Fallback: just log if audio context fails
+        console.log('Success sound not available');
+    }
+}
+
 // --- UI Update Functions ---
 function updateLetterHint() {
     if (!words.length) {
@@ -1076,6 +1104,11 @@ function checkSpelling() {
     if (isCorrect && userAnswers[currentWordIndex].correct) {
         // Check if this word was completed without hints
         const isCorrectWithoutHints = !usedHintsForThisWord;
+        
+        // Play success sound for correct answers
+        setTimeout(() => {
+            playSuccessSound();
+        }, 100);
         
         // Add to results panel
         addResultToPanel(currentWordIndex, true, userAnswer, usedHintsForThisWord);
