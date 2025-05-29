@@ -2251,20 +2251,32 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.continuous = true;
     recognition.interimResults = true; // This is key for immediate feedback
     recognition.lang = 'en-US';
-    recognition.maxAlternatives = 3; // Get more alternatives for better recognition
+    recognition.maxAlternatives = 5; // Get more alternatives for better recognition
     
     // Handle speech recognition results - IMPROVED for immediate feedback
     recognition.onresult = function(event) {
         let interimTranscript = '';
         let finalTranscript = '';
         
-        // Process all results
+        // Process all results, including alternatives for better accuracy
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript;
-            if (event.results[i].isFinal) {
+            const result = event.results[i];
+            
+            // Get the best transcript (first alternative)
+            const transcript = result[0].transcript;
+            
+            if (result.isFinal) {
                 finalTranscript += transcript;
             } else {
                 interimTranscript += transcript;
+                
+                // Also check alternatives for interim results to catch more letters
+                for (let j = 1; j < Math.min(result.length, 3); j++) {
+                    const altTranscript = result[j].transcript;
+                    if (altTranscript && altTranscript !== transcript) {
+                        interimTranscript += ' ' + altTranscript;
+                    }
+                }
             }
         }
         
@@ -2389,17 +2401,52 @@ function processVoiceInputImmediate(transcript) {
             letter = extractLetterFromSpeech(word);
         }
         
-        if (letter && !processedLetters.has(letter)) {
-            // Mark this letter as processed to avoid duplicates
-            processedLetters.add(letter);
-            inputLetterToBoxImmediate(letter);
+        if (letter) {
+            console.log(`Detected letter: "${letter}" from word: "${word}"`);
+            
+            // Check if we have empty boxes that need this letter
+            const emptyBoxes = letterInputs.filter(box => box.value === '');
+            
+            if (emptyBoxes.length > 0) {
+                // Only prevent duplicates if we recently processed this exact letter (within 300ms)
+                const now = Date.now();
+                const recentKey = `${letter}_${now}`;
+                const recentThreshold = 300; // 300ms threshold (reduced from 500ms)
+                
+                // Clean old entries from processedLetters
+                const cutoffTime = now - recentThreshold;
+                for (const key of processedLetters) {
+                    const [, timestamp] = key.split('_');
+                    if (parseInt(timestamp) < cutoffTime) {
+                        processedLetters.delete(key);
+                    }
+                }
+                
+                // Check if this letter was processed very recently
+                const wasRecentlyProcessed = Array.from(processedLetters).some(key => {
+                    const [keyLetter, timestamp] = key.split('_');
+                    return keyLetter === letter && (now - parseInt(timestamp)) < recentThreshold;
+                });
+                
+                if (!wasRecentlyProcessed) {
+                    processedLetters.add(recentKey);
+                    inputLetterToBoxImmediate(letter);
+                } else {
+                    console.log(`Letter "${letter}" was recently processed, skipping to avoid rapid duplicates`);
+                }
+            } else {
+                console.log('No empty boxes available for letter input');
+            }
         }
     }
 }
 
 // Input letter to box immediately with visual feedback
 function inputLetterToBoxImmediate(letter) {
+    console.log(`Attempting to input letter "${letter}" immediately`);
+    
     if (!letterInputs || letterInputs.length === 0) {
+        console.log('No letter inputs available');
         return;
     }
     
@@ -2411,8 +2458,9 @@ function inputLetterToBoxImmediate(letter) {
         const allFilled = letterInputs.every(box => box.value !== '');
         if (allFilled) {
             // All boxes are filled, stop voice input and check spelling
+            console.log('All boxes filled, stopping voice input');
             stopVoiceInput();
-            showNotification('All letters filled! Checking spelling...', 'success');
+            showNotification('🎉 All letters filled! Checking spelling...', 'success');
             setTimeout(() => {
                 checkSpelling();
             }, 500);
@@ -2420,10 +2468,12 @@ function inputLetterToBoxImmediate(letter) {
         }
         // If not all filled but no empty box found, use the first box
         targetBox = letterInputs[0];
+        console.log('No empty box found, using first box as fallback');
     }
     
     if (targetBox) {
         const boxIndex = letterInputs.indexOf(targetBox);
+        console.log(`Inputting "${letter}" into box ${boxIndex + 1}/${letterInputs.length}`);
         
         // Input the letter (convert to lowercase for consistency)
         targetBox.value = letter.toLowerCase();
@@ -2437,42 +2487,52 @@ function inputLetterToBoxImmediate(letter) {
         targetBox.style.color = 'white';
         targetBox.style.transform = 'scale(1.15)';
         targetBox.style.boxShadow = '0 0 20px rgba(34, 197, 94, 0.5)';
+        targetBox.style.border = '3px solid #10b981';
+        
+        // Trigger input event to simulate keyboard input
+        const inputEvent = new Event('input', { bubbles: true });
+        targetBox.dispatchEvent(inputEvent);
         
         setTimeout(() => {
             targetBox.style.background = '';
             targetBox.style.color = '';
             targetBox.style.transform = '';
             targetBox.style.boxShadow = '';
-        }, 600);
+            targetBox.style.border = '';
+        }, 800);
         
-        // Simulate the same logic as keyboard input
+        // Move to next box logic
         if (targetBox.value.length === 1 && boxIndex < letterInputs.length - 1) {
             // Move to next box if not the last one
             if (letterInputs[boxIndex + 1]) {
                 setTimeout(() => {
                     letterInputs[boxIndex + 1].focus();
-                }, 100);
+                    currentFocusedLetterBox = letterInputs[boxIndex + 1];
+                }, 150);
             }
         } else if (targetBox.value.length === 1 && boxIndex === letterInputs.length - 1) {
-            // Auto-check when last letter is entered (same as keyboard input)
+            // Auto-check when last letter is entered
             setTimeout(() => {
                 if (!quizComplete && words[currentWordIndex]) {
+                    console.log('Last letter entered, auto-checking spelling');
                     checkSpelling();
                 }
             }, 300);
         }
         
-        console.log(`Voice input IMMEDIATE: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
+        console.log(`✓ Voice input SUCCESS: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
         
         // Show immediate feedback about recognized letter
         const remainingEmpty = letterInputs.filter(box => box.value === '').length;
         if (remainingEmpty > 0) {
-            showNotification(`🎤 "${letter.toUpperCase()}" - ${remainingEmpty} more needed`, 'success');
+            showNotification(`🎤 "${letter.toUpperCase()}" ✓ - ${remainingEmpty} more needed`, 'success');
         } else {
             // All boxes filled
             stopVoiceInput();
             showNotification('🎉 All letters filled! Checking spelling...', 'success');
         }
+    } else {
+        console.error('Could not find target box for letter input');
     }
 }
 
