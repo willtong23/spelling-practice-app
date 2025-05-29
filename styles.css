@@ -2124,7 +2124,7 @@ h1 {
 }
 
 .result-word {
-    font-size: 0.95rem;
+    font-size: 1rem;
     font-weight: 600;
     margin-bottom: 4px;
     display: flex;
@@ -2231,9 +2231,16 @@ h1 {
         gap: 15px;
     }
     
+    .practice-layout.results-hidden {
+        grid-template-columns: 1fr;
+    }
+    
     .results-panel {
         padding: 15px;
-        display: block !important; /* Force visibility */
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
     }
 }
 
@@ -2243,11 +2250,18 @@ h1 {
         gap: 15px;
     }
     
+    .practice-layout.results-hidden {
+        grid-template-columns: 1fr;
+    }
+    
     .results-panel {
         position: static;
         max-height: 60vh;
         padding: 15px;
-        display: block !important; /* Force visibility */
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
     }
     
     /* On smaller screens, always show the toggle button */
@@ -2263,12 +2277,19 @@ h1 {
         gap: 20px;
     }
     
+    .practice-layout.results-hidden .results-panel {
+        display: none !important;
+    }
+    
     .results-panel {
         padding: 15px;
         border-radius: 15px;
         max-height: 50vh;
         order: 2;
-        display: block !important; /* Force visibility */
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
     }
     
     .results-header h3 {
@@ -2295,13 +2316,13 @@ h1 {
     box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
 }
 
-/* Hidden results panel state */
+/* Hidden results panel state - IMPORTANT: Keep these rules at the end */
 .practice-layout.results-hidden {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
 }
 
 .results-panel.hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Animation for new result items */
@@ -2372,33 +2393,65 @@ h1 {
         gap: 15px;
     }
     
+    .practice-layout.results-hidden {
+        grid-template-columns: 1fr;
+    }
+    
     .results-panel {
         padding: 15px;
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
     }
 }
 
 @media (max-width: 1000px) {
     .practice-layout {
+        grid-template-columns: 1fr 280px;
+        gap: 15px;
+    }
+    
+    .practice-layout.results-hidden {
         grid-template-columns: 1fr;
-        gap: 20px;
     }
     
     .results-panel {
         position: static;
-        max-height: none;
-        order: 2;
+        max-height: 60vh;
+        padding: 15px;
     }
     
-    /* On mobile, always show the toggle button */
+    .results-panel.hidden {
+        display: none !important;
+    }
+    
+    /* On smaller screens, always show the toggle button */
     .results-toggle-btn {
         display: inline-block;
     }
 }
 
 @media (max-width: 768px) {
+    .practice-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .practice-layout.results-hidden .results-panel {
+        display: none !important;
+    }
+    
     .results-panel {
         padding: 15px;
         border-radius: 15px;
+        max-height: 50vh;
+        order: 2;
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
     }
     
     .results-header h3 {
@@ -2425,13 +2478,13 @@ h1 {
     box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
 }
 
-/* Hidden results panel state */
+/* Hidden results panel state - IMPORTANT: Keep these rules at the end */
 .practice-layout.results-hidden {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
 }
 
 .results-panel.hidden {
-    display: none;
+    display: none !important;
 }
 
 /* Animation for new result items */

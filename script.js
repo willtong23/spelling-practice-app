@@ -2600,25 +2600,42 @@ function addResultToPanel(wordIndex, isCorrect, userAttempt, usedHint = false) {
 
 // Toggle results panel visibility
 function toggleResultsPanel() {
+    console.log('=== TOGGLE RESULTS PANEL ===');
+    
     const resultsPanel = document.getElementById('resultsPanel');
     const practiceLayout = document.querySelector('.practice-layout');
     const toggleBtn = document.querySelector('.results-toggle-btn');
     
-    if (!resultsPanel || !practiceLayout || !toggleBtn) return;
+    console.log('Elements found:');
+    console.log('- resultsPanel:', !!resultsPanel);
+    console.log('- practiceLayout:', !!practiceLayout);
+    console.log('- toggleBtn:', !!toggleBtn);
+    
+    if (!resultsPanel || !practiceLayout || !toggleBtn) {
+        console.error('Required elements not found for toggle');
+        return;
+    }
     
     const isHidden = resultsPanel.classList.contains('hidden');
+    console.log('Current state - isHidden:', isHidden);
     
     if (isHidden) {
         // Show panel
+        console.log('Showing results panel...');
         resultsPanel.classList.remove('hidden');
         practiceLayout.classList.remove('results-hidden');
         toggleBtn.innerHTML = '📊 Hide Results';
+        console.log('Panel shown');
     } else {
         // Hide panel
+        console.log('Hiding results panel...');
         resultsPanel.classList.add('hidden');
         practiceLayout.classList.add('results-hidden');
         toggleBtn.innerHTML = '📊 Show Results';
+        console.log('Panel hidden');
     }
+    
+    console.log('=== TOGGLE COMPLETE ===');
 }
 
 // --- End Results Panel Functions ---
