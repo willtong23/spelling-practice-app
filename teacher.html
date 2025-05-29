@@ -596,9 +596,14 @@
         <div class="tab-content" id="students">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0; color: #1e293b;">Students & Classes</h2>
-                <button class="btn-secondary" onclick="checkAllClassAssignments()" title="Check assignment status across all classes">
-                    Check All Assignments
-                </button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-secondary" onclick="cleanupDuplicateAssignments()" title="Remove duplicate assignments from the database" style="background: #f59e0b; color: white; border: 2px solid #d97706;">
+                        🧹 Clean Duplicates
+                    </button>
+                    <button class="btn-secondary" onclick="checkAllClassAssignments()" title="Check assignment status across all classes">
+                        Check All Assignments
+                    </button>
+                </div>
             </div>
             <div class="students-classes-container">
                 <div class="classes-section">
@@ -656,7 +661,12 @@
             
             <div class="section-card" style="margin-top: 24px;">
                 <div class="section-title">Current Assignments</div>
-                <button class="btn-secondary" id="refreshAssignmentsBtn" style="margin-bottom: 12px;">Refresh Status</button>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <button class="btn-secondary" onclick="cleanupDuplicateAssignments()" title="Remove duplicate assignments from the database" style="background: #f59e0b; color: white; border: 2px solid #d97706;">
+                        🧹 Clean Duplicates
+                    </button>
+                    <button class="btn-secondary" id="refreshAssignmentsBtn">Refresh Status</button>
+                </div>
                 <table class="data-table" id="assignmentsTable">
                     <thead>
                         <tr>

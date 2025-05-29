@@ -1180,11 +1180,30 @@ async function assignToStudent() {
         return;
     }
     
-    // Check if this specific assignment already exists
+    // Enhanced duplicate check - check both local and Firebase
     const existingAssignment = assignments.find(a => a.studentId === studentId && a.wordSetId === wordSetId);
     if (existingAssignment) {
         showNotification('This student already has this word set assigned', 'warning');
         return;
+    }
+    
+    // Double-check in Firebase to prevent race conditions
+    try {
+        const firebaseCheck = await window.db.collection('assignments')
+            .where('studentId', '==', studentId)
+            .where('wordSetId', '==', wordSetId)
+            .get();
+        
+        if (!firebaseCheck.empty) {
+            showNotification('This assignment already exists in the database', 'warning');
+            // Reload assignments to sync local data
+            await loadAssignments();
+            renderAssignments();
+            renderStudentsAndClasses();
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking for existing assignments:', error);
     }
     
     try {
@@ -1242,8 +1261,32 @@ async function assignToClass() {
     const className = classes.find(c => c.id === classId)?.name;
     const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
     
-    // Show confirmation dialog
-    const confirmMessage = `This will assign "${wordSetName}" to all ${classStudents.length} students in class "${className}" (in addition to any existing assignments).\n\nDo you want to continue?`;
+    // Enhanced duplicate checking for class assignments
+    const existingStudentsWithAssignment = [];
+    const studentsNeedingAssignment = [];
+    
+    for (const student of classStudents) {
+        const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
+        if (existingAssignment) {
+            existingStudentsWithAssignment.push(student.name);
+        } else {
+            studentsNeedingAssignment.push(student);
+        }
+    }
+    
+    if (studentsNeedingAssignment.length === 0) {
+        showNotification(`All students in "${className}" already have "${wordSetName}" assigned`, 'info');
+        return;
+    }
+    
+    // Show confirmation dialog with details
+    let confirmMessage = `This will assign "${wordSetName}" to ${studentsNeedingAssignment.length} students in class "${className}".`;
+    
+    if (existingStudentsWithAssignment.length > 0) {
+        confirmMessage += `\n\n${existingStudentsWithAssignment.length} students already have this word set and will be skipped:\n${existingStudentsWithAssignment.join(', ')}`;
+    }
+    
+    confirmMessage += '\n\nDo you want to continue?';
     
     if (!confirm(confirmMessage)) {
         return;
@@ -1251,16 +1294,19 @@ async function assignToClass() {
     
     try {
         let assignmentsCreated = 0;
-        let alreadyAssigned = 0;
+        const failedAssignments = [];
         
-        // Create assignments for all students in the class (don't replace existing ones)
-        for (const student of classStudents) {
+        // Create assignments only for students who don't already have them
+        for (const student of studentsNeedingAssignment) {
             try {
-                // Check if this specific assignment already exists
-                const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
-                if (existingAssignment) {
-                    console.log(`Student ${student.name} already has word set ${wordSetName} assigned`);
-                    alreadyAssigned++;
+                // Double-check in Firebase to prevent race conditions
+                const firebaseCheck = await window.db.collection('assignments')
+                    .where('studentId', '==', student.id)
+                    .where('wordSetId', '==', wordSetId)
+                    .get();
+                
+                if (!firebaseCheck.empty) {
+                    console.log(`Student ${student.name} already has assignment in Firebase, skipping`);
                     continue;
                 }
                 
@@ -1280,6 +1326,7 @@ async function assignToClass() {
                 
             } catch (error) {
                 console.error(`Error processing student ${student.name}:`, error);
+                failedAssignments.push(student.name);
             }
         }
         
@@ -1295,13 +1342,12 @@ async function assignToClass() {
         renderAssignments();
         renderStudentsAndClasses();
         
-        let message = `Assignment complete: `;
-        if (assignmentsCreated > 0) {
-            message += `${assignmentsCreated} new assignments created`;
+        let message = `Assignment complete: ${assignmentsCreated} new assignments created`;
+        if (existingStudentsWithAssignment.length > 0) {
+            message += `, ${existingStudentsWithAssignment.length} students already had this word set`;
         }
-        if (alreadyAssigned > 0) {
-            if (assignmentsCreated > 0) message += `, `;
-            message += `${alreadyAssigned} students already had this word set`;
+        if (failedAssignments.length > 0) {
+            message += `, ${failedAssignments.length} assignments failed`;
         }
         
         showNotification(message, assignmentsCreated > 0 ? 'success' : 'info');
@@ -3712,11 +3758,30 @@ async function executeQuickAssignToStudent(studentId) {
         return;
     }
     
-    // Check if this specific assignment already exists
+    // Enhanced duplicate check - check both local and Firebase
     const existingAssignment = assignments.find(a => a.studentId === studentId && a.wordSetId === wordSetId);
     if (existingAssignment) {
         showNotification('This student already has this word set assigned', 'warning');
         return;
+    }
+    
+    // Double-check in Firebase to prevent race conditions
+    try {
+        const firebaseCheck = await window.db.collection('assignments')
+            .where('studentId', '==', studentId)
+            .where('wordSetId', '==', wordSetId)
+            .get();
+        
+        if (!firebaseCheck.empty) {
+            showNotification('This assignment already exists in the database', 'warning');
+            // Reload assignments to sync local data
+            await loadAssignments();
+            renderStudentsAndClasses();
+            closeModal();
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking for existing assignments:', error);
     }
     
     try {
@@ -3760,37 +3825,59 @@ async function executeQuickAssignToClass(classId) {
         return;
     }
     
+    // Enhanced duplicate checking for class assignments
+    const existingStudentsWithAssignment = [];
+    const studentsNeedingAssignment = [];
+    
+    for (const student of studentsInClass) {
+        const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
+        if (existingAssignment) {
+            existingStudentsWithAssignment.push(student.name);
+        } else {
+            studentsNeedingAssignment.push(student);
+        }
+    }
+    
+    if (studentsNeedingAssignment.length === 0) {
+        showNotification(`All students in "${classData.name}" already have this word set assigned`, 'info');
+        closeModal();
+        return;
+    }
+    
     try {
-        // Create class assignment
-        const classAssignmentData = {
-            classId,
-            wordSetId,
-            assignedAt: new Date(),
-            assignedBy: 'teacher',
-            type: 'class'
-        };
-        
-        const classDocRef = await window.db.collection('assignments').add(classAssignmentData);
-        assignments.push({ id: classDocRef.id, ...classAssignmentData });
-        
-        // Auto-assign to all students in the class
         let successCount = 0;
-        for (const student of studentsInClass) {
-            // Check if student already has this assignment
-            const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
-            if (!existingAssignment) {
+        const failedAssignments = [];
+        
+        // Create assignments only for students who don't already have them
+        for (const student of studentsNeedingAssignment) {
+            try {
+                // Double-check in Firebase to prevent race conditions
+                const firebaseCheck = await window.db.collection('assignments')
+                    .where('studentId', '==', student.id)
+                    .where('wordSetId', '==', wordSetId)
+                    .get();
+                
+                if (!firebaseCheck.empty) {
+                    console.log(`Student ${student.name} already has assignment in Firebase, skipping`);
+                    continue;
+                }
+                
                 const studentAssignmentData = {
                     studentId: student.id,
                     wordSetId,
                     assignedAt: new Date(),
                     assignedBy: 'teacher',
-                    type: 'from-class',
-                    sourceClassId: classId
+                    type: 'class',
+                    classId: classId
                 };
                 
                 const studentDocRef = await window.db.collection('assignments').add(studentAssignmentData);
                 assignments.push({ id: studentDocRef.id, ...studentAssignmentData });
                 successCount++;
+                
+            } catch (error) {
+                console.error(`Error processing student ${student.name}:`, error);
+                failedAssignments.push(student.name);
             }
         }
         
@@ -3799,7 +3886,16 @@ async function executeQuickAssignToClass(classId) {
         renderAssignments(); // Update assignments tab too
         
         const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
-        showNotification(`✅ Successfully assigned "${wordSetName}" to class "${classData.name}" and all ${successCount} students!`, 'success');
+        let message = `✅ Successfully assigned "${wordSetName}" to class "${classData.name}": ${successCount} new assignments created`;
+        
+        if (existingStudentsWithAssignment.length > 0) {
+            message += `, ${existingStudentsWithAssignment.length} students already had this word set`;
+        }
+        if (failedAssignments.length > 0) {
+            message += `, ${failedAssignments.length} assignments failed`;
+        }
+        
+        showNotification(message, 'success');
         
     } catch (error) {
         console.error('Error creating class assignment:', error);
@@ -4048,4 +4144,115 @@ function goToPage(pageNumber) {
 function addTestData() {
     // This is just for demonstration - in real use, data comes from student quizzes
     showNotification('Test data feature is for demonstration only. Real data comes from student quiz completions.', 'info');
+}
+
+// Enhanced duplicate assignment cleanup function
+async function cleanupDuplicateAssignments() {
+    if (!confirm('This will scan for and remove duplicate assignments. This action cannot be undone. Continue?')) {
+        return;
+    }
+    
+    try {
+        console.log('=== STARTING DUPLICATE ASSIGNMENT CLEANUP ===');
+        
+        // Reload assignments to get the latest data
+        await loadAssignments();
+        
+        const duplicatesFound = [];
+        const assignmentsToKeep = [];
+        const assignmentsToDelete = [];
+        
+        // Group assignments by student+wordSet combination
+        const assignmentGroups = {};
+        
+        assignments.forEach(assignment => {
+            // Create a unique key for each student+wordSet combination
+            const key = `${assignment.studentId || 'no-student'}_${assignment.wordSetId || 'no-wordset'}`;
+            
+            if (!assignmentGroups[key]) {
+                assignmentGroups[key] = [];
+            }
+            assignmentGroups[key].push(assignment);
+        });
+        
+        // Process each group to find duplicates
+        Object.keys(assignmentGroups).forEach(key => {
+            const group = assignmentGroups[key];
+            
+            if (group.length > 1) {
+                // Sort by creation date (keep the oldest one)
+                group.sort((a, b) => {
+                    const dateA = a.assignedAt ? new Date(a.assignedAt.seconds ? a.assignedAt.seconds * 1000 : a.assignedAt) : new Date(0);
+                    const dateB = b.assignedAt ? new Date(b.assignedAt.seconds ? b.assignedAt.seconds * 1000 : b.assignedAt) : new Date(0);
+                    return dateA - dateB;
+                });
+                
+                // Keep the first (oldest) assignment
+                assignmentsToKeep.push(group[0]);
+                
+                // Mark the rest as duplicates to delete
+                for (let i = 1; i < group.length; i++) {
+                    assignmentsToDelete.push(group[i]);
+                    duplicatesFound.push({
+                        studentId: group[i].studentId,
+                        wordSetId: group[i].wordSetId,
+                        assignmentId: group[i].id
+                    });
+                }
+            } else {
+                // No duplicates, keep the single assignment
+                assignmentsToKeep.push(group[0]);
+            }
+        });
+        
+        console.log(`Found ${duplicatesFound.length} duplicate assignments to remove`);
+        console.log('Duplicates:', duplicatesFound);
+        
+        if (duplicatesFound.length === 0) {
+            showNotification('✅ No duplicate assignments found!', 'success');
+            return;
+        }
+        
+        // Show confirmation with details
+        const studentNames = await Promise.all(
+            duplicatesFound.map(async (dup) => {
+                const student = students.find(s => s.id === dup.studentId);
+                const wordSet = wordSets.find(ws => ws.id === dup.wordSetId);
+                return `• ${student?.name || 'Unknown Student'} - ${wordSet?.name || 'Unknown Word Set'}`;
+            })
+        );
+        
+        const confirmMessage = `Found ${duplicatesFound.length} duplicate assignments:\n\n${studentNames.join('\n')}\n\nDelete these duplicates?`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        // Delete duplicate assignments from Firebase
+        let deletedCount = 0;
+        for (const assignment of assignmentsToDelete) {
+            try {
+                await window.db.collection('assignments').doc(assignment.id).delete();
+                deletedCount++;
+                console.log(`Deleted duplicate assignment: ${assignment.id}`);
+            } catch (error) {
+                console.error(`Error deleting assignment ${assignment.id}:`, error);
+            }
+        }
+        
+        // Update local assignments array
+        assignments = assignmentsToKeep;
+        
+        // Refresh the display
+        renderAssignments();
+        renderStudentsAndClasses();
+        
+        showNotification(`✅ Successfully removed ${deletedCount} duplicate assignments!`, 'success');
+        
+        console.log('=== DUPLICATE ASSIGNMENT CLEANUP COMPLETE ===');
+        
+    } catch (error) {
+        console.error('Error during duplicate cleanup:', error);
+        showNotification('❌ Error during cleanup: ' + error.message, 'error');
+    }
 }
