@@ -493,6 +493,57 @@ let isAlphabetKeyboardVisible = false;
 let currentFocusedLetterBox = null;
 let isCheckingSpelling = false; // Prevent double-checking
 
+// Global authentication check function
+function isUserAuthenticated() {
+    const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
+    const storedUserName = localStorage.getItem('userName');
+    return isAuthenticated && storedUserName && userName;
+}
+
+// Disable app interface when not authenticated
+function disableAppInterface() {
+    const practiceSection = document.querySelector('.practice-card');
+    const controlButtons = document.querySelectorAll('.control-btn');
+    const letterInputs = document.querySelectorAll('.letter-hint-box');
+    
+    if (practiceSection) {
+        practiceSection.style.opacity = '0.3';
+        practiceSection.style.pointerEvents = 'none';
+    }
+    
+    controlButtons.forEach(btn => {
+        if (btn.id !== 'clearDataBtn') { // Keep sign out button enabled
+            btn.disabled = true;
+            btn.style.opacity = '0.3';
+        }
+    });
+    
+    letterInputs.forEach(input => {
+        input.disabled = true;
+    });
+}
+
+// Enable app interface when authenticated
+function enableAppInterface() {
+    const practiceSection = document.querySelector('.practice-card');
+    const controlButtons = document.querySelectorAll('.control-btn');
+    const letterInputs = document.querySelectorAll('.letter-hint-box');
+    
+    if (practiceSection) {
+        practiceSection.style.opacity = '1';
+        practiceSection.style.pointerEvents = 'auto';
+    }
+    
+    controlButtons.forEach(btn => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+    });
+    
+    letterInputs.forEach(input => {
+        input.disabled = false;
+    });
+}
+
 // --- Name Prompt ---
 function promptUserName() {
     // Always require sign-in - no auto-login on refresh
@@ -503,6 +554,9 @@ function promptUserName() {
     // Clear any stored authentication data
     localStorage.removeItem('userName');
     localStorage.removeItem('userAuthenticated');
+    
+    // Disable app interface until authenticated
+    disableAppInterface();
     
     // Always show the sign-in modal
     console.log('Showing sign-in modal...');
@@ -595,17 +649,19 @@ function showNameModal() {
     // Handle submit button
     submitBtn.addEventListener('click', handleNameSubmit);
     
-    // Handle cancel button - no default user, just close
+    // Handle cancel button - prevent access without authentication
     cancelBtn.addEventListener('click', function() {
-        hideNameModal();
-        showNotification('Sign-in cancelled. Please refresh to try again.', 'info');
+        // Don't hide the modal - keep it visible
+        showNameError('Authentication is required to use this app. Please sign in or refresh the page.');
+        nameInput.focus();
     });
     
-    // Handle click outside modal - no default user, just close
+    // Handle click outside modal - prevent access without authentication
     nameModal.addEventListener('click', function(e) {
         if (e.target === nameModal) {
-            hideNameModal();
-            showNotification('Sign-in cancelled. Please refresh to try again.', 'info');
+            // Don't hide the modal - keep it visible
+            showNameError('Authentication is required to use this app. Please sign in or refresh the page.');
+            nameInput.focus();
         }
     });
     
@@ -657,6 +713,9 @@ function showNameModal() {
                 localStorage.setItem('userName', userName);
                 localStorage.setItem('userAuthenticated', 'true');
                 hideNameModal();
+                
+                // Enable app interface after successful authentication
+                enableAppInterface();
                 
                 // Initialize the app after successful authentication
                 initializeApp();
@@ -1145,6 +1204,14 @@ function moveToNextWord() {
 
 // --- Spelling Check Function ---
 function checkSpelling() {
+    // Check authentication first
+    if (!isUserAuthenticated()) {
+        console.log('Unauthorized access attempt blocked');
+        showNotification('Please sign in to use this feature.', 'error');
+        promptUserName();
+        return;
+    }
+    
     if (words.length === 0 || quizComplete) return;
     
     // Prevent double-checking
@@ -1660,6 +1727,22 @@ function showAllWords() {
 // Check if Firebase is available and load words accordingly
 function initializeApp() {
     console.log('Initializing app...');
+    
+    // Verify authentication before initializing
+    const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
+    const storedUserName = localStorage.getItem('userName');
+    
+    if (!isAuthenticated || !storedUserName || !userName) {
+        console.log('User not properly authenticated, blocking app initialization');
+        showNotification('Authentication required. Please sign in.', 'error');
+        // Show the sign-in modal again if it's not visible
+        setTimeout(() => {
+            promptUserName();
+        }, 1000);
+        return;
+    }
+    
+    console.log('User authenticated, proceeding with app initialization');
     console.log('window.db available:', !!window.db);
     console.log('firebase available:', typeof firebase !== 'undefined');
     
