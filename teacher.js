@@ -1440,74 +1440,52 @@ async function assignToClass() {
     const className = classes.find(c => c.id === classId)?.name;
     const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
     
-    // Enhanced duplicate checking for class assignments
-    const existingStudentsWithAssignment = [];
-    const studentsNeedingAssignment = [];
-    
-    for (const student of classStudents) {
-        const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
-        if (existingAssignment) {
-            existingStudentsWithAssignment.push(student.name);
-        } else {
-            studentsNeedingAssignment.push(student);
-        }
-    }
-    
-    if (studentsNeedingAssignment.length === 0) {
-        showNotification(`All students in "${className}" already have "${wordSetName}" assigned`, 'info');
+    // Check if this class already has this word set assigned
+    const existingClassAssignment = assignments.find(a => a.classId === classId && a.wordSetId === wordSetId && a.type === 'class');
+    if (existingClassAssignment) {
+        showNotification(`Class "${className}" already has "${wordSetName}" assigned`, 'warning');
         return;
     }
     
-    // Show confirmation dialog with details
-    let confirmMessage = `This will assign "${wordSetName}" to ${studentsNeedingAssignment.length} students in class "${className}".`;
-    
-    if (existingStudentsWithAssignment.length > 0) {
-        confirmMessage += `\n\n${existingStudentsWithAssignment.length} students already have this word set and will be skipped:\n${existingStudentsWithAssignment.join(', ')}`;
+    // Double-check in Firebase to prevent race conditions
+    try {
+        const firebaseCheck = await window.db.collection('assignments')
+            .where('classId', '==', classId)
+            .where('wordSetId', '==', wordSetId)
+            .where('type', '==', 'class')
+            .get();
+        
+        if (!firebaseCheck.empty) {
+            showNotification('This class assignment already exists in the database', 'warning');
+            await loadAssignments();
+            renderAssignments();
+            renderStudentsAndClasses();
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking for existing class assignments:', error);
     }
     
-    confirmMessage += '\n\nDo you want to continue?';
+    // Show confirmation dialog
+    const confirmMessage = `This will assign "${wordSetName}" to class "${className}" (${classStudents.length} students).\n\nThis creates ONE class assignment that applies to all students in the class.\n\nDo you want to continue?`;
     
     if (!confirm(confirmMessage)) {
         return;
     }
     
     try {
-        let assignmentsCreated = 0;
-        const failedAssignments = [];
+        // Create ONE class assignment
+        const classAssignmentData = {
+            classId,
+            wordSetId,
+            assignedAt: new Date(),
+            assignedBy: 'teacher',
+            type: 'class',
+            studentCount: classStudents.length
+        };
         
-        // Create assignments only for students who don't already have them
-        for (const student of studentsNeedingAssignment) {
-            try {
-                // Double-check in Firebase to prevent race conditions
-                const firebaseCheck = await window.db.collection('assignments')
-                    .where('studentId', '==', student.id)
-                    .where('wordSetId', '==', wordSetId)
-                    .get();
-                
-                if (!firebaseCheck.empty) {
-                    console.log(`Student ${student.name} already has assignment in Firebase, skipping`);
-                    continue;
-                }
-                
-                // Create new assignment
-                const assignmentData = {
-                    studentId: student.id,
-                    wordSetId,
-                    assignedAt: new Date(),
-                    assignedBy: 'teacher',
-                    type: 'class',
-                    classId
-                };
-                
-                const docRef = await window.db.collection('assignments').add(assignmentData);
-                assignments.push({ id: docRef.id, ...assignmentData });
-                assignmentsCreated++;
-                
-            } catch (error) {
-                console.error(`Error processing student ${student.name}:`, error);
-                failedAssignments.push(student.name);
-            }
-        }
+        const docRef = await window.db.collection('assignments').add(classAssignmentData);
+        assignments.push({ id: docRef.id, ...classAssignmentData });
         
         // Update the main wordlist (for backward compatibility)
         const wordSet = wordSets.find(ws => ws.id === wordSetId);
@@ -1521,15 +1499,7 @@ async function assignToClass() {
         renderAssignments();
         renderStudentsAndClasses();
         
-        let message = `Assignment complete: ${assignmentsCreated} new assignments created`;
-        if (existingStudentsWithAssignment.length > 0) {
-            message += `, ${existingStudentsWithAssignment.length} students already had this word set`;
-        }
-        if (failedAssignments.length > 0) {
-            message += `, ${failedAssignments.length} assignments failed`;
-        }
-        
-        showNotification(message, assignmentsCreated > 0 ? 'success' : 'info');
+        showNotification(`✅ Successfully assigned "${wordSetName}" to class "${className}" (${classStudents.length} students)!`, 'success');
         
         // Clear selections
         document.getElementById('assignClassSelect').value = '';
@@ -4004,77 +3974,54 @@ async function executeQuickAssignToClass(classId) {
         return;
     }
     
-    // Enhanced duplicate checking for class assignments
-    const existingStudentsWithAssignment = [];
-    const studentsNeedingAssignment = [];
-    
-    for (const student of studentsInClass) {
-        const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
-        if (existingAssignment) {
-            existingStudentsWithAssignment.push(student.name);
-        } else {
-            studentsNeedingAssignment.push(student);
-        }
-    }
-    
-    if (studentsNeedingAssignment.length === 0) {
-        showNotification(`All students in "${classData.name}" already have this word set assigned`, 'info');
+    // Check if this class already has this word set assigned
+    const existingClassAssignment = assignments.find(a => a.classId === classId && a.wordSetId === wordSetId && a.type === 'class');
+    if (existingClassAssignment) {
+        showNotification(`Class "${classData.name}" already has this word set assigned`, 'warning');
         closeModal();
         return;
     }
     
+    // Double-check in Firebase to prevent race conditions
     try {
-        let successCount = 0;
-        const failedAssignments = [];
+        const firebaseCheck = await window.db.collection('assignments')
+            .where('classId', '==', classId)
+            .where('wordSetId', '==', wordSetId)
+            .where('type', '==', 'class')
+            .get();
         
-        // Create assignments only for students who don't already have them
-        for (const student of studentsNeedingAssignment) {
-            try {
-                // Double-check in Firebase to prevent race conditions
-                const firebaseCheck = await window.db.collection('assignments')
-                    .where('studentId', '==', student.id)
-                    .where('wordSetId', '==', wordSetId)
-                    .get();
-                
-                if (!firebaseCheck.empty) {
-                    console.log(`Student ${student.name} already has assignment in Firebase, skipping`);
-                    continue;
-                }
-                
-                const studentAssignmentData = {
-                    studentId: student.id,
-                    wordSetId,
-                    assignedAt: new Date(),
-                    assignedBy: 'teacher',
-                    type: 'class',
-                    classId: classId
-                };
-                
-                const studentDocRef = await window.db.collection('assignments').add(studentAssignmentData);
-                assignments.push({ id: studentDocRef.id, ...studentAssignmentData });
-                successCount++;
-                
-            } catch (error) {
-                console.error(`Error processing student ${student.name}:`, error);
-                failedAssignments.push(student.name);
-            }
+        if (!firebaseCheck.empty) {
+            showNotification('This class assignment already exists in the database', 'warning');
+            closeModal();
+            await loadAssignments();
+            renderAssignments();
+            renderStudentsAndClasses();
+            return;
         }
+    } catch (error) {
+        console.error('Error checking for existing class assignments:', error);
+    }
+    
+    try {
+        // Create ONE class assignment
+        const classAssignmentData = {
+            classId: classId,
+            wordSetId,
+            assignedAt: new Date(),
+            assignedBy: 'teacher',
+            type: 'class',
+            studentCount: studentsInClass.length
+        };
+        
+        const docRef = await window.db.collection('assignments').add(classAssignmentData);
+        assignments.push({ id: docRef.id, ...classAssignmentData });
         
         closeModal();
         renderStudentsAndClasses();
         renderAssignments(); // Update assignments tab too
         
         const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
-        let message = `✅ Successfully assigned "${wordSetName}" to class "${classData.name}": ${successCount} new assignments created`;
-        
-        if (existingStudentsWithAssignment.length > 0) {
-            message += `, ${existingStudentsWithAssignment.length} students already had this word set`;
-        }
-        if (failedAssignments.length > 0) {
-            message += `, ${failedAssignments.length} assignments failed`;
-        }
-        
-        showNotification(message, 'success');
+        showNotification(`✅ Successfully assigned "${wordSetName}" to class "${classData.name}" (${studentsInClass.length} students)!`, 'success');
         
     } catch (error) {
         console.error('Error creating class assignment:', error);
