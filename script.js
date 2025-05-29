@@ -258,12 +258,36 @@ async function loadAvailableWordSets() {
                         </label>
                     `;
                     
-                    // Add click event listener for immediate switching
+                    // Add click event listeners for immediate switching
                     const radio = setItem.querySelector('input[type="radio"]');
+                    const label = setItem.querySelector('.word-set-label');
+                    
+                    // Handle radio button change
                     radio.addEventListener('change', function() {
                         if (this.checked) {
+                            console.log(`Radio changed: switching to ${set.name} (${set.id})`);
                             switchToWordSet(set.id, set.name, set.words);
                         }
+                    });
+                    
+                    // Handle label click to ensure proper selection
+                    label.addEventListener('click', function(e) {
+                        // Prevent double-firing if clicking directly on radio
+                        if (e.target === radio) return;
+                        
+                        console.log(`Label clicked: switching to ${set.name} (${set.id})`);
+                        radio.checked = true;
+                        switchToWordSet(set.id, set.name, set.words);
+                    });
+                    
+                    // Handle entire item click for better UX
+                    setItem.addEventListener('click', function(e) {
+                        // Only handle if not already handled by radio or label
+                        if (e.target === radio || e.target.closest('.word-set-label')) return;
+                        
+                        console.log(`Item clicked: switching to ${set.name} (${set.id})`);
+                        radio.checked = true;
+                        switchToWordSet(set.id, set.name, set.words);
                     });
                     
                     wordSetList.appendChild(setItem);
@@ -307,43 +331,74 @@ function updateWordSetPanel() {
 function setupWordSetPanel() {
     console.log('Setting up word set panel...');
     
-    const panelToggle = document.getElementById('panelToggle');
-    const wordSetPanel = document.getElementById('wordSetPanel');
-    const mainContent = document.getElementById('mainContent');
-    
-    console.log('Elements found:');
-    console.log('- panelToggle:', !!panelToggle);
-    console.log('- wordSetPanel:', !!wordSetPanel);
-    console.log('- mainContent:', !!mainContent);
-    
-    // Panel toggle functionality
-    if (panelToggle && wordSetPanel && mainContent) {
-        console.log('Adding click event listener to panel toggle');
+    // Use a small delay to ensure DOM is fully ready
+    setTimeout(() => {
+        const panelToggle = document.getElementById('panelToggle');
+        const wordSetPanel = document.getElementById('wordSetPanel');
+        const mainContent = document.getElementById('mainContent');
         
-        // Remove any existing event listeners to avoid duplicates
-        panelToggle.removeEventListener('click', handlePanelToggle);
-        panelToggle.addEventListener('click', handlePanelToggle);
+        console.log('Elements found:');
+        console.log('- panelToggle:', !!panelToggle);
+        console.log('- wordSetPanel:', !!wordSetPanel);
+        console.log('- mainContent:', !!mainContent);
         
-        function handlePanelToggle() {
-            console.log('Panel toggle clicked!');
-            console.log('Current collapsed state:', wordSetPanel.classList.contains('collapsed'));
+        // Panel toggle functionality
+        if (panelToggle && wordSetPanel && mainContent) {
+            console.log('Adding click event listener to panel toggle');
             
-            wordSetPanel.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
+            // Remove any existing event listeners to avoid duplicates
+            panelToggle.removeEventListener('click', handlePanelToggle);
             
-            const isCollapsed = wordSetPanel.classList.contains('collapsed');
-            panelToggle.textContent = isCollapsed ? '▶' : '◀';
+            function handlePanelToggle(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Panel toggle clicked!');
+                console.log('Current collapsed state:', wordSetPanel.classList.contains('collapsed'));
+                
+                // Toggle the collapsed state
+                const isCurrentlyCollapsed = wordSetPanel.classList.contains('collapsed');
+                
+                if (isCurrentlyCollapsed) {
+                    // Expand the panel
+                    wordSetPanel.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                    panelToggle.textContent = '◀';
+                    console.log('Panel expanded');
+                } else {
+                    // Collapse the panel
+                    wordSetPanel.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    panelToggle.textContent = '▶';
+                    console.log('Panel collapsed');
+                }
+                
+                console.log('New collapsed state:', wordSetPanel.classList.contains('collapsed'));
+                console.log('Panel classes:', wordSetPanel.className);
+                console.log('Main content classes:', mainContent.className);
+            }
             
-            console.log('New collapsed state:', isCollapsed);
-            console.log('Panel classes:', wordSetPanel.className);
-            console.log('Main content classes:', mainContent.className);
+            // Add the event listener
+            panelToggle.addEventListener('click', handlePanelToggle);
+            
+            // Test the toggle button immediately
+            console.log('Panel toggle setup complete. Testing button...');
+            console.log('Button text:', panelToggle.textContent);
+            console.log('Button clickable:', !panelToggle.disabled);
+            
+        } else {
+            console.error('Missing elements for panel toggle:');
+            console.error('- panelToggle:', panelToggle);
+            console.error('- wordSetPanel:', wordSetPanel);
+            console.error('- mainContent:', mainContent);
+            
+            // Try again after a longer delay
+            setTimeout(() => {
+                console.log('Retrying panel setup...');
+                setupWordSetPanel();
+            }, 1000);
         }
-    } else {
-        console.error('Missing elements for panel toggle:');
-        console.error('- panelToggle:', panelToggle);
-        console.error('- wordSetPanel:', wordSetPanel);
-        console.error('- mainContent:', mainContent);
-    }
+    }, 100);
 }
 
 
