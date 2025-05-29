@@ -79,8 +79,12 @@
             </div>
             
             <div class="practice-card">
-                <div class="word-counter">
-                    <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
+                <div class="word-counter-navigation">
+                    <button class="nav-btn" id="prevButton" disabled>← Previous</button>
+                    <div class="word-counter">
+                        <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
+                    </div>
+                    <button class="nav-btn" id="nextButton">Next →</button>
                 </div>
                 
                 <div class="progress-container">
@@ -158,11 +162,6 @@
                 
                 <div class="action-controls">
                     <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
-                </div>
-                
-                <div class="navigation">
-                    <button class="nav-btn" id="prevButton" disabled>← Previous</button>
-                    <button class="nav-btn" id="nextButton">Next →</button>
                 </div>
             </div>
         </div>
