@@ -980,6 +980,12 @@ function updateLetterHint() {
             // Prevent processing if quiz is complete or word has changed
             if (quizComplete || !words[currentWordIndex]) return;
             
+            // Reset the checking flag when user starts typing again (fixes auto-check on subsequent attempts)
+            if (isCheckingSpelling) {
+                isCheckingSpelling = false;
+                console.log('Reset isCheckingSpelling flag - user is typing again');
+            }
+            
             // Ensure only single character and convert to lowercase for consistency
             if (box.value.length > 1) {
                 box.value = box.value.charAt(0).toLowerCase();
@@ -995,7 +1001,7 @@ function updateLetterHint() {
             } else if (box.value.length === 1 && i === wordLength - 1) {
                 // Auto-check when last letter is entered
                 setTimeout(() => {
-                    if (!quizComplete && words[currentWordIndex]) {
+                    if (!quizComplete && words[currentWordIndex] && !isCheckingSpelling) {
                         checkSpelling();
                     }
                 }, 100);
@@ -1008,6 +1014,13 @@ function updateLetterHint() {
             
             if (e.key === ' ') {
                 e.preventDefault();
+                
+                // Reset the checking flag when user uses hints (also indicates new attempt)
+                if (isCheckingSpelling) {
+                    isCheckingSpelling = false;
+                    console.log('Reset isCheckingSpelling flag - user used hint');
+                }
+                
                 if (words[currentWordIndex] && words[currentWordIndex][i]) {
                     box.value = words[currentWordIndex][i];
                     box.disabled = true;
@@ -1026,7 +1039,7 @@ function updateLetterHint() {
                     } else {
                         // Auto-check if this was the last letter
                         setTimeout(() => {
-                            if (!quizComplete && words[currentWordIndex]) {
+                            if (!quizComplete && words[currentWordIndex] && !isCheckingSpelling) {
                                 checkSpelling();
                             }
                         }, 100);
@@ -1037,6 +1050,12 @@ function updateLetterHint() {
             // Enhanced backspace and delete handling for better user experience
             if (e.key === 'Backspace' || e.key === 'Delete') {
                 e.preventDefault(); // Prevent default behavior
+                
+                // Reset the checking flag when user clears letters (indicates new attempt)
+                if (isCheckingSpelling) {
+                    isCheckingSpelling = false;
+                    console.log('Reset isCheckingSpelling flag - user cleared letters');
+                }
                 
                 if (box.value !== '') {
                     // Clear current box if it has content
