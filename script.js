@@ -1992,15 +1992,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Interim transcript:', interimTranscript);
             // Show visual feedback that we're hearing something
             showVoiceInputFeedback(interimTranscript, false);
-            // Process interim results immediately
-            processVoiceInput(interimTranscript.toLowerCase().trim(), true);
+            // Process interim results more aggressively
+            processVoiceInputAggressively(interimTranscript.toLowerCase().trim(), true);
         }
         
-        // Process final results
+        // Process final results with high priority
         if (finalTranscript) {
             console.log('Final transcript:', finalTranscript);
             showVoiceInputFeedback(finalTranscript, true);
-            processVoiceInput(finalTranscript.toLowerCase().trim(), false);
+            // Process final results immediately and aggressively
+            processVoiceInputAggressively(finalTranscript.toLowerCase().trim(), false);
         }
     };
     
@@ -2028,17 +2029,28 @@ document.addEventListener('DOMContentLoaded', function() {
     recognition.onend = function() {
         console.log('Speech recognition ended');
         if (isVoiceInputActive) {
-            // Restart recognition if it's still supposed to be active
+            // Restart recognition immediately for continuous listening
             setTimeout(() => {
                 if (isVoiceInputActive && recognition) {
                     try {
                         recognition.start();
+                        console.log('Recognition restarted for continuous listening');
                     } catch (e) {
                         console.log('Recognition restart failed:', e);
-                        stopVoiceInput();
+                        // Try again after a shorter delay
+                        setTimeout(() => {
+                            if (isVoiceInputActive && recognition) {
+                                try {
+                                    recognition.start();
+                                } catch (e2) {
+                                    console.log('Second restart attempt failed:', e2);
+                                    stopVoiceInput();
+                                }
+                            }
+                        }, 100);
                     }
                 }
-            }, 100);
+            }, 50); // Reduced from 100ms to 50ms for faster restart
         }
     };
 });
@@ -2434,5 +2446,206 @@ function showVoiceInputFeedback(transcript, isFinal) {
     } else {
         // Show interim results in real-time
         voiceInputButton.textContent = `🎤 Hearing: "${transcript}"`;
+    }
+}
+
+// More aggressive voice processing function for better reliability
+function processVoiceInputAggressively(transcript, isInterim = false) {
+    console.log('Aggressive processing:', transcript, 'isInterim:', isInterim);
+    
+    if (!transcript || transcript.length === 0) return;
+    
+    // Clean up the transcript more thoroughly
+    const cleanTranscript = transcript.replace(/[^\w\s]/g, '').trim();
+    const words = cleanTranscript.split(/\s+/);
+    
+    let letterFound = false;
+    
+    for (const word of words) {
+        // Method 1: Direct single letter detection (a-z)
+        if (word.length === 1 && /^[a-z]$/.test(word)) {
+            console.log('Direct letter detected:', word);
+            inputLetterToBoxAggressively(word, isInterim);
+            letterFound = true;
+            continue;
+        }
+        
+        // Method 2: Common speech patterns
+        const letter = extractLetterFromSpeech(word);
+        if (letter) {
+            console.log('Speech pattern letter detected:', letter, 'from word:', word);
+            inputLetterToBoxAggressively(letter, isInterim);
+            letterFound = true;
+            continue;
+        }
+        
+        // Method 3: Partial matching for common mispronunciations
+        const partialLetter = extractLetterFromPartialMatch(word);
+        if (partialLetter) {
+            console.log('Partial match letter detected:', partialLetter, 'from word:', word);
+            inputLetterToBoxAggressively(partialLetter, isInterim);
+            letterFound = true;
+            continue;
+        }
+        
+        // Method 4: First letter extraction for unclear speech
+        if (!isInterim && word.length > 1 && /^[a-z]/.test(word)) {
+            const firstLetter = word.charAt(0);
+            console.log('First letter extraction:', firstLetter, 'from word:', word);
+            inputLetterToBoxAggressively(firstLetter, false);
+            letterFound = true;
+        }
+    }
+    
+    // If no letter found but we have transcript, try to extract any single character
+    if (!letterFound && !isInterim && cleanTranscript.length > 0) {
+        const singleChars = cleanTranscript.match(/[a-z]/g);
+        if (singleChars && singleChars.length > 0) {
+            console.log('Fallback single char extraction:', singleChars[0]);
+            inputLetterToBoxAggressively(singleChars[0], false);
+        }
+    }
+}
+
+// Enhanced letter extraction for partial matches and mispronunciations
+function extractLetterFromPartialMatch(word) {
+    const partialMappings = {
+        // Common mispronunciations and partial matches
+        'a': 'a', 'ah': 'a', 'ay': 'a', 'eh': 'a',
+        'b': 'b', 'be': 'b', 'bee': 'b', 'bi': 'b',
+        'c': 'c', 'see': 'c', 'sea': 'c', 'si': 'c',
+        'd': 'd', 'dee': 'd', 'di': 'd',
+        'e': 'e', 'ee': 'e', 'ea': 'e',
+        'f': 'f', 'eff': 'f', 'ef': 'f',
+        'g': 'g', 'gee': 'g', 'gi': 'g',
+        'h': 'h', 'aitch': 'h', 'ach': 'h',
+        'i': 'i', 'eye': 'i', 'ai': 'i',
+        'j': 'j', 'jay': 'j', 'ja': 'j',
+        'k': 'k', 'kay': 'k', 'ka': 'k',
+        'l': 'l', 'ell': 'l', 'el': 'l',
+        'm': 'm', 'em': 'm', 'mm': 'm',
+        'n': 'n', 'en': 'n', 'nn': 'n',
+        'o': 'o', 'oh': 'o', 'ow': 'o',
+        'p': 'p', 'pee': 'p', 'pi': 'p',
+        'q': 'q', 'cue': 'q', 'queue': 'q', 'qu': 'q',
+        'r': 'r', 'are': 'r', 'ar': 'r',
+        's': 's', 'ess': 's', 'es': 's',
+        't': 't', 'tee': 't', 'tea': 't', 'ti': 't',
+        'u': 'u', 'you': 'u', 'yu': 'u',
+        'v': 'v', 'vee': 'v', 'vi': 'v',
+        'w': 'w', 'double': 'w', 'dub': 'w',
+        'x': 'x', 'ex': 'x', 'eks': 'x',
+        'y': 'y', 'why': 'y', 'wi': 'y',
+        'z': 'z', 'zee': 'z', 'zed': 'z', 'zi': 'z'
+    };
+    
+    const lowerWord = word.toLowerCase();
+    
+    // Direct match
+    if (partialMappings[lowerWord]) {
+        return partialMappings[lowerWord];
+    }
+    
+    // Partial match - check if word starts with or contains known patterns
+    for (const [pattern, letter] of Object.entries(partialMappings)) {
+        if (pattern.length > 1 && (lowerWord.includes(pattern) || pattern.includes(lowerWord))) {
+            return letter;
+        }
+    }
+    
+    return null;
+}
+
+// More aggressive letter input function
+function inputLetterToBoxAggressively(letter, isInterim = false) {
+    if (!letterInputs || letterInputs.length === 0) {
+        return;
+    }
+    
+    // For interim results, show stronger visual feedback
+    if (isInterim) {
+        let targetBox = letterInputs.find(box => box.value === '');
+        if (targetBox) {
+            // Stronger visual hint for interim results
+            targetBox.style.background = '#bfdbfe';
+            targetBox.style.borderColor = '#3b82f6';
+            targetBox.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                if (targetBox.value === '') {
+                    targetBox.style.background = '';
+                    targetBox.style.borderColor = '';
+                    targetBox.style.transform = '';
+                }
+            }, 300);
+        }
+        return;
+    }
+    
+    // Find the first empty box for final input
+    let targetBox = letterInputs.find(box => box.value === '');
+    
+    if (!targetBox) {
+        // If no empty boxes, check if all boxes are filled
+        const allFilled = letterInputs.every(box => box.value !== '');
+        if (allFilled) {
+            // All boxes are filled, stop voice input and check spelling
+            stopVoiceInput();
+            showNotification('All letters filled! Checking spelling...', 'success');
+            setTimeout(() => {
+                checkSpelling();
+            }, 300);
+            return;
+        }
+        // If not all filled but no empty box found, use the first box
+        targetBox = letterInputs[0];
+    }
+    
+    if (targetBox) {
+        const boxIndex = letterInputs.indexOf(targetBox);
+        
+        // Input the letter immediately
+        targetBox.value = letter.toLowerCase();
+        targetBox.disabled = false;
+        
+        // Focus on the target box
+        targetBox.focus();
+        
+        // Trigger input event for consistency
+        const inputEvent = new Event('input', { bubbles: true });
+        targetBox.dispatchEvent(inputEvent);
+        
+        // Enhanced visual feedback for successful input
+        targetBox.style.background = '#dcfce7';
+        targetBox.style.borderColor = '#22c55e';
+        targetBox.style.transform = 'scale(1.15)';
+        
+        // Reset visual feedback
+        setTimeout(() => {
+            targetBox.style.background = '';
+            targetBox.style.borderColor = '';
+            targetBox.style.transform = '';
+        }, 800);
+        
+        console.log(`AGGRESSIVE: "${letter}" added to box ${boxIndex + 1}/${letterInputs.length}`);
+        
+        // Show immediate feedback
+        const remainingEmpty = letterInputs.filter(box => box.value === '').length;
+        if (remainingEmpty > 0) {
+            showNotification(`✓ "${letter.toUpperCase()}" - ${remainingEmpty} more needed`, 'success');
+        } else {
+            // All boxes filled - auto-check
+            stopVoiceInput();
+            showNotification('All letters complete! Checking...', 'success');
+            setTimeout(() => {
+                checkSpelling();
+            }, 500);
+        }
+        
+        // Move focus to next box if available
+        if (boxIndex < letterInputs.length - 1 && letterInputs[boxIndex + 1]) {
+            setTimeout(() => {
+                letterInputs[boxIndex + 1].focus();
+            }, 100);
+        }
     }
 } 
