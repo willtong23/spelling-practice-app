@@ -327,12 +327,12 @@ function renderClasses() {
                                 <p>${cls.description || 'No description'}</p>
                                 <div class="class-stats">
                                     <span class="stat-item">${studentsInClass.length} students</span>
-                                    <span class="stat-item">${classAssignments.length} assignments</span>
+                                    <span class="stat-item">${classAssignments.length} class assignments</span>
                                 </div>
                             </div>
                             <div class="class-actions">
                                 <button class="btn-small btn-edit" onclick="editClass('${cls.id}')">Edit</button>
-                                <button class="btn-small btn-secondary" onclick="syncClassAssignments('${cls.id}')" title="Ensure all students have proper assignments">Sync Assignments</button>
+                                <button class="btn-small btn-assign" onclick="showQuickAssignToClass('${cls.id}')">Quick Assign</button>
                                 <button class="btn-small btn-delete" onclick="deleteClass('${cls.id}')">Delete</button>
                             </div>
                         </div>
@@ -356,6 +356,46 @@ function renderClasses() {
                                 </button>
                             </div>
                         </div>
+
+                        ${classAssignments.length > 0 ? `
+                            <div class="class-assignments">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h5 style="margin: 0;">Class Assignments (${classAssignments.length})</h5>
+                                    <button class="btn-small btn-secondary" onclick="toggleClassAssignments('${cls.id}')" id="toggleClassBtn_${cls.id}">
+                                        Show All
+                                    </button>
+                                </div>
+                                <div class="assignment-tags" id="classAssignments_${cls.id}">
+                                    ${classAssignments.slice(0, 2).map(assignment => {
+                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+                                        
+                                        return `
+                                            <div class="assignment-tag-detailed">
+                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                                                <div class="assignment-meta">
+                                                    <span class="assignment-date">${assignedDate}</span>
+                                                    <span class="assignment-type">class-wide</span>
+                                                    <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    ${classAssignments.length > 2 ? `
+                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
+                                            ... and ${classAssignments.length - 2} more
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="class-assignments">
+                                <h5>No class assignments yet</h5>
+                                <button class="btn-small btn-primary" onclick="showQuickAssignToClass('${cls.id}')" style="margin-top: 8px;">
+                                    Assign Word Set to Class
+                                </button>
+                            </div>
+                        `}
                         
                         ${studentsInClass.length > 0 ? `
                             <div class="class-students">
@@ -363,7 +403,7 @@ function renderClasses() {
                                 <div class="student-tags">
                                     ${studentsInClass.map(student => {
                                         const studentAssignments = assignments.filter(a => a.studentId === student.id);
-                                        return `<span class="student-tag ${studentAssignments.length > 0 ? 'has-assignment' : ''}">${student.name}</span>`;
+                                        return `<span class="student-tag ${studentAssignments.length > 0 ? 'has-assignment' : ''}" onclick="scrollToStudent('${student.id}')" style="cursor: pointer;" title="Click to view ${student.name}'s details">${student.name}</span>`;
                                     }).join('')}
                                 </div>
                             </div>
@@ -398,19 +438,22 @@ function renderStudents() {
             ${students.map(student => {
                 const studentClass = classes.find(c => c.id === student.classId);
                 const studentAssignments = assignments.filter(a => a.studentId === student.id);
+                const classAssignments = studentClass ? assignments.filter(a => a.classId === studentClass.id) : [];
                 const defaultWordSet = wordSets.find(ws => ws.id === student.defaultWordSetId);
                 
                 return `
-                    <div class="student-card">
+                    <div class="student-card" id="student_${student.id}">
                         <div class="student-header">
                             <div class="student-info">
                                 <h4>${student.name}</h4>
                                 <p>Class: ${studentClass ? studentClass.name : 'No class assigned'}</p>
                                 <div class="student-stats">
-                                    <span class="stat-item">${studentAssignments.length} assignments</span>
+                                    <span class="stat-item">${studentAssignments.length} individual assignments</span>
+                                    ${classAssignments.length > 0 ? `<span class="stat-item">${classAssignments.length} class assignments</span>` : ''}
                                 </div>
                             </div>
                             <div class="student-actions">
+                                <button class="btn-small btn-assign" onclick="showQuickAssignToStudent('${student.id}')">Quick Assign</button>
                                 <button class="btn-small btn-edit" onclick="editStudent('${student.id}')">Edit</button>
                                 <button class="btn-small btn-delete" onclick="deleteStudent('${student.id}')">Delete</button>
                             </div>
@@ -435,16 +478,44 @@ function renderStudents() {
                                 </button>
                             </div>
                         </div>
+
+                        ${classAssignments.length > 0 ? `
+                            <div class="class-assignments-for-student">
+                                <h5 style="color: #2563eb;">Class Assignments (${classAssignments.length})</h5>
+                                <div class="assignment-tags">
+                                    ${classAssignments.slice(0, 2).map(assignment => {
+                                        const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+                                        const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+                                        
+                                        return `
+                                            <div class="assignment-tag-detailed class-assignment">
+                                                <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                                                <div class="assignment-meta">
+                                                    <span class="assignment-date">${assignedDate}</span>
+                                                    <span class="assignment-type">from class</span>
+                                                    <span class="assignment-status">✓ auto-assigned</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                    ${classAssignments.length > 2 ? `
+                                        <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
+                                            ... and ${classAssignments.length - 2} more class assignments
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
                         
                         ${studentAssignments.length > 0 ? `
                             <div class="student-assignments">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                    <h5 style="margin: 0;">Assignments (${studentAssignments.length})</h5>
-                                    <button class="btn-small btn-secondary" onclick="showStudentAssignments('${student.id}')" style="font-size: 0.75rem; padding: 4px 8px;">
-                                        View All
+                                    <h5 style="margin: 0;">Individual Assignments (${studentAssignments.length})</h5>
+                                    <button class="btn-small btn-secondary" onclick="toggleStudentAssignments('${student.id}')" id="toggleStudentBtn_${student.id}">
+                                        ${studentAssignments.length > 3 ? 'Show All' : 'Hide'}
                                     </button>
                                 </div>
-                                <div class="assignment-tags">
+                                <div class="assignment-tags" id="studentAssignments_${student.id}">
                                     ${studentAssignments.slice(0, 3).map(assignment => {
                                         const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
                                         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
@@ -456,6 +527,7 @@ function renderStudents() {
                                                 <div class="assignment-meta">
                                                     <span class="assignment-date">${assignedDate}</span>
                                                     <span class="assignment-type">${assignmentType}</span>
+                                                    <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${student.id}')" title="Edit this assignment">✏️</button>
                                                     <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
                                                 </div>
                                             </div>
@@ -470,8 +542,10 @@ function renderStudents() {
                             </div>
                         ` : `
                             <div class="student-assignments">
-                                <h5>No assignments yet</h5>
-                                <p style="color: #64748b; font-size: 0.9rem;">Use the Assignments tab to assign word sets to this student.</p>
+                                <h5>No individual assignments yet</h5>
+                                <button class="btn-small btn-primary" onclick="showQuickAssignToStudent('${student.id}')" style="margin-top: 8px;">
+                                    Assign Word Set
+                                </button>
                             </div>
                         `}
                     </div>
@@ -2719,156 +2793,302 @@ async function exportScreenshot() {
             filterInfo += ` | ${fromDate || 'Start'} to ${toDate || 'End'}`;
         }
         
-        // Create a clean container for screenshot
-        const screenshotContainer = document.createElement('div');
-        screenshotContainer.style.cssText = `
-            position: fixed;
-            top: -10000px;
-            left: 0;
-            background: white;
-            padding: 30px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            width: 1200px;
-            box-sizing: border-box;
-        `;
+        // Filter valid results
+        const validResults = filteredResults.filter(result => {
+            return result.wordSetId && result.wordSetName && 
+                   result.wordSetName !== 'All Words' && 
+                   result.wordSetName !== 'Default Set' &&
+                   !result.wordSetName.includes('Practice') &&
+                   !result.wordSetName.includes('Individual');
+        });
         
-        // Add header
-        const header = document.createElement('div');
-        header.style.cssText = `
-            margin-bottom: 25px;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 15px;
-        `;
-        header.innerHTML = `
-            <h1 style="margin: 0 0 10px 0; color: #1e293b; font-size: 28px; font-weight: 800;">
-                📚 Spelling Practice Analytics
-            </h1>
-            <div style="color: #64748b; font-size: 16px; margin-bottom: 8px;">
-                ${filterInfo}
-            </div>
-            <div style="color: #64748b; font-size: 14px;">
-                Generated: ${new Date().toLocaleString()} | Total Results: ${filteredResults.filter(result => {
-                    return result.wordSetId && result.wordSetName && 
-                           result.wordSetName !== 'All Words' && 
-                           result.wordSetName !== 'Default Set' &&
-                           !result.wordSetName.includes('Practice') &&
-                           !result.wordSetName.includes('Individual');
-                }).length}
-            </div>
-        `;
+        if (validResults.length === 0) {
+            showNotification('No valid data to export in screenshot', 'warning');
+            return;
+        }
         
-        // Clone and clean up the table
-        const originalTable = document.querySelector('#analyticsTableBody').closest('table');
-        const tableClone = originalTable.cloneNode(true);
+        // ENHANCED: Pagination - Split data into pages if too many results
+        const RESULTS_PER_PAGE = 8; // Reduced for better readability with bigger text
+        const totalPages = Math.ceil(validResults.length / RESULTS_PER_PAGE);
         
-        // Remove action buttons from the cloned table
-        const actionCells = tableClone.querySelectorAll('td:last-child, th:last-child');
-        actionCells.forEach(cell => cell.remove());
+        const screenshots = [];
         
-        // Style the table for screenshot
-        tableClone.style.cssText = `
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 0;
-            font-size: 14px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        `;
-        
-        // Style table headers
-        const headers = tableClone.querySelectorAll('th');
-        headers.forEach(th => {
-            th.style.cssText = `
-                background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                color: white;
-                padding: 15px 12px;
-                text-align: left;
-                font-weight: 700;
-                font-size: 14px;
-                border: none;
+        for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+            const startIndex = pageNum * RESULTS_PER_PAGE;
+            const endIndex = Math.min(startIndex + RESULTS_PER_PAGE, validResults.length);
+            const pageResults = validResults.slice(startIndex, endIndex);
+            
+            // Create a clean container for screenshot
+            const screenshotContainer = document.createElement('div');
+            screenshotContainer.style.cssText = `
+                position: fixed;
+                top: -10000px;
+                left: 0;
+                background: white;
+                padding: 40px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                width: 1400px;
+                box-sizing: border-box;
+                min-height: 900px;
             `;
-        });
-        
-        // Style table cells
-        const cells = tableClone.querySelectorAll('td');
-        cells.forEach((td, index) => {
-            const row = Math.floor(index / (headers.length - 1)); // -1 because we removed action column
-            td.style.cssText = `
-                padding: 12px;
-                border: 1px solid #e5e7eb;
-                background: ${row % 2 === 0 ? '#ffffff' : '#f9fafb'};
-                vertical-align: top;
-                line-height: 1.4;
+            
+            // Add header with page info
+            const header = document.createElement('div');
+            header.style.cssText = `
+                margin-bottom: 30px;
+                border-bottom: 4px solid #2563eb;
+                padding-bottom: 20px;
             `;
-        });
+            
+            const pageInfo = totalPages > 1 ? ` (Page ${pageNum + 1} of ${totalPages})` : '';
+            
+            header.innerHTML = `
+                <h1 style="margin: 0 0 15px 0; color: #1e293b; font-size: 36px; font-weight: 800;">
+                    📚 Spelling Practice Analytics${pageInfo}
+                </h1>
+                <div style="color: #64748b; font-size: 20px; margin-bottom: 12px; font-weight: 600;">
+                    ${filterInfo}
+                </div>
+                <div style="color: #64748b; font-size: 16px; display: flex; justify-content: space-between;">
+                    <span>Generated: ${new Date().toLocaleString()}</span>
+                    <span>Results ${startIndex + 1}-${endIndex} of ${validResults.length}</span>
+                </div>
+            `;
+            
+            // Create enhanced table
+            const table = document.createElement('table');
+            table.style.cssText = `
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+                font-size: 16px;
+                box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+                border-radius: 12px;
+                overflow: hidden;
+            `;
+            
+            // Create table header
+            const thead = document.createElement('thead');
+            thead.innerHTML = `
+                <tr>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 140px;">Student</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 200px;">Word Set</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 160px;">Date & Time</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px; width: 180px;">Summary</th>
+                    <th style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 20px 16px; text-align: left; font-weight: 700; font-size: 18px;">Learning Details</th>
+                </tr>
+            `;
+            table.appendChild(thead);
+            
+            // Create table body
+            const tbody = document.createElement('tbody');
+            
+            pageResults.forEach((result, index) => {
+                const words = result.words || [];
+                
+                // Format word set name for multi-row display
+                let wordSetDisplay = result.wordSetName || 'Unknown Set';
+                let wordSetRow1 = wordSetDisplay;
+                let wordSetRow2 = '';
+                
+                // Split long word set names into two rows
+                if (wordSetDisplay.length > 20) {
+                    const parts = wordSetDisplay.split(' ');
+                    if (parts.length > 3) {
+                        const midPoint = Math.ceil(parts.length / 2);
+                        wordSetRow1 = parts.slice(0, midPoint).join(' ');
+                        wordSetRow2 = parts.slice(midPoint).join(' ');
+                    }
+                }
+                
+                // Format date and time for multi-row display
+                let dateRow = 'Unknown';
+                let startTimeRow = '';
+                let finishTimeRow = '';
+                
+                if (result.date) {
+                    const date = new Date(result.date);
+                    dateRow = date.toLocaleDateString();
+                    
+                    if (result.startTime && result.finishTime) {
+                        const startTime = new Date(result.startTime);
+                        const finishTime = new Date(result.finishTime);
+                        startTimeRow = startTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        finishTimeRow = finishTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else {
+                        startTimeRow = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+                }
+                
+                // Calculate summary data
+                const totalWords = words.length;
+                const firstTryCorrect = words.filter(w => {
+                    const attempts = w.attempts || [];
+                    return attempts.length > 0 && attempts[0] === w.word;
+                }).length;
+                const mistakes = words.filter(w => !w.correct);
+                const hintsUsed = words.filter(w => w.hint);
+                
+                // Create detailed breakdown - Focus on mistakes and hints only
+                let detailsHtml = '<div style="font-size:15px; line-height: 1.6;">';
+                
+                const mistakesAndHints = words.filter(w => !w.correct || w.hint);
+                
+                if (mistakesAndHints.length > 0) {
+                    detailsHtml += '<div style="font-weight:700;color:#dc2626;margin-bottom:10px;font-size:16px;">📝 Learning Areas (' + mistakesAndHints.length + '):</div>';
+                    
+                    // Show only first 6 items to prevent overflow
+                    const displayItems = mistakesAndHints.slice(0, 6);
+                    
+                    displayItems.forEach(w => {
+                        detailsHtml += '<div style="margin-bottom:8px;padding:4px 0;">';
+                        
+                        if (!w.correct) {
+                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                            detailsHtml += '<span style="background:#fee2e2;color:#dc2626;padding:3px 6px;border-radius:4px;text-decoration:line-through;font-weight:700;font-size:14px;">' + wrongAttempt + '</span>';
+                            detailsHtml += ' <span style="color:#6b7280;font-size:16px;">→</span> ';
+                            detailsHtml += '<span style="background:#dcfce7;color:#059669;padding:3px 6px;border-radius:4px;font-weight:700;font-size:14px;">' + w.word + '</span>';
+                        } else if (w.hint) {
+                            let wordDisplay = '';
+                            if (w.hintLetters && w.hintLetters.length > 0) {
+                                wordDisplay = w.word.split('').map((letter, letterIndex) => {
+                                    if (w.hintLetters.includes(letterIndex)) {
+                                        return `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:800;">${letter}</span>`;
+                                    }
+                                    return `<span style="color:#374151;">${letter}</span>`;
+                                }).join('');
+                            } else {
+                                wordDisplay = `<span style="background:#fef3c7;color:#d97706;text-decoration:underline;font-weight:700;font-size:14px;">${w.word}</span>`;
+                            }
+                            detailsHtml += wordDisplay + ' <span style="color:#d97706;font-size:12px;font-weight:600;">(used hint)</span>';
+                        }
+                        
+                        detailsHtml += '</div>';
+                    });
+                    
+                    if (mistakesAndHints.length > 6) {
+                        detailsHtml += '<div style="color:#6b7280;font-style:italic;font-size:14px;margin-top:8px;">... and ' + (mistakesAndHints.length - 6) + ' more learning areas</div>';
+                    }
+                } else {
+                    detailsHtml += '<div style="color:#059669;font-weight:700;font-size:16px;">🎉 Perfect! All words spelled correctly without hints</div>';
+                }
+                
+                detailsHtml += '</div>';
+                
+                // Add word list for this result
+                const wordSet = wordSets.find(ws => ws.id === result.wordSetId);
+                let wordListHtml = '';
+                if (wordSet && wordSet.words) {
+                    const wordList = wordSet.words.slice(0, 15).join(', ');
+                    const moreWords = wordSet.words.length > 15 ? ` (+${wordSet.words.length - 15} more)` : '';
+                    wordListHtml = `
+                        <div style="margin-top: 12px; padding: 8px 10px; background: #f0f9ff; border-radius: 6px; font-size: 13px; color: #0369a1; border-left: 4px solid #0ea5e9; line-height: 1.4;">
+                            <strong>Words:</strong> ${wordList}${moreWords}
+                        </div>
+                    `;
+                }
+                
+                const row = document.createElement('tr');
+                const rowIndex = startIndex + index;
+                row.style.cssText = `background: ${rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb'}; border-bottom: 1px solid #e5e7eb;`;
+                
+                row.innerHTML = `
+                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px; font-weight: 600; color: #1e293b;">${result.user || 'Unknown'}</td>
+                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
+                        <div style="font-weight: 700; color: #1e293b; margin-bottom: 4px;">${wordSetRow1}</div>
+                        ${wordSetRow2 ? `<div style="font-weight: 700; color: #1e293b;">${wordSetRow2}</div>` : ''}
+                        ${wordListHtml}
+                    </td>
+                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
+                        <div style="font-weight: 600; color: #1e293b; margin-bottom: 4px;">${dateRow}</div>
+                        ${startTimeRow ? `<div style="font-size: 14px; color: #64748b;">Start: ${startTimeRow}</div>` : ''}
+                        ${finishTimeRow ? `<div style="font-size: 14px; color: #64748b;">End: ${finishTimeRow}</div>` : ''}
+                    </td>
+                    <td style="padding: 18px 16px; vertical-align: top; font-size: 16px;">
+                        <div style="font-weight: 700; color: #2563eb; margin-bottom: 6px; font-size: 18px;">${firstTryCorrect}/${totalWords}</div>
+                        <div style="color: #ef4444; margin-bottom: 4px; font-size: 15px;">❌ ${mistakes.length} mistake${mistakes.length !== 1 ? 's' : ''}</div>
+                        <div style="color: #f59e0b; font-size: 15px;">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? 's' : ''}</div>
+                    </td>
+                    <td style="padding: 18px 16px; vertical-align: top; max-width: 400px;">${detailsHtml}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            table.appendChild(tbody);
+            
+            // Append to container
+            screenshotContainer.appendChild(header);
+            screenshotContainer.appendChild(table);
+            
+            // Add footer for multi-page documents
+            if (totalPages > 1) {
+                const footer = document.createElement('div');
+                footer.style.cssText = `
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 2px solid #e5e7eb;
+                    text-align: center;
+                    color: #64748b;
+                    font-size: 16px;
+                    font-weight: 600;
+                `;
+                footer.innerHTML = `Page ${pageNum + 1} of ${totalPages} • Generated on ${new Date().toLocaleDateString()}`;
+                screenshotContainer.appendChild(footer);
+            }
+            
+            // Add to document temporarily
+            document.body.appendChild(screenshotContainer);
+            
+            // Generate screenshot with higher quality
+            const canvas = await html2canvas(screenshotContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2.5, // Higher quality for better text readability
+                useCORS: true,
+                allowTaint: true,
+                width: 1400,
+                height: screenshotContainer.scrollHeight,
+                logging: false
+            });
+            
+            // Remove temporary container
+            document.body.removeChild(screenshotContainer);
+            
+            screenshots.push({
+                canvas: canvas,
+                pageNum: pageNum + 1
+            });
+        }
         
-        // Enhance word set cells to include the actual word list
-        // REMOVED: Word lists are already included in the regular table rendering
-        // const wordSetCells = tableClone.querySelectorAll('td.word-set-cell');
-        // wordSetCells.forEach(cell => {
-        //     // Find the corresponding result to get the word set ID
-        //     const rowIndex = Array.from(cell.parentNode.parentNode.children).indexOf(cell.parentNode);
-        //     const validResults = filteredResults.filter(result => {
-        //         return result.wordSetId && result.wordSetName && 
-        //                result.wordSetName !== 'All Words' && 
-        //                result.wordSetName !== 'Default Set' &&
-        //                !result.wordSetName.includes('Practice') &&
-        //                !result.wordSetName.includes('Individual');
-        //     });
-        //     
-        //     if (validResults[rowIndex]) {
-        //         const result = validResults[rowIndex];
-        //         const wordSet = wordSets.find(ws => ws.id === result.wordSetId);
-        //         
-        //         if (wordSet && wordSet.words) {
-        //             // Get the current word set name
-        //             const currentContent = cell.innerHTML;
-        //             
-        //             // Add the word list below the word set name
-        //             const wordList = wordSet.words.slice(0, 15).join(', '); // Show first 15 words
-        //             const moreWords = wordSet.words.length > 15 ? ` (+${wordSet.words.length - 15} more)` : '';
-        //             
-        //             cell.innerHTML = currentContent + `
-        //                 <div style="margin-top: 8px; padding: 6px; background: #f0f9ff; border-radius: 4px; font-size: 11px; color: #0369a1; border-left: 3px solid #0ea5e9;">
-        //                     <strong>Words:</strong> ${wordList}${moreWords}
-        //                 </div>
-        //             `;
-        //         }
-        //     }
-        // });
+        // Download all screenshots
+        for (let i = 0; i < screenshots.length; i++) {
+            const screenshot = screenshots[i];
+            const link = document.createElement('a');
+            
+            if (totalPages > 1) {
+                link.download = `spelling_analytics_page_${screenshot.pageNum}_${new Date().toISOString().split('T')[0]}.png`;
+            } else {
+                link.download = `spelling_analytics_${new Date().toISOString().split('T')[0]}.png`;
+            }
+            
+            link.href = screenshot.canvas.toDataURL('image/png');
+            link.click();
+            
+            // Small delay between downloads
+            if (i < screenshots.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
         
-        // Append to container
-        screenshotContainer.appendChild(header);
-        screenshotContainer.appendChild(tableClone);
-        
-        // Add to document temporarily
-        document.body.appendChild(screenshotContainer);
-        
-        // Generate screenshot
-        const canvas = await html2canvas(screenshotContainer, {
-            backgroundColor: '#ffffff',
-            scale: 2, // Higher quality
-            useCORS: true,
-            allowTaint: true,
-            width: 1200,
-            height: screenshotContainer.scrollHeight
-        });
-        
-        // Remove temporary container
-        document.body.removeChild(screenshotContainer);
-        
-        // Download the image
-        const link = document.createElement('a');
-        link.download = `spelling_analytics_${new Date().toISOString().split('T')[0]}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        
-        showNotification('Screenshot exported successfully!', 'success');
+        if (totalPages > 1) {
+            showNotification(`✅ ${totalPages} screenshot pages exported successfully!`, 'success');
+        } else {
+            showNotification('✅ Screenshot exported successfully!', 'success');
+        }
         
     } catch (error) {
         console.error('Error generating screenshot:', error);
-        showNotification('Error generating screenshot. Please try again.', 'error');
+        showNotification('❌ Error generating screenshot. Please try again.', 'error');
     }
 }
 
@@ -2935,4 +3155,409 @@ function showStudentAssignments(studentId) {
     `;
     
     showModal(`Assignments for ${student.name}`, content);
+}
+
+// Enhanced Assignment Functions
+function showQuickAssignToStudent(studentId) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    
+    const wordSetOptions = wordSets.map(ws => `
+        <option value="${ws.id}">${ws.name} (${ws.words.length} words)</option>
+    `).join('');
+    
+    const content = `
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b;">Quick Assign to ${student.name}</h4>
+            <p style="margin: 0; color: #64748b;">Assign a word set directly to this student</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Select Word Set:</label>
+            <select class="form-select" id="quickAssignWordSet">
+                <option value="">Choose a word set...</option>
+                ${wordSetOptions}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" onclick="executeQuickAssignToStudent('${studentId}')">Assign Word Set</button>
+        </div>
+    `;
+    
+    showModal('Quick Assign', content);
+}
+
+function showQuickAssignToClass(classId) {
+    const classData = classes.find(c => c.id === classId);
+    if (!classData) return;
+    
+    const studentsInClass = students.filter(s => s.classId === classId);
+    
+    const wordSetOptions = wordSets.map(ws => `
+        <option value="${ws.id}">${ws.name} (${ws.words.length} words)</option>
+    `).join('');
+    
+    const content = `
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b;">Quick Assign to Class: ${classData.name}</h4>
+            <p style="margin: 0; color: #64748b;">This will automatically assign the word set to all ${studentsInClass.length} students in this class</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Select Word Set:</label>
+            <select class="form-select" id="quickAssignClassWordSet">
+                <option value="">Choose a word set...</option>
+                ${wordSetOptions}
+            </select>
+        </div>
+        
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 12px; margin: 16px 0;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="color: #0ea5e9; font-size: 1.2rem;">ℹ️</span>
+                <strong style="color: #0c4a6e;">Auto-Assignment</strong>
+            </div>
+            <p style="margin: 0; color: #0c4a6e; font-size: 0.9rem;">
+                All students in this class will automatically receive this assignment. No manual syncing required!
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" onclick="executeQuickAssignToClass('${classId}')">Assign to All Students</button>
+        </div>
+    `;
+    
+    showModal('Quick Assign to Class', content);
+}
+
+async function executeQuickAssignToStudent(studentId) {
+    const wordSetId = document.getElementById('quickAssignWordSet').value;
+    
+    if (!wordSetId) {
+        showNotification('Please select a word set', 'error');
+        return;
+    }
+    
+    // Check if this specific assignment already exists
+    const existingAssignment = assignments.find(a => a.studentId === studentId && a.wordSetId === wordSetId);
+    if (existingAssignment) {
+        showNotification('This student already has this word set assigned', 'warning');
+        return;
+    }
+    
+    try {
+        const assignmentData = {
+            studentId,
+            wordSetId,
+            assignedAt: new Date(),
+            assignedBy: 'teacher',
+            type: 'individual'
+        };
+        
+        const docRef = await window.db.collection('assignments').add(assignmentData);
+        assignments.push({ id: docRef.id, ...assignmentData });
+        
+        closeModal();
+        renderStudentsAndClasses();
+        
+        const studentName = students.find(s => s.id === studentId)?.name;
+        const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
+        showNotification(`✅ Successfully assigned "${wordSetName}" to ${studentName}!`, 'success');
+        
+    } catch (error) {
+        console.error('Error creating assignment:', error);
+        showNotification('Error creating assignment', 'error');
+    }
+}
+
+async function executeQuickAssignToClass(classId) {
+    const wordSetId = document.getElementById('quickAssignClassWordSet').value;
+    
+    if (!wordSetId) {
+        showNotification('Please select a word set', 'error');
+        return;
+    }
+    
+    const studentsInClass = students.filter(s => s.classId === classId);
+    const classData = classes.find(c => c.id === classId);
+    
+    if (studentsInClass.length === 0) {
+        showNotification('No students found in this class', 'warning');
+        return;
+    }
+    
+    try {
+        // Create class assignment
+        const classAssignmentData = {
+            classId,
+            wordSetId,
+            assignedAt: new Date(),
+            assignedBy: 'teacher',
+            type: 'class'
+        };
+        
+        const classDocRef = await window.db.collection('assignments').add(classAssignmentData);
+        assignments.push({ id: classDocRef.id, ...classAssignmentData });
+        
+        // Auto-assign to all students in the class
+        let successCount = 0;
+        for (const student of studentsInClass) {
+            // Check if student already has this assignment
+            const existingAssignment = assignments.find(a => a.studentId === student.id && a.wordSetId === wordSetId);
+            if (!existingAssignment) {
+                const studentAssignmentData = {
+                    studentId: student.id,
+                    wordSetId,
+                    assignedAt: new Date(),
+                    assignedBy: 'teacher',
+                    type: 'from-class',
+                    sourceClassId: classId
+                };
+                
+                const studentDocRef = await window.db.collection('assignments').add(studentAssignmentData);
+                assignments.push({ id: studentDocRef.id, ...studentAssignmentData });
+                successCount++;
+            }
+        }
+        
+        closeModal();
+        renderStudentsAndClasses();
+        renderAssignments(); // Update assignments tab too
+        
+        const wordSetName = wordSets.find(ws => ws.id === wordSetId)?.name;
+        showNotification(`✅ Successfully assigned "${wordSetName}" to class "${classData.name}" and all ${successCount} students!`, 'success');
+        
+    } catch (error) {
+        console.error('Error creating class assignment:', error);
+        showNotification('Error creating class assignment', 'error');
+    }
+}
+
+function editStudentAssignment(assignmentId, studentId) {
+    const assignment = assignments.find(a => a.id === assignmentId);
+    const student = students.find(s => s.id === studentId);
+    
+    if (!assignment || !student) return;
+    
+    const currentWordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+    const wordSetOptions = wordSets.map(ws => `
+        <option value="${ws.id}" ${ws.id === assignment.wordSetId ? 'selected' : ''}>
+            ${ws.name} (${ws.words.length} words)
+        </option>
+    `).join('');
+    
+    const content = `
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin: 0 0 8px 0; color: #1e293b;">Edit Assignment for ${student.name}</h4>
+            <p style="margin: 0; color: #64748b;">Currently assigned: ${currentWordSet ? currentWordSet.name : 'Unknown'}</p>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Change Word Set:</label>
+            <select class="form-select" id="editAssignmentWordSet">
+                ${wordSetOptions}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" onclick="updateStudentAssignment('${assignmentId}')">Update Assignment</button>
+        </div>
+    `;
+    
+    showModal('Edit Assignment', content);
+}
+
+async function updateStudentAssignment(assignmentId) {
+    const newWordSetId = document.getElementById('editAssignmentWordSet').value;
+    
+    if (!newWordSetId) {
+        showNotification('Please select a word set', 'error');
+        return;
+    }
+    
+    try {
+        await window.db.collection('assignments').doc(assignmentId).update({
+            wordSetId: newWordSetId,
+            updatedAt: new Date()
+        });
+        
+        // Update local array
+        const index = assignments.findIndex(a => a.id === assignmentId);
+        if (index !== -1) {
+            assignments[index].wordSetId = newWordSetId;
+            assignments[index].updatedAt = new Date();
+        }
+        
+        closeModal();
+        renderStudentsAndClasses();
+        renderAssignments();
+        
+        const wordSetName = wordSets.find(ws => ws.id === newWordSetId)?.name;
+        showNotification(`✅ Assignment updated to "${wordSetName}"!`, 'success');
+        
+    } catch (error) {
+        console.error('Error updating assignment:', error);
+        showNotification('Error updating assignment', 'error');
+    }
+}
+
+async function deleteClassAssignment(assignmentId) {
+    if (!confirm('Are you sure you want to remove this class assignment? This will also remove it from all students who received it from this class.')) {
+        return;
+    }
+    
+    try {
+        const assignment = assignments.find(a => a.id === assignmentId);
+        if (!assignment) return;
+        
+        // Delete the class assignment
+        await window.db.collection('assignments').doc(assignmentId).delete();
+        
+        // Find and delete related student assignments that came from this class
+        const relatedStudentAssignments = assignments.filter(a => 
+            a.sourceClassId === assignment.classId && 
+            a.wordSetId === assignment.wordSetId &&
+            a.type === 'from-class'
+        );
+        
+        for (const studentAssignment of relatedStudentAssignments) {
+            await window.db.collection('assignments').doc(studentAssignment.id).delete();
+        }
+        
+        // Update local arrays
+        assignments = assignments.filter(a => 
+            a.id !== assignmentId && 
+            !(a.sourceClassId === assignment.classId && a.wordSetId === assignment.wordSetId && a.type === 'from-class')
+        );
+        
+        renderStudentsAndClasses();
+        renderAssignments();
+        showNotification('Class assignment and related student assignments removed successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error deleting class assignment:', error);
+        showNotification('Error deleting class assignment', 'error');
+    }
+}
+
+function toggleStudentAssignments(studentId) {
+    const container = document.getElementById(`studentAssignments_${studentId}`);
+    const button = document.getElementById(`toggleStudentBtn_${studentId}`);
+    const student = students.find(s => s.id === studentId);
+    
+    if (!container || !button || !student) return;
+    
+    const studentAssignments = assignments.filter(a => a.studentId === studentId);
+    
+    if (button.textContent === 'Show All') {
+        // Show all assignments
+        container.innerHTML = studentAssignments.map(assignment => {
+            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+            const assignmentType = assignment.type || 'individual';
+            
+            return `
+                <div class="assignment-tag-detailed">
+                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                    <div class="assignment-meta">
+                        <span class="assignment-date">${assignedDate}</span>
+                        <span class="assignment-type">${assignmentType}</span>
+                        <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${studentId}')" title="Edit this assignment">✏️</button>
+                        <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        button.textContent = 'Show Less';
+    } else {
+        // Show only first 3
+        container.innerHTML = studentAssignments.slice(0, 3).map(assignment => {
+            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+            const assignmentType = assignment.type || 'individual';
+            
+            return `
+                <div class="assignment-tag-detailed">
+                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                    <div class="assignment-meta">
+                        <span class="assignment-date">${assignedDate}</span>
+                        <span class="assignment-type">${assignmentType}</span>
+                        <button class="btn-tiny btn-edit" onclick="editStudentAssignment('${assignment.id}', '${studentId}')" title="Edit this assignment">✏️</button>
+                        <button class="btn-tiny btn-delete" onclick="deleteAssignment('${assignment.id}')" title="Remove this assignment">×</button>
+                    </div>
+                </div>
+            `;
+        }).join('') + (studentAssignments.length > 3 ? `
+            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
+                ... and ${studentAssignments.length - 3} more
+            </div>
+        ` : '');
+        button.textContent = 'Show All';
+    }
+}
+
+function toggleClassAssignments(classId) {
+    const container = document.getElementById(`classAssignments_${classId}`);
+    const button = document.getElementById(`toggleClassBtn_${classId}`);
+    
+    if (!container || !button) return;
+    
+    const classAssignments = assignments.filter(a => a.classId === classId);
+    
+    if (button.textContent === 'Show All') {
+        // Show all assignments
+        container.innerHTML = classAssignments.map(assignment => {
+            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+            
+            return `
+                <div class="assignment-tag-detailed">
+                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                    <div class="assignment-meta">
+                        <span class="assignment-date">${assignedDate}</span>
+                        <span class="assignment-type">class-wide</span>
+                        <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        button.textContent = 'Show Less';
+    } else {
+        // Show only first 2
+        container.innerHTML = classAssignments.slice(0, 2).map(assignment => {
+            const wordSet = wordSets.find(ws => ws.id === assignment.wordSetId);
+            const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
+            
+            return `
+                <div class="assignment-tag-detailed">
+                    <div class="assignment-name">${wordSet ? wordSet.name : 'Unknown set'}</div>
+                    <div class="assignment-meta">
+                        <span class="assignment-date">${assignedDate}</span>
+                        <span class="assignment-type">class-wide</span>
+                        <button class="btn-tiny btn-delete" onclick="deleteClassAssignment('${assignment.id}')" title="Remove this class assignment">×</button>
+                    </div>
+                </div>
+            `;
+        }).join('') + (classAssignments.length > 2 ? `
+            <div style="text-align: center; padding: 8px; color: #64748b; font-size: 0.9rem;">
+                ... and ${classAssignments.length - 2} more
+            </div>
+        ` : '');
+        button.textContent = 'Show All';
+    }
+}
+
+function scrollToStudent(studentId) {
+    const studentElement = document.getElementById(`student_${studentId}`);
+    if (studentElement) {
+        studentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a brief highlight effect
+        studentElement.style.boxShadow = '0 0 20px rgba(37, 99, 235, 0.3)';
+        setTimeout(() => {
+            studentElement.style.boxShadow = '';
+        }, 2000);
+    }
 } 
