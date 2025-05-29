@@ -64,25 +64,24 @@ async function getWordsFromAssignment(userName) {
             // No individual assignment - check for class assignments (second priority)
             if (studentData.classId) {
                 console.log(`No individual assignment, checking class assignments for classId: ${studentData.classId}`);
-                const classAssignmentsSnapshot = await window.db.collection('assignments').where('classId', '==', studentData.classId).get();
+                const classAssignmentsSnapshot = await window.db.collection('assignments')
+                    .where('classId', '==', studentData.classId)
+                    .where('type', '==', 'class')
+                    .get();
                 
-                if (!classAssignmentsSnapshot.empty) {
-                    const classAssignmentDoc = classAssignmentsSnapshot.docs[0];
-                    const wordSetId = classAssignmentDoc.data().wordSetId;
-                    console.log(`Found class assignment: wordSetId = ${wordSetId}`);
-                    
-                    // Get the word set
-                    const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
-                    if (wordSetDoc.exists && wordSetDoc.data().words && wordSetDoc.data().words.length > 0) {
-                        console.log(`Using class assignment for ${userName}: "${wordSetDoc.data().name}"`);
-                        return {
-                            words: wordSetDoc.data().words,
-                            setId: wordSetId,
-                            setName: wordSetDoc.data().name
-                        };
-                    } else {
-                        console.log(`Class assignment word set ${wordSetId} is empty or invalid, checking alternatives...`);
-                    }
+                console.log(`Found ${classAssignmentsSnapshot.size} class assignments for class ${studentData.classId}`);
+                
+                classAssignmentsSnapshot.forEach(doc => {
+                    const assignmentData = doc.data();
+                    assignedWordSetIds.add(assignmentData.wordSetId);
+                    console.log(`Found class assignment: ${assignmentData.wordSetId} (Assignment ID: ${doc.id}, Type: ${assignmentData.type})`);
+                });
+                
+                // Add class default word set if exists
+                const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
+                if (classDoc.exists && classDoc.data().defaultWordSetId) {
+                    assignedWordSetIds.add(classDoc.data().defaultWordSetId);
+                    console.log(`Found class default word set: ${classDoc.data().defaultWordSetId}`);
                 }
             }
             
@@ -234,9 +233,13 @@ async function loadAvailableWordSets() {
             if (studentData.classId) {
                 console.log(`Student is in class: ${studentData.classId}, checking for class assignments...`);
                 const classAssignmentsSnapshot = await window.db.collection('assignments').where('classId', '==', studentData.classId).get();
+                
+                console.log(`Found ${classAssignmentsSnapshot.size} class assignments for class ${studentData.classId}`);
+                
                 classAssignmentsSnapshot.forEach(doc => {
-                    assignedWordSetIds.add(doc.data().wordSetId);
-                    console.log(`Found class assignment: ${doc.data().wordSetId}`);
+                    const assignmentData = doc.data();
+                    assignedWordSetIds.add(assignmentData.wordSetId);
+                    console.log(`Found class assignment: ${assignmentData.wordSetId} (Assignment ID: ${doc.id}, Type: ${assignmentData.type})`);
                 });
                 
                 // Add class default word set if exists
@@ -255,6 +258,7 @@ async function loadAvailableWordSets() {
             
             // Load only the assigned word sets
             if (assignedWordSetIds.size > 0) {
+                console.log(`Total unique word set IDs found: ${assignedWordSetIds.size}`);
                 console.log('Loading word sets for IDs:', Array.from(assignedWordSetIds));
                 
                 for (const wordSetId of assignedWordSetIds) {
@@ -263,17 +267,11 @@ async function loadAvailableWordSets() {
                         if (wordSetDoc.exists) {
                             const wordSetData = { id: wordSetDoc.id, ...wordSetDoc.data() };
                             
-                            // Check if we already have this word set (by ID or name)
+                            // Check if we already have this word set (by ID only)
                             const existingById = availableWordSets.find(ws => ws.id === wordSetData.id);
-                            const existingByName = availableWordSets.find(ws => ws.name === wordSetData.name);
                             
                             if (existingById) {
                                 console.log(`Skipping duplicate word set by ID: ${wordSetData.name} (${wordSetData.id})`);
-                                continue;
-                            }
-                            
-                            if (existingByName) {
-                                console.log(`Skipping duplicate word set by name: ${wordSetData.name} (existing: ${existingByName.id}, new: ${wordSetData.id})`);
                                 continue;
                             }
                             
