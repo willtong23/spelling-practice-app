@@ -322,14 +322,6 @@ function setupWordSetPanel() {
     }
 }
 
-            if (words.length > 0) speakWord(words[0]);
-        }, 500);
-        
-    } catch (error) {
-        console.error('Error applying word set selection:', error);
-        showNotification('Error switching word set. Please try again.', 'error');
-    }
-}
 
 // Verify that a word set is actually assigned to the student
 async function verifyWordSetAssignment(userName, wordSetId) {
@@ -1175,9 +1167,13 @@ function checkSpelling() {
         // Check if this word was completed without hints
         const isCorrectWithoutHints = !usedHintsForThisWord;
         
-        // Play success sound for correct answers
+        // Play appropriate success sound based on whether hints were used
         setTimeout(() => {
-            playSuccessSound();
+            if (isCorrectWithoutHints) {
+                playSuccessSound(); // Exciting celebration for perfect answers
+            } else {
+                playHintSuccessSound(); // Gentle, assuring sound for hint-assisted answers
+            }
         }, 100);
         
         // Add to results panel
