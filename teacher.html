@@ -6,6 +6,7 @@
     <title>Teacher Dashboard - Spelling Practice</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="teacher.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -285,7 +286,7 @@
             background: #1d4ed8;
         }
         .btn-secondary {
-            background: #6b7280;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -293,10 +294,13 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         .btn-secondary:hover {
-            background: #4b5563;
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
         }
         
         /* Modal Styles */

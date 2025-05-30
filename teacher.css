@@ -1409,20 +1409,21 @@
 /* Folder Management Styles */
 .folder-card-rectangular {
     background: white;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
+    border: 3px solid #3b82f6;
+    border-radius: 16px;
+    padding: 24px;
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .folder-card-rectangular:hover {
-    border-color: #3b82f6;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
-    transform: translateY(-2px);
+    border-color: #1d4ed8;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-3px);
 }
 
 .folder-card-rectangular::before {
@@ -1431,88 +1432,185 @@
     left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
-    background: linear-gradient(to bottom, #f59e0b, #d97706);
-    border-radius: 0 2px 2px 0;
+    width: 6px;
+    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+    border-radius: 0 3px 3px 0;
 }
 
 .folder-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .folder-title-section {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .folder-icon {
-    font-size: 1.5rem;
+    font-size: 2rem;
     line-height: 1;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3));
 }
 
 .folder-title {
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: 1.4rem;
+    font-weight: 800;
     color: #1e293b;
     margin: 0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .folder-count {
     font-size: 0.9rem;
-    color: #64748b;
-    font-weight: 500;
-    background: #f1f5f9;
-    padding: 4px 8px;
-    border-radius: 6px;
+    color: #1d4ed8;
+    font-weight: 600;
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #93c5fd;
 }
 
 .folder-description {
     color: #64748b;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
-    line-height: 1.4;
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+    font-weight: 500;
 }
 
 .folder-wordsets-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
-    min-height: 32px;
+    gap: 10px;
+    margin-bottom: 20px;
+    min-height: 36px;
     align-items: flex-start;
 }
 
 .wordset-name-tag {
     color: #374151;
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.9rem;
     font-weight: 600;
-    border: 1px solid #d1d5db;
-    transition: all 0.2s ease;
+    border: 2px solid #d1d5db;
+    transition: all 0.3s ease;
     white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .wordset-name-tag:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6;
 }
 
 .empty-folder-text {
     color: #9ca3af;
     font-style: italic;
-    font-size: 0.9rem;
-    padding: 8px 0;
+    font-size: 0.95rem;
+    padding: 12px 0;
+    font-weight: 500;
 }
 
 .folder-actions {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     justify-content: flex-end;
+}
+
+.folder-navigation {
+    grid-column: 1/-1;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    border: 2px solid #cbd5e1;
+}
+
+.folder-navigation button {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: white !important;
+    border: none !important;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    cursor: pointer;
+}
+
+.folder-navigation button:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.folder-navigation h3 {
+    margin: 16px 0 8px 0;
+    color: #1e293b;
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.folder-navigation p {
+    margin: 0;
+    color: #64748b;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Folder management header */
+.folder-management-header {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border: none;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 25px rgba(30, 41, 59, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.folder-management-header h3 {
+    margin: 0;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.folder-management-header p {
+    margin: 8px 0 0 0;
+    color: #cbd5e1;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.folder-management-header .btn-secondary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.folder-management-header .btn-secondary:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* Legacy folder card styles - keep for backward compatibility */
@@ -1580,4 +1678,16 @@
     font-size: 0.8rem;
     font-weight: 600;
     border: 1px solid #bfdbfe;
+}
+
+.section-divider {
+    border-top: 2px solid #e2e8f0;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.section-divider h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
 }
