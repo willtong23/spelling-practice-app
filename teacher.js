@@ -4,11 +4,13 @@ let wordSets = [];
 let students = [];
 let classes = [];
 let assignments = [];
-let quizResults = [];
+let results = [];
+let wordSetFolders = []; // New: Store word set folders
+let currentSelectedFolder = null; // Track currently selected folder
+let bulkSelectionMode = false;
 let filteredResults = []; // For analytics filtering
 
 // Global variables for bulk operations
-let bulkSelectionMode = false;
 let selectedItems = {
     classes: new Set(),
     students: new Set(),
@@ -157,7 +159,7 @@ async function loadAllData() {
         
         console.log('Loading quiz results...');
         await loadQuizResults();
-        console.log('Quiz results loaded:', quizResults.length);
+        console.log('Quiz results loaded:', results.length);
         
         console.log('=== ALL DATA LOADED SUCCESSFULLY ===');
         
@@ -195,13 +197,28 @@ async function loadWordSets() {
             wordSets.push({ id: doc.id, ...doc.data() });
         });
         
-        // If no word sets exist, create a default one from the old wordlist
-        if (wordSets.length === 0) {
-            await createDefaultWordSet();
-        }
+        // Also load word set folders
+        await loadWordSetFolders();
     } catch (error) {
         console.error('Error loading word sets:', error);
         wordSets = [];
+    }
+}
+
+// New function to load word set folders
+async function loadWordSetFolders() {
+    try {
+        const snapshot = await window.db.collection('wordSetFolders').get();
+        wordSetFolders = [];
+        snapshot.forEach(doc => {
+            wordSetFolders.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Sort folders alphabetically
+        wordSetFolders.sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error) {
+        console.error('Error loading word set folders:', error);
+        wordSetFolders = [];
     }
 }
 
@@ -242,12 +259,118 @@ function renderWordSets() {
     const grid = document.getElementById('wordSetsGrid');
     if (!grid) return;
     
-    if (wordSets.length === 0) {
-        grid.innerHTML = '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">No word sets created yet. Click "Create New Set" to get started.</p>';
+    // Group word sets by folder
+    const wordSetsByFolder = {};
+    const rootWordSets = [];
+    
+    wordSets.forEach(set => {
+        if (set.folderId) {
+            if (!wordSetsByFolder[set.folderId]) {
+                wordSetsByFolder[set.folderId] = [];
+            }
+            wordSetsByFolder[set.folderId].push(set);
+        } else {
+            rootWordSets.push(set);
+        }
+    });
+    
+    // If viewing a specific folder
+    if (currentSelectedFolder) {
+        const folder = wordSetFolders.find(f => f.id === currentSelectedFolder);
+        const folderWordSets = wordSetsByFolder[currentSelectedFolder] || [];
+        
+        grid.innerHTML = `
+            <div class="folder-navigation">
+                <button class="btn-secondary" onclick="showAllWordSets()" style="margin-bottom: 20px;">
+                    ← Back to All Folders
+                </button>
+                <h3 style="margin: 0 0 20px 0; color: #1e293b;">
+                    📁 ${folder ? folder.name : 'Unknown Folder'} 
+                    <span style="color: #64748b; font-size: 0.8em;">(${folderWordSets.length} word sets)</span>
+                </h3>
+                ${folder && folder.description ? `<p style="color: #64748b; margin-bottom: 20px;">${folder.description}</p>` : ''}
+            </div>
+            
+            ${folderWordSets.length === 0 ? 
+                '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">No word sets in this folder yet.</p>' :
+                folderWordSets.map(set => renderWordSetCard(set)).join('')
+            }
+        `;
         return;
     }
     
-    grid.innerHTML = wordSets.map(set => `
+    // Show all folders and root-level word sets
+    let content = '';
+    
+    // Add folder management header
+    content += `
+        <div class="folder-management-header" style="grid-column: 1/-1; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div>
+                    <h3 style="margin: 0; color: #1e293b;">📚 Word Sets Library</h3>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 0.9em;">
+                        ${wordSetFolders.length} folders • ${wordSets.length} total word sets
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-secondary" onclick="showBulkMoveModal()">📁 Bulk Move to Folder</button>
+                    <button class="btn-secondary" onclick="showCreateFolderModal()">➕ New Folder</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Render folders
+    wordSetFolders.forEach(folder => {
+        const folderWordSets = wordSetsByFolder[folder.id] || [];
+        content += `
+            <div class="folder-card" onclick="openFolder('${folder.id}')" style="cursor: pointer;">
+                <div class="folder-header">
+                    <div class="folder-icon">📁</div>
+                    <div class="folder-info">
+                        <div class="folder-title">${folder.name}</div>
+                        <div class="folder-count">${folderWordSets.length} word sets</div>
+                    </div>
+                </div>
+                <div class="folder-description">
+                    ${folder.description || 'No description'}
+                </div>
+                <div class="folder-preview">
+                    ${folderWordSets.slice(0, 3).map(set => `
+                        <span class="word-set-preview">${set.name}</span>
+                    `).join('')}
+                    ${folderWordSets.length > 3 ? `<span class="more-sets">+${folderWordSets.length - 3} more</span>` : ''}
+                </div>
+                <div class="folder-actions" onclick="event.stopPropagation();">
+                    <button class="btn-small btn-edit" onclick="editFolder('${folder.id}')">Edit</button>
+                    <button class="btn-small btn-delete" onclick="deleteFolder('${folder.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Add section header for root-level word sets if any exist
+    if (rootWordSets.length > 0) {
+        content += `
+            <div class="section-divider" style="grid-column: 1/-1; margin: 20px 0;">
+                <h4 style="color: #64748b; margin: 0;">📄 Word Sets (No Folder)</h4>
+            </div>
+        `;
+        
+        // Render root-level word sets
+        content += rootWordSets.map(set => renderWordSetCard(set)).join('');
+    }
+    
+    if (wordSets.length === 0 && wordSetFolders.length === 0) {
+        content = '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">No word sets or folders created yet. Click "Create New Set" to get started.</p>';
+    }
+    
+    grid.innerHTML = content;
+}
+
+// Helper function to render individual word set cards
+function renderWordSetCard(set) {
+    return `
         <div class="word-set-card">
             <div class="word-set-header">
                 <div class="word-set-title">${set.name}</div>
@@ -266,7 +389,18 @@ function renderWordSets() {
                 <button class="btn-small btn-delete" onclick="deleteWordSet('${set.id}')">Delete</button>
             </div>
         </div>
-    `).join('');
+    `;
+}
+
+// New functions for folder navigation
+function openFolder(folderId) {
+    currentSelectedFolder = folderId;
+    renderWordSets();
+}
+
+function showAllWordSets() {
+    currentSelectedFolder = null;
+    renderWordSets();
 }
 
 // Students and Classes Management
@@ -872,7 +1006,7 @@ function renderAssignmentsTable() {
         const assignedDate = assignment.assignedAt ? new Date(assignment.assignedAt.toDate()).toLocaleDateString() : 'Unknown';
         
         // Improved completion detection logic
-        const hasCompleted = quizResults.some(result => {
+        const hasCompleted = results.some(result => {
             if (!student || !result.user) return false;
             
             const resultUser = result.user.trim().toLowerCase();
@@ -934,19 +1068,19 @@ async function loadQuizResults() {
         const snapshot = await window.db.collection('results').orderBy('date', 'desc').get();
         console.log('Firebase query completed. Snapshot size:', snapshot.size);
         
-        quizResults = [];
+        results = [];
         snapshot.forEach(doc => {
             const data = doc.data();
             console.log('Quiz result document:', doc.id, data);
-            quizResults.push({ id: doc.id, ...data });
+            results.push({ id: doc.id, ...data });
         });
         
-        console.log('Quiz results loaded successfully:', quizResults.length);
+        console.log('Quiz results loaded successfully:', results.length);
     } catch (error) {
         console.error('Error loading quiz results:', error);
         console.error('Error code:', error.code);
         console.error('Error message:', error.message);
-        quizResults = [];
+        results = [];
         throw error; // Re-throw to be caught by loadAllData
     }
 }
@@ -959,7 +1093,7 @@ function renderAnalytics() {
     updateAnalyticsFilterOptions();
     
     // Set filtered results to all results initially
-    filteredResults = [...quizResults];
+    filteredResults = [...results];
     
     // Update analytics display
     updateFilteredAnalytics();
@@ -969,7 +1103,7 @@ function renderAnalytics() {
     generateInsights();
     
     // Add test data button for demonstration
-    if (quizResults.length === 0) {
+    if (results.length === 0) {
         const testDataBtn = document.createElement('button');
         testDataBtn.className = 'btn-secondary';
         testDataBtn.textContent = '🧪 Add Test Data';
@@ -1026,6 +1160,18 @@ function closeModal() {
 function showCreateWordSetModal() {
     const content = `
         <div class="form-group">
+            <label class="form-label">Folder/Group:</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <select class="form-select" id="wordSetFolder" style="flex: 1;">
+                    <option value="">📁 No Folder (Root Level)</option>
+                    ${wordSetFolders.map(folder => `
+                        <option value="${folder.id}">${folder.name}</option>
+                    `).join('')}
+                </select>
+                <button type="button" class="btn-small btn-secondary" onclick="showCreateFolderModal()">➕ New Folder</button>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="form-label">Set Name:</label>
             <input type="text" class="form-input" id="wordSetName" placeholder="e.g., Grade 3 Words">
         </div>
@@ -1058,6 +1204,7 @@ async function createWordSet() {
     const description = document.getElementById('wordSetDescription').value.trim();
     const difficulty = document.getElementById('wordSetDifficulty').value;
     const wordsText = document.getElementById('wordSetWords').value.trim();
+    const folderId = document.getElementById('wordSetFolder').value;
     
     if (!name || !wordsText) {
         showNotification('Please fill in the name and words fields', 'error');
@@ -1099,6 +1246,20 @@ async function editWordSet(setId) {
     
     const content = `
         <div class="form-group">
+            <label class="form-label">Folder/Group:</label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <select class="form-select" id="editWordSetFolder" style="flex: 1;">
+                    <option value="">📁 No Folder (Root Level)</option>
+                    ${wordSetFolders.map(folder => `
+                        <option value="${folder.id}" ${folder.id === wordSet.folderId ? 'selected' : ''}>
+                            ${folder.name}
+                        </option>
+                    `).join('')}
+                </select>
+                <button type="button" class="btn-small btn-secondary" onclick="showCreateFolderModal()">➕ New Folder</button>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="form-label">Set Name:</label>
             <input type="text" class="form-input" id="editWordSetName" value="${wordSet.name}">
         </div>
@@ -1131,6 +1292,7 @@ async function updateWordSet(setId) {
     const description = document.getElementById('editWordSetDescription').value.trim();
     const difficulty = document.getElementById('editWordSetDifficulty').value;
     const wordsText = document.getElementById('editWordSetWords').value.trim();
+    const folderId = document.getElementById('editWordSetFolder').value;
     
     if (!name || !wordsText) {
         showNotification('Please fill in the name and words fields', 'error');
@@ -1150,6 +1312,7 @@ async function updateWordSet(setId) {
             description,
             difficulty,
             words,
+            folderId: folderId || null, // Add folder information
             updatedAt: new Date()
         };
         
@@ -1721,7 +1884,7 @@ async function deleteQuizResult(resultId) {
     
     try {
         await window.db.collection('results').doc(resultId).delete();
-        quizResults = quizResults.filter(r => r.id !== resultId);
+        results = results.filter(r => r.id !== resultId);
         
         renderAnalytics();
         showNotification('Quiz result deleted successfully!', 'success');
@@ -1761,12 +1924,12 @@ async function deleteAllResults() {
         showNotification('🗑️ Deleting all quiz results... Please wait.', 'info');
         
         const batch = db.batch();
-        quizResults.forEach(result => {
+        results.forEach(result => {
             batch.delete(window.db.collection('results').doc(result.id));
         });
         await batch.commit();
         
-        quizResults = [];
+        results = [];
         filteredResults = [];
         renderAnalytics();
         renderFilteredAnalyticsTable();
@@ -1877,7 +2040,7 @@ function initializeAnalyticsFilters() {
     document.getElementById('analyticsSortBy').addEventListener('change', applyAnalyticsFilter);
     
     // Initialize filtered results with all results
-    filteredResults = [...quizResults];
+    filteredResults = [...results];
 }
 
 // Analytics filtering functionality
@@ -1902,14 +2065,14 @@ function updateAnalyticsFilterOptions() {
     console.log('Updating filter options for type:', filterType);
     console.log('Available students:', students.length);
     console.log('Available classes:', classes.length);
-    console.log('Available quiz results:', quizResults.length);
+    console.log('Available quiz results:', results.length);
     
     filterValue.innerHTML = '<option value="">Choose...</option>';
     filterValue.disabled = filterType === 'all';
     
     if (filterType === 'student') {
         // Get unique student names from quiz results and match with student records
-        const studentNamesFromResults = [...new Set(quizResults.map(result => result.user))].filter(name => name && name.trim());
+        const studentNamesFromResults = [...new Set(results.map(result => result.user))].filter(name => name && name.trim());
         
         // Also include all students from the students array
         const allStudentNames = [...new Set([
@@ -1973,7 +2136,7 @@ function handleFilterValueChange() {
 
 function showStudentSelectionModal() {
     // Get unique student names from quiz results and match with student records
-    const studentNamesFromResults = [...new Set(quizResults.map(result => result.user))].filter(name => name && name.trim());
+    const studentNamesFromResults = [...new Set(results.map(result => result.user))].filter(name => name && name.trim());
     const allStudentNames = [...new Set([
         ...studentNamesFromResults,
         ...students.map(s => s.name).filter(name => name && name.trim())
@@ -1993,7 +2156,7 @@ function showStudentSelectionModal() {
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e0e7ef; border-radius: 8px; padding: 8px;">
             ${allStudentNames.map(studentName => {
                 // Count quiz sessions for this student
-                const studentQuizzes = quizResults.filter(r => r.user && r.user.toLowerCase().trim() === studentName.toLowerCase().trim());
+                const studentQuizzes = results.filter(r => r.user && r.user.toLowerCase().trim() === studentName.toLowerCase().trim());
                 const studentRecord = students.find(s => s.name.toLowerCase().trim() === studentName.toLowerCase().trim());
                 const studentClass = studentRecord ? classes.find(c => c.id === studentRecord.classId) : null;
                 
@@ -2040,7 +2203,7 @@ function showClassSelectionModal() {
         <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e0e7ef; border-radius: 8px; padding: 8px;">
             ${classes.map(cls => {
                 const studentsInClass = students.filter(s => s.classId === cls.id);
-                const classQuizzes = quizResults.filter(r => {
+                const classQuizzes = results.filter(r => {
                     const studentNames = studentsInClass.map(s => s.name.toLowerCase().trim());
                     return r.user && studentNames.includes(r.user.toLowerCase().trim());
                 });
@@ -2139,7 +2302,7 @@ function applyAnalyticsFilter() {
     const sortBy = document.getElementById('analyticsSortBy').value;
     
     // Start with all results
-    filteredResults = [...quizResults];
+    filteredResults = [...results];
     
     // Apply date filter
     if (fromDate || toDate) {
@@ -4889,5 +5052,205 @@ function toggleStudentClassAssignments(studentId) {
             ` : ''}
         `;
         toggleBtn.textContent = 'Show All';
+    }
+}
+
+// New function to show folder creation modal
+function showCreateFolderModal() {
+    const content = `
+        <div class="form-group">
+            <label class="form-label">Folder Name:</label>
+            <input type="text" class="form-input" id="folderName" placeholder="e.g., Year 3, Grade 4, Advanced Level">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Description:</label>
+            <input type="text" class="form-input" id="folderDescription" placeholder="Brief description of this folder">
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" onclick="createFolder()">Create Folder</button>
+        </div>
+    `;
+    showModal('Create New Folder', content);
+}
+
+// New function to create a folder
+async function createFolder() {
+    const name = document.getElementById('folderName').value.trim();
+    const description = document.getElementById('folderDescription').value.trim();
+    
+    if (!name) {
+        showNotification('Please enter a folder name', 'error');
+        return;
+    }
+    
+    // Check if folder name already exists
+    if (wordSetFolders.some(folder => folder.name.toLowerCase() === name.toLowerCase())) {
+        showNotification('A folder with this name already exists', 'error');
+        return;
+    }
+    
+    try {
+        const folder = {
+            name,
+            description,
+            createdAt: new Date(),
+            createdBy: 'teacher'
+        };
+        
+        const docRef = await window.db.collection('wordSetFolders').add(folder);
+        wordSetFolders.push({ id: docRef.id, ...folder });
+        
+        // Sort folders alphabetically
+        wordSetFolders.sort((a, b) => a.name.localeCompare(b.name));
+        
+        closeModal();
+        
+        // Refresh the word set creation modal to show the new folder
+        setTimeout(() => {
+            showCreateWordSetModal();
+            // Select the newly created folder
+            const folderSelect = document.getElementById('wordSetFolder');
+            if (folderSelect) {
+                folderSelect.value = docRef.id;
+            }
+        }, 100);
+        
+        showNotification('Folder created successfully!', 'success');
+    } catch (error) {
+        console.error('Error creating folder:', error);
+        showNotification('Error creating folder', 'error');
+    }
+}
+
+// New function to show bulk move modal
+function showBulkMoveModal() {
+    // Group word sets by folder for better organization
+    const wordSetsByFolder = {};
+    const rootWordSets = [];
+    
+    wordSets.forEach(set => {
+        if (set.folderId) {
+            if (!wordSetsByFolder[set.folderId]) {
+                wordSetsByFolder[set.folderId] = [];
+            }
+            wordSetsByFolder[set.folderId].push(set);
+        } else {
+            rootWordSets.push(set);
+        }
+    });
+    
+    const content = `
+        <div style="margin-bottom: 20px;">
+            <h4 style="margin: 0 0 10px 0; color: #1e293b;">Select Word Sets to Move:</h4>
+            <p style="margin: 0; color: #64748b; font-size: 0.9rem;">Choose which word sets you want to move to a folder.</p>
+        </div>
+        
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+            ${rootWordSets.length > 0 ? `
+                <div style="margin-bottom: 20px;">
+                    <h5 style="margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">📄 Root Level (No Folder)</h5>
+                    ${rootWordSets.map(set => `
+                        <label style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 5px;" 
+                               onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <input type="checkbox" class="bulk-move-checkbox" value="${set.id}" style="margin: 0;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #1e293b;">${set.name}</div>
+                                <div style="font-size: 0.8rem; color: #64748b;">${set.words.length} words • ${set.difficulty}</div>
+                            </div>
+                        </label>
+                    `).join('')}
+                </div>
+            ` : ''}
+            
+            ${wordSetFolders.map(folder => {
+                const folderSets = wordSetsByFolder[folder.id] || [];
+                if (folderSets.length === 0) return '';
+                
+                return `
+                    <div style="margin-bottom: 20px;">
+                        <h5 style="margin: 0 0 10px 0; color: #64748b; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">📁 ${folder.name}</h5>
+                        ${folderSets.map(set => `
+                            <label style="display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 6px; cursor: pointer; margin-bottom: 5px;" 
+                                   onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                                <input type="checkbox" class="bulk-move-checkbox" value="${set.id}" style="margin: 0;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; color: #1e293b;">${set.name}</div>
+                                    <div style="font-size: 0.8rem; color: #64748b;">${set.words.length} words • ${set.difficulty}</div>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Move to Folder:</label>
+            <select class="form-select" id="bulkMoveTargetFolder">
+                <option value="">📁 Root Level (No Folder)</option>
+                ${wordSetFolders.map(folder => `
+                    <option value="${folder.id}">${folder.name}</option>
+                `).join('')}
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: space-between; margin-top: 20px;">
+            <div>
+                <button type="button" class="btn-secondary" onclick="selectAllWordSets(true)">Select All</button>
+                <button type="button" class="btn-secondary" onclick="selectAllWordSets(false)" style="margin-left: 8px;">Deselect All</button>
+            </div>
+            <div>
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="executeBulkMove()" style="margin-left: 8px;">Move Selected</button>
+            </div>
+        </div>
+    `;
+    showModal('Bulk Move Word Sets', content);
+}
+
+// Helper functions for bulk move
+function selectAllWordSets(select) {
+    const checkboxes = document.querySelectorAll('.bulk-move-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = select;
+    });
+}
+
+async function executeBulkMove() {
+    const selectedWordSets = Array.from(document.querySelectorAll('.bulk-move-checkbox:checked')).map(cb => cb.value);
+    const targetFolderId = document.getElementById('bulkMoveTargetFolder').value;
+    
+    if (selectedWordSets.length === 0) {
+        showNotification('Please select at least one word set to move', 'error');
+        return;
+    }
+    
+    try {
+        // Update each selected word set
+        for (const wordSetId of selectedWordSets) {
+            await window.db.collection('wordSets').doc(wordSetId).update({
+                folderId: targetFolderId || null,
+                updatedAt: new Date()
+            });
+            
+            // Update local array
+            const index = wordSets.findIndex(ws => ws.id === wordSetId);
+            if (index !== -1) {
+                wordSets[index].folderId = targetFolderId || null;
+            }
+        }
+        
+        closeModal();
+        renderWordSets();
+        
+        const targetFolderName = targetFolderId ? 
+            wordSetFolders.find(f => f.id === targetFolderId)?.name || 'Unknown Folder' : 
+            'Root Level';
+        
+        showNotification(`Successfully moved ${selectedWordSets.length} word set(s) to ${targetFolderName}!`, 'success');
+    } catch (error) {
+        console.error('Error moving word sets:', error);
+        showNotification('Error moving word sets', 'error');
     }
 }
