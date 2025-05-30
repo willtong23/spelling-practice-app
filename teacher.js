@@ -337,7 +337,13 @@ function renderWordSets() {
                 ` : ''}
                 <div class="folder-wordsets-preview">
                     ${folderWordSets.sort((a, b) => a.name.localeCompare(b.name)).map((set, index) => `
-                        <span class="wordset-name-tag" style="background-color: ${getWordSetColor(index)};">
+                        <span class="wordset-name-tag" 
+                              style="background-color: ${getWordSetColor(index)};"
+                              data-wordset-id="${set.id}"
+                              data-wordset-name="${set.name}"
+                              data-words='${JSON.stringify(set.words)}'
+                              onmouseenter="showWordSetPreview(event, '${set.id}')"
+                              onmouseleave="hideWordSetPreview()">
                             ${set.name}
                         </span>
                     `).join('')}
@@ -5257,8 +5263,74 @@ async function executeBulkMove() {
 
 function getWordSetColor(index) {
     const colors = [
-        '#e3f2fd', '#f3e5f5', '#e8f5e8', '#fff3e0', '#fce4ec', '#e0f2f1',
-        '#f1f8e9', '#fff8e1', '#e8eaf6', '#fafafa', '#e1f5fe', '#f9fbe7'
+        '#e0f2fe', '#fef3c7', '#f0f9ff', '#fef2f2',
+        '#f0fdf4', '#faf5ff', '#fff7ed', '#f1f5f9',
+        '#fefce8', '#f5f3ff', '#ecfdf5', '#fffbeb'
     ];
     return colors[index % colors.length];
+}
+
+// Word Set Preview Tooltip Functions
+function showWordSetPreview(event, wordSetId) {
+    // Remove any existing tooltip
+    hideWordSetPreview();
+    
+    // Find the word set data
+    const wordSet = wordSets.find(ws => ws.id === wordSetId);
+    if (!wordSet) return;
+    
+    // Create tooltip element
+    const tooltip = document.createElement('div');
+    tooltip.id = 'wordset-preview-tooltip';
+    tooltip.className = 'wordset-preview-tooltip';
+    
+    // Create tooltip content
+    const wordsToShow = wordSet.words.slice(0, 20); // Show first 20 words
+    const hasMore = wordSet.words.length > 20;
+    
+    tooltip.innerHTML = `
+        <div class="tooltip-header">
+            <strong>${wordSet.name}</strong>
+            <span class="tooltip-count">(${wordSet.words.length} words)</span>
+        </div>
+        <div class="tooltip-words">
+            ${wordsToShow.map(word => `<span class="tooltip-word">${word}</span>`).join('')}
+            ${hasMore ? `<span class="tooltip-more">+${wordSet.words.length - 20} more words</span>` : ''}
+        </div>
+    `;
+    
+    // Add to document
+    document.body.appendChild(tooltip);
+    
+    // Position tooltip
+    const rect = event.target.getBoundingClientRect();
+    const tooltipRect = tooltip.getBoundingClientRect();
+    
+    // Position to the right of the element, or left if it would go off screen
+    let left = rect.right + 10;
+    if (left + tooltipRect.width > window.innerWidth) {
+        left = rect.left - tooltipRect.width - 10;
+    }
+    
+    // Position vertically centered with the element
+    let top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+    
+    // Keep tooltip within viewport
+    if (top < 10) top = 10;
+    if (top + tooltipRect.height > window.innerHeight - 10) {
+        top = window.innerHeight - tooltipRect.height - 10;
+    }
+    
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+    
+    // Show tooltip with animation
+    setTimeout(() => tooltip.classList.add('visible'), 10);
+}
+
+function hideWordSetPreview() {
+    const tooltip = document.getElementById('wordset-preview-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
 }

@@ -1654,3 +1654,135 @@
     font-size: 1.1rem;
     font-weight: 600;
 }
+
+.student-chip.has-assignments .student-assignment-count {
+    background: #10b981;
+}
+
+/* NEW INLINE STUDENT CHIPS - COMPACT APPROACH */
+.students-chips-container {
+    line-height: 1.6;
+    margin-top: 8px;
+}
+
+.student-chip-inline {
+    display: inline-block;
+    margin: 2px 4px 2px 0;
+    padding: 3px 8px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.student-chip-inline:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.student-chip-inline.has-assignments {
+    background: #dcfce7;
+    border-color: #10b981;
+    color: #166534;
+}
+
+.student-chip-inline .student-name {
+    font-weight: 500;
+    margin-right: 4px;
+}
+
+.student-chip-inline .student-assignment-count {
+    background: #3b82f6;
+    color: white;
+    padding: 1px 4px;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    min-width: 16px;
+    text-align: center;
+    display: inline-block;
+}
+
+.student-chip-inline.has-assignments .student-assignment-count {
+    background: #10b981;
+}
+
+/* Word Set Preview Tooltip Styles */
+.wordset-preview-tooltip {
+    position: fixed;
+    background: white;
+    border: 2px solid #3b82f6;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    max-width: 350px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.wordset-preview-tooltip.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.tooltip-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tooltip-header strong {
+    color: #1e293b;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.tooltip-count {
+    color: #3b82f6;
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: #eff6ff;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+.tooltip-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tooltip-word {
+    background: #f1f5f9;
+    color: #374151;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #e2e8f0;
+    white-space: nowrap;
+}
+
+.tooltip-more {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #fbbf24;
+    font-style: italic;
+}
