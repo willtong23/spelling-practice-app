@@ -3462,9 +3462,12 @@ async function exportScreenshot() {
                 `;
                 
                 screenshotContainer.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #22c55e; padding-bottom: 30px;">
-                        <h1 style="margin: 0 0 15px 0; color: #1e293b; font-size: 32px; font-weight: 700;">Individual Learning Report</h1>
-                        <div style="font-size: 24px; color: #22c55e; margin-bottom: 15px; font-weight: 600;">
+                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px; object-fit: contain;">
+                        <div style="flex: 1;">
+                            <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Spelling Feedback</h1>
+                        </div>
+                        <div style="text-align: right; color: #64748b; font-size: 18px; font-weight: 600;">
                             📋 ${studentName}
                         </div>
                     </div>
@@ -3475,7 +3478,7 @@ async function exportScreenshot() {
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
                                 <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Score</th>
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Learning Details</th>
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">End Time</th>
+                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">Date & Time</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3618,18 +3621,23 @@ async function exportScreenshot() {
                 `;
                 
                 screenshotContainer.innerHTML = `
-                    <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3b82f6; padding-bottom: 30px;">
-                        <h1 style="margin: 0 0 15px 0; color: #1e293b; font-size: 32px; font-weight: 700;">Learning Analytics Report</h1>
+                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
+                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px; object-fit: contain;">
+                        <div style="flex: 1;">
+                            <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Spelling Feedback</h1>
+                        </div>
+                        <div style="text-align: right; color: #64748b; font-size: 18px; font-weight: 600;">
+                            📋 ${studentName}
+                        </div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                         <thead>
-                            <tr style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Student</th>
+                            <tr style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
                                 <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Score</th>
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Learning Details</th>
-                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">End Time</th>
+                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">Date & Time</th>
                             </tr>
                         </thead>
                         <tbody>
