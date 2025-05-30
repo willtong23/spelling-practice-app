@@ -293,7 +293,7 @@ function renderWordSets() {
             
             ${folderWordSets.length === 0 ? 
                 '<p style="text-align: center; color: #64748b; grid-column: 1/-1;">No word sets in this folder yet.</p>' :
-                folderWordSets.map(set => renderWordSetCard(set)).join('')
+                folderWordSets.sort((a, b) => a.name.localeCompare(b.name)).map(set => renderWordSetCard(set)).join('')
             }
         `;
         return;
@@ -336,7 +336,7 @@ function renderWordSets() {
                     <div class="folder-description">${folder.description}</div>
                 ` : ''}
                 <div class="folder-wordsets-preview">
-                    ${folderWordSets.map((set, index) => `
+                    ${folderWordSets.sort((a, b) => a.name.localeCompare(b.name)).map((set, index) => `
                         <span class="wordset-name-tag" style="background-color: ${getWordSetColor(index)};">
                             ${set.name}
                         </span>
@@ -360,7 +360,7 @@ function renderWordSets() {
         `;
         
         // Render root-level word sets
-        content += rootWordSets.map(set => renderWordSetCard(set)).join('');
+        content += rootWordSets.sort((a, b) => a.name.localeCompare(b.name)).map(set => renderWordSetCard(set)).join('');
     }
     
     if (wordSets.length === 0 && wordSetFolders.length === 0) {
