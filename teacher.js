@@ -324,22 +324,24 @@ function renderWordSets() {
     wordSetFolders.forEach(folder => {
         const folderWordSets = wordSetsByFolder[folder.id] || [];
         content += `
-            <div class="folder-card" onclick="openFolder('${folder.id}')" style="cursor: pointer;">
-                <div class="folder-header">
-                    <div class="folder-icon">📁</div>
-                    <div class="folder-info">
+            <div class="folder-card-rectangular" onclick="openFolder('${folder.id}')" style="cursor: pointer;">
+                <div class="folder-card-header">
+                    <div class="folder-title-section">
+                        <div class="folder-icon">📁</div>
                         <div class="folder-title">${folder.name}</div>
                         <div class="folder-count">${folderWordSets.length} word sets</div>
                     </div>
                 </div>
-                <div class="folder-description">
-                    ${folder.description || 'No description'}
-                </div>
-                <div class="folder-preview">
-                    ${folderWordSets.slice(0, 3).map(set => `
-                        <span class="word-set-preview">${set.name}</span>
+                ${folder.description ? `
+                    <div class="folder-description">${folder.description}</div>
+                ` : ''}
+                <div class="folder-wordsets-preview">
+                    ${folderWordSets.map((set, index) => `
+                        <span class="wordset-name-tag" style="background-color: ${getWordSetColor(index)};">
+                            ${set.name}
+                        </span>
                     `).join('')}
-                    ${folderWordSets.length > 3 ? `<span class="more-sets">+${folderWordSets.length - 3} more</span>` : ''}
+                    ${folderWordSets.length === 0 ? '<span class="empty-folder-text">No word sets in this folder</span>' : ''}
                 </div>
                 <div class="folder-actions" onclick="event.stopPropagation();">
                     <button class="btn-small btn-edit" onclick="editFolder('${folder.id}')">Edit</button>
@@ -5253,4 +5255,12 @@ async function executeBulkMove() {
         console.error('Error moving word sets:', error);
         showNotification('Error moving word sets', 'error');
     }
+}
+
+function getWordSetColor(index) {
+    const colors = [
+        '#e3f2fd', '#f3e5f5', '#e8f5e8', '#fff3e0', '#fce4ec', '#e0f2f1',
+        '#f1f8e9', '#fff8e1', '#e8eaf6', '#fafafa', '#e1f5fe', '#f9fbe7'
+    ];
+    return colors[index % colors.length];
 }
