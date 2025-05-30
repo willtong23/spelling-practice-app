@@ -575,18 +575,16 @@ function renderClasses() {
                             ${studentsInClass.length > 0 ? `
                                 <div class="students-section">
                                     <h5 class="section-title-mini">👥 Students in this class</h5>
-                                    <div class="students-grid">
+                                    <div class="students-chips-container">
                                         ${studentsInClass.map(student => {
                                             const studentAssignments = assignments.filter(a => a.studentId === student.id);
-                                            return `
-                                                <div class="student-chip ${studentAssignments.length > 0 ? 'has-assignments' : ''}" 
+                                            return `<span class="student-chip-inline ${studentAssignments.length > 0 ? 'has-assignments' : ''}" 
                                                      onclick="scrollToStudent('${student.id}')" 
                                                      title="Click to view ${student.name}'s details">
                                                     <span class="student-name">${student.name}</span>
                                                     <span class="student-assignment-count">${studentAssignments.length}</span>
-                                                </div>
-                                            `;
-                                        }).join('')}
+                                                </span>`;
+                                        }).join(' ')}
                                     </div>
                                 </div>
                             ` : `
