@@ -526,25 +526,28 @@ function setupWordSetPanel() {
                 
                 console.log('Panel toggle clicked!');
                 
-                const isCurrentlyCollapsed = wordSetPanel.classList.contains('collapsed');
-                console.log('Current collapsed state:', isCurrentlyCollapsed);
+                const isCurrentlyExpanded = wordSetPanel.classList.contains('expanded');
+                console.log('Current expanded state:', isCurrentlyExpanded);
                 
-                if (isCurrentlyCollapsed) {
+                if (isCurrentlyExpanded) {
+                    // Collapse the panel
+                    wordSetPanel.classList.remove('expanded');
+                    mainContent.classList.remove('panel-open');
+                    newToggleButton.textContent = '📚';
+                    console.log('Panel collapsed');
+                } else {
                     // Expand the panel
-                    wordSetPanel.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
+                    wordSetPanel.classList.add('expanded');
+                    mainContent.classList.add('panel-open');
                     newToggleButton.textContent = '◀';
                     console.log('Panel expanded');
-                } else {
-                    // Collapse the panel
-                    wordSetPanel.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                    newToggleButton.textContent = '▶';
-                    console.log('Panel collapsed');
                 }
                 
-                console.log('New collapsed state:', wordSetPanel.classList.contains('collapsed'));
+                console.log('New expanded state:', wordSetPanel.classList.contains('expanded'));
             });
+            
+            // Set initial state
+            newToggleButton.textContent = '📚';
             
             console.log('Panel toggle setup complete!');
             return true;
@@ -1955,7 +1958,10 @@ function initializeApp() {
         console.log('Firebase is available, loading from Firestore');
         // Load available word sets first, then load words
         loadAvailableWordSets().then(() => {
-            loadWordsFromFirestore();
+            loadWordsFromFirestore().then(() => {
+                // After words are loaded, start practice immediately
+                startPracticeImmediately();
+            });
         });
         
         // Setup word set panel
@@ -1968,6 +1974,9 @@ function initializeApp() {
         resetQuizState();
         updateDisplay();
         updateWordSetPanel();
+        
+        // Start practice immediately with default words
+        startPracticeImmediately();
     }
 }
 
@@ -3813,4 +3822,28 @@ function updateUsernameDisplay() {
     } else {
         console.log('Username display elements not found or no username available');
     }
+}
+
+// Helper function to automatically speak the first word when practice starts
+function autoSpeakFirstWord() {
+    console.log('Auto-speaking first word...');
+    
+    // Wait a moment for everything to be ready
+    setTimeout(() => {
+        if (words && words.length > 0 && currentWordIndex === 0) {
+            console.log('Speaking first word automatically:', words[currentWordIndex]);
+            speakWord(words[currentWordIndex]);
+        }
+    }, 1000); // 1 second delay to ensure everything is loaded
+}
+
+// Start practice immediately after successful authentication
+function startPracticeImmediately() {
+    console.log('Starting practice immediately...');
+    
+    // Initialize practice
+    initializePractice();
+    
+    // Auto-speak first word
+    autoSpeakFirstWord();
 }

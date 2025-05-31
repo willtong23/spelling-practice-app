@@ -24,11 +24,13 @@
     </script>
 </head>
 <body>
+    <!-- Fixed Panel Toggle Button -->
+    <button class="panel-toggle" id="panelToggle">📚</button>
+    
     <!-- Word Set Selection Panel -->
     <div class="word-set-panel" id="wordSetPanel">
         <div class="panel-header">
             <h3>📚 Choose Word Set</h3>
-            <button class="panel-toggle" id="panelToggle">◀</button>
         </div>
         <div class="panel-content">
             <div id="wordSetList" class="word-set-list">
@@ -51,7 +53,7 @@
                 </div>
                 <div class="header-right">
                     <div class="user-welcome" id="userWelcome" style="display: none;">
-                        <span class="welcome-text">👋 Hello, <span id="currentUserName"></span>!</span>
+                        <span class="welcome-text"><span id="currentUserName"></span></span>
                     </div>
                     <div class="celebration-area">
                         <div class="celebration-animation" id="celebrationAnimation">
