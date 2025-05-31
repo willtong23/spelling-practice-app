@@ -853,5 +853,93 @@
     </div>
     
     <script src="teacher.js"></script>
+    
+    <!-- Tooltip Fix Script - Prevents stuck tooltips -->
+    <script>
+        // Enhanced Tooltip Management System
+        function clearAllStuckTooltips() {
+            // Remove all existing tooltips
+            const tooltips = document.querySelectorAll('.wordset-preview-tooltip, #wordset-preview-tooltip');
+            tooltips.forEach(tooltip => {
+                tooltip.remove();
+                console.log('Removed stuck tooltip:', tooltip);
+            });
+            
+            if (tooltips.length > 0) {
+                console.log(`Cleared ${tooltips.length} stuck tooltip(s)`);
+            }
+        }
+
+        // Run immediately when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Tooltip fix system initialized');
+            
+            // Clear any existing tooltips
+            clearAllStuckTooltips();
+            
+            // Set up comprehensive event handlers to prevent stuck tooltips
+            document.addEventListener('click', clearAllStuckTooltips);
+            document.addEventListener('scroll', clearAllStuckTooltips, true);
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    clearAllStuckTooltips();
+                }
+            });
+            
+            // Hide tooltips when window loses focus
+            window.addEventListener('blur', clearAllStuckTooltips);
+            
+            // Hide tooltips when mouse leaves document
+            document.addEventListener('mouseleave', clearAllStuckTooltips);
+            
+            // Periodic cleanup every 5 seconds
+            setInterval(function() {
+                const stuckTooltips = document.querySelectorAll('.wordset-preview-tooltip, #wordset-preview-tooltip');
+                if (stuckTooltips.length > 0) {
+                    console.log('Auto-cleaning stuck tooltips...');
+                    clearAllStuckTooltips();
+                }
+            }, 5000);
+        });
+
+        // Override the hideWordSetPreview function to use our enhanced version
+        window.addEventListener('load', function() {
+            if (typeof window.hideWordSetPreview === 'function') {
+                window.originalHideWordSetPreview = window.hideWordSetPreview;
+            }
+            
+            window.hideWordSetPreview = function() {
+                clearAllStuckTooltips();
+            };
+            
+            // Make the cleanup function globally available
+            window.clearAllStuckTooltips = clearAllStuckTooltips;
+            
+            console.log('Enhanced tooltip system ready - tooltips will auto-clear on any interaction');
+        });
+
+        // CRITICAL: Clear tooltips when navigating away from the page
+        window.addEventListener('beforeunload', function() {
+            console.log('Page unloading - clearing tooltips');
+            clearAllStuckTooltips();
+        });
+
+        // Clear tooltips when page visibility changes (tab switching, etc.)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('Page hidden - clearing tooltips');
+                clearAllStuckTooltips();
+            }
+        });
+
+        // Clear tooltips on any link click or form submission
+        document.addEventListener('click', function(e) {
+            // Clear tooltips immediately on any navigation-like click
+            if (e.target.tagName === 'A' || e.target.closest('a') || 
+                e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                clearAllStuckTooltips();
+            }
+        });
+    </script>
 </body>
 </html> 

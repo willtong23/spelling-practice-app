@@ -973,7 +973,7 @@ function populateAssignmentSelects() {
     const studentSelect = document.getElementById('assignStudentSelect');
     if (studentSelect) {
         studentSelect.innerHTML = '<option value="">Choose a student...</option>' +
-            students.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            students.map(s => `<option value="${s.id}">${s.displayName || s.name}</option>`).join(''); // Use displayName
     }
     
     // Populate class selects
@@ -1510,8 +1510,10 @@ async function addStudent() {
     
     try {
         const studentData = {
-            name,
+            name: name, // Store login name in 'name' field
+            displayName: name,
             classId: classId || null,
+            password: '123456', // Add default password
             createdAt: new Date(),
             createdBy: 'teacher'
         };
