@@ -504,28 +504,21 @@ function setupWordSetPanel() {
     // Function to setup panel toggle
     function setupPanelToggle() {
         const panelToggle = document.getElementById('panelToggle');
+        const floatingToggle = document.getElementById('floatingToggle');
         const wordSetPanel = document.getElementById('wordSetPanel');
         const mainContent = document.getElementById('mainContent');
         
         console.log('Panel toggle setup - Elements found:');
         console.log('- panelToggle:', !!panelToggle);
+        console.log('- floatingToggle:', !!floatingToggle);
         console.log('- wordSetPanel:', !!wordSetPanel);
         console.log('- mainContent:', !!mainContent);
         
-        if (panelToggle && wordSetPanel && mainContent) {
+        if (wordSetPanel && mainContent) {
             console.log('Setting up panel toggle functionality...');
             
-            // Remove any existing event listeners to avoid duplicates
-            const newToggleButton = panelToggle.cloneNode(true);
-            panelToggle.parentNode.replaceChild(newToggleButton, panelToggle);
-            
-            // Add fresh event listener
-            newToggleButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                console.log('Panel toggle clicked!');
-                
+            // Function to toggle panel state
+            function togglePanel() {
                 const isCurrentlyExpanded = wordSetPanel.classList.contains('expanded');
                 console.log('Current expanded state:', isCurrentlyExpanded);
                 
@@ -533,21 +526,50 @@ function setupWordSetPanel() {
                     // Collapse the panel
                     wordSetPanel.classList.remove('expanded');
                     mainContent.classList.remove('panel-open');
-                    newToggleButton.textContent = '📚';
+                    if (panelToggle) panelToggle.textContent = '▶'; // Right arrow for collapsed state
+                    if (floatingToggle) floatingToggle.style.display = 'flex'; // Show floating button
                     console.log('Panel collapsed');
                 } else {
                     // Expand the panel
                     wordSetPanel.classList.add('expanded');
                     mainContent.classList.add('panel-open');
-                    newToggleButton.textContent = '◀';
+                    if (panelToggle) panelToggle.textContent = '◀'; // Left arrow for expanded state
+                    if (floatingToggle) floatingToggle.style.display = 'none'; // Hide floating button
                     console.log('Panel expanded');
                 }
                 
                 console.log('New expanded state:', wordSetPanel.classList.contains('expanded'));
-            });
+            }
             
-            // Set initial state
-            newToggleButton.textContent = '📚';
+            // Set up panel toggle button (inside the header)
+            if (panelToggle) {
+                // Remove any existing event listeners
+                const newToggleButton = panelToggle.cloneNode(true);
+                panelToggle.parentNode.replaceChild(newToggleButton, panelToggle);
+                
+                newToggleButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Panel toggle clicked!');
+                    togglePanel();
+                });
+                
+                // Set initial state
+                newToggleButton.textContent = '▶';
+            }
+            
+            // Set up floating toggle button
+            if (floatingToggle) {
+                floatingToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Floating toggle clicked!');
+                    togglePanel();
+                });
+                
+                // Initially show floating button since panel starts collapsed
+                floatingToggle.style.display = 'flex';
+            }
             
             console.log('Panel toggle setup complete!');
             return true;
