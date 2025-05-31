@@ -378,7 +378,7 @@ async function loadAvailableWordSets() {
                         });
                     }
                     
-                    // Hover tooltip functionality
+                    // Hover tooltip functionality with dynamic positioning
                     const tooltip = setItem.querySelector('.word-preview-tooltip');
                     let hoverTimeout;
                     
@@ -387,11 +387,52 @@ async function loadAvailableWordSets() {
                         clearTimeout(hoverTimeout);
                         
                         // Hide all other tooltips first
-                        document.querySelectorAll('.word-preview-tooltip').forEach(t => t.style.display = 'none');
+                        document.querySelectorAll('.word-preview-tooltip').forEach(t => {
+                            t.style.display = 'none';
+                        });
                         
-                        // Show this tooltip after a short delay
+                        // Show this tooltip after a short delay with dynamic positioning
                         hoverTimeout = setTimeout(() => {
+                            const rect = setItem.getBoundingClientRect();
+                            const tooltipRect = tooltip.getBoundingClientRect();
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            
+                            // Calculate optimal position
+                            let left, top;
+                            
+                            // Try to position to the right of the item first
+                            left = rect.right + 15;
+                            top = rect.top + (rect.height / 2);
+                            
+                            // If tooltip would go off the right edge, position it to the left
+                            if (left + 350 > viewportWidth) {
+                                left = rect.left - 350 - 15;
+                            }
+                            
+                            // If still off screen to the left, center it horizontally
+                            if (left < 0) {
+                                left = Math.max(10, (viewportWidth - 350) / 2);
+                                top = rect.bottom + 10; // Position below the item instead
+                            }
+                            
+                            // Make sure tooltip doesn't go off the bottom of the screen
+                            if (top + 100 > viewportHeight) {
+                                top = rect.top - 100;
+                            }
+                            
+                            // Make sure tooltip doesn't go off the top of the screen
+                            if (top < 10) {
+                                top = 10;
+                            }
+                            
+                            // Apply positioning and show
+                            tooltip.style.left = left + 'px';
+                            tooltip.style.top = top + 'px';
+                            tooltip.style.transform = 'none'; // Remove any transform
                             tooltip.style.display = 'block';
+                            
+                            console.log('Tooltip positioned at:', left, top);
                         }, 300);
                     });
                     
@@ -1906,6 +1947,9 @@ function initializeApp() {
     console.log('User authenticated, proceeding with app initialization');
     console.log('window.db available:', !!window.db);
     console.log('firebase available:', typeof firebase !== 'undefined');
+    
+    // Update username display
+    updateUsernameDisplay();
     
     if (window.db) {
         console.log('Firebase is available, loading from Firestore');
@@ -3755,4 +3799,18 @@ function nextWord() {
             speakWord(words[currentWordIndex]);
         }
     }, 200);
+}
+
+// Function to update username display
+function updateUsernameDisplay() {
+    const userWelcome = document.getElementById('userWelcome');
+    const currentUserName = document.getElementById('currentUserName');
+    
+    if (userWelcome && currentUserName && userName) {
+        currentUserName.textContent = userName;
+        userWelcome.style.display = 'flex';
+        console.log('Username display updated:', userName);
+    } else {
+        console.log('Username display elements not found or no username available');
+    }
 }
