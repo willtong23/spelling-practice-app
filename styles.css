@@ -833,8 +833,24 @@ h1 {
 
 @media (max-width: 768px) {
     .word-set-panel {
-        width: 100%;
-        transform: translateX(-100%); /* Completely hidden on mobile */
+        max-height: 75vh; /* Increased from 60vh to 75vh for better mobile visibility */
+    }
+    
+    .panel-header {
+        padding: 15px 20px;
+    }
+    
+    .panel-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .panel-toggle {
+        right: 20px;
+        padding: 6px 10px;
+    }
+    
+    .panel-content {
+        padding: 15px 20px 50px; /* Increased bottom padding from 25px to 50px */
     }
     
     .main-content {
@@ -844,16 +860,22 @@ h1 {
     }
     
     .main-content.panel-open {
-        margin-left: 0; /* Don't push content on mobile */
+        margin-left: 0;
         width: 100%;
     }
     
-    .floating-toggle {
-        left: 15px;
-        top: 15px;
-        width: 45px;
-        height: 45px;
-        font-size: 1.1rem;
+    .word-set-toggle-container {
+        margin-right: 12px;
+    }
+    
+    .word-set-toggle-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .word-set-label {
+        font-size: 0.9rem;
     }
     
     .container {
@@ -865,7 +887,25 @@ h1 {
 
 @media (max-width: 480px) {
     .word-set-panel {
-        width: 100%;
+        max-height: 70vh; /* Increased from 50vh to 70vh for better visibility on small screens */
+    }
+    
+    .panel-header {
+        padding: 12px 15px;
+    }
+    
+    .panel-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .panel-toggle {
+        right: 15px;
+        padding: 5px 8px;
+        font-size: 0.9rem;
+    }
+    
+    .panel-content {
+        padding: 12px 15px 40px; /* Increased bottom padding from 20px to 40px */
     }
 
     .main-content {
@@ -879,12 +919,18 @@ h1 {
         width: 100%;
     }
     
-    .floating-toggle {
-        left: 10px;
-        top: 10px;
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+    .word-set-toggle-container {
+        margin-right: 8px;
+    }
+    
+    .word-set-toggle-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .word-set-label {
+        font-size: 0.8rem;
     }
     
     .container {
@@ -2470,4 +2516,115 @@ h1 {
     font-size: 0.85rem;
     border: 1px solid rgba(156, 163, 175, 0.3);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-} 
+}
+
+/* Word Set Panel Styles - Curtain Effect */
+.word-set-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    z-index: 1000;
+    transform: translateY(-100%); /* Hidden above the viewport */
+    transition: transform 0.4s ease;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-height: 85vh; /* Increased from 70vh to 85vh for better visibility */
+}
+
+.word-set-panel.open {
+    transform: translateY(0); /* Slides down to be visible */
+}
+
+.panel-header {
+    padding: 20px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.panel-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s ease;
+    position: absolute;
+    right: 30px;
+}
+
+.panel-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.panel-content {
+    padding: 20px 30px 60px; /* Increased bottom padding from 30px to 60px */
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Main content adjustment when curtain is open */
+.main-content {
+    transition: margin-top 0.4s ease;
+    margin-top: 0;
+}
+
+.main-content.panel-open {
+    margin-top: 0; /* No margin needed for curtain */
+}
+
+/* Word Set Toggle Button Container */
+.word-set-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 20px;
+}
+
+.word-set-toggle-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.word-set-toggle-btn:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.word-set-label {
+    color: #2563eb;
+    font-weight: 600;
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+/* Remove floating toggle button styles */

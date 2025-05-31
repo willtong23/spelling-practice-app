@@ -503,14 +503,14 @@ function setupWordSetPanel() {
     
     // Function to setup panel toggle
     function setupPanelToggle() {
-        const panelToggle = document.getElementById('panelToggle');
-        const floatingToggle = document.getElementById('floatingToggle');
+        const wordSetToggleBtn = document.getElementById('wordSetToggleBtn');
+        const panelToggle = document.getElementById('panelToggle'); // Also handle the panel header button
         const wordSetPanel = document.getElementById('wordSetPanel');
         const mainContent = document.getElementById('mainContent');
         
         console.log('Panel toggle setup - Elements found:');
+        console.log('- wordSetToggleBtn:', !!wordSetToggleBtn);
         console.log('- panelToggle:', !!panelToggle);
-        console.log('- floatingToggle:', !!floatingToggle);
         console.log('- wordSetPanel:', !!wordSetPanel);
         console.log('- mainContent:', !!mainContent);
         
@@ -519,57 +519,53 @@ function setupWordSetPanel() {
             
             // Function to toggle panel state
             function togglePanel() {
-                const isCurrentlyExpanded = wordSetPanel.classList.contains('expanded');
-                console.log('Current expanded state:', isCurrentlyExpanded);
+                const isCurrentlyOpen = wordSetPanel.classList.contains('open');
+                console.log('Current open state:', isCurrentlyOpen);
                 
-                if (isCurrentlyExpanded) {
+                if (isCurrentlyOpen) {
                     // Collapse the panel
-                    wordSetPanel.classList.remove('expanded');
+                    wordSetPanel.classList.remove('open');
                     mainContent.classList.remove('panel-open');
+                    if (wordSetToggleBtn) wordSetToggleBtn.textContent = '▼'; // Down arrow for collapsed state (ready to expand)
                     if (panelToggle) panelToggle.textContent = '▶'; // Right arrow for collapsed state
-                    if (floatingToggle) floatingToggle.style.display = 'flex'; // Show floating button
                     console.log('Panel collapsed');
                 } else {
                     // Expand the panel
-                    wordSetPanel.classList.add('expanded');
+                    wordSetPanel.classList.add('open');
                     mainContent.classList.add('panel-open');
-                    if (panelToggle) panelToggle.textContent = '◀'; // Left arrow for expanded state
-                    if (floatingToggle) floatingToggle.style.display = 'none'; // Hide floating button
+                    if (wordSetToggleBtn) wordSetToggleBtn.textContent = '▲'; // Up arrow for expanded state (ready to collapse)
+                    if (panelToggle) panelToggle.textContent = '▼'; // Down arrow for expanded state
                     console.log('Panel expanded');
                 }
                 
-                console.log('New expanded state:', wordSetPanel.classList.contains('expanded'));
+                console.log('New open state:', wordSetPanel.classList.contains('open'));
             }
             
-            // Set up panel toggle button (inside the header)
+            // Set up main toggle button event listener
+            if (wordSetToggleBtn) {
+                wordSetToggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Word set toggle clicked!');
+                    togglePanel();
+                });
+            }
+            
+            // Set up panel header toggle button event listener
             if (panelToggle) {
-                // Remove any existing event listeners
-                const newToggleButton = panelToggle.cloneNode(true);
-                panelToggle.parentNode.replaceChild(newToggleButton, panelToggle);
-                
-                newToggleButton.addEventListener('click', function(e) {
+                panelToggle.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Panel toggle clicked!');
+                    console.log('Panel header toggle clicked!');
                     togglePanel();
                 });
-                
-                // Set initial state
-                newToggleButton.textContent = '▶';
             }
             
-            // Set up floating toggle button
-            if (floatingToggle) {
-                floatingToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Floating toggle clicked!');
-                    togglePanel();
-                });
-                
-                // Initially show floating button since panel starts collapsed
-                floatingToggle.style.display = 'flex';
-            }
+            // Set initial state - panel closed, down arrow
+            wordSetPanel.classList.remove('open');
+            mainContent.classList.remove('panel-open');
+            if (wordSetToggleBtn) wordSetToggleBtn.textContent = '▼';
+            if (panelToggle) panelToggle.textContent = '▶';
             
             console.log('Panel toggle setup complete!');
             return true;
@@ -589,6 +585,31 @@ function setupWordSetPanel() {
             }
         }, 500);
     }
+    
+    // Helper function to close the panel programmatically
+    function closePanelCurtain() {
+        const wordSetPanel = document.getElementById('wordSetPanel');
+        const mainContent = document.getElementById('mainContent');
+        const wordSetToggleBtn = document.getElementById('wordSetToggleBtn');
+        const panelToggle = document.getElementById('panelToggle');
+        
+        if (wordSetPanel && wordSetPanel.classList.contains('open')) {
+            console.log('Closing word set panel curtain...');
+            
+            // Close the panel
+            wordSetPanel.classList.remove('open');
+            if (mainContent) mainContent.classList.remove('panel-open');
+            
+            // Update button states
+            if (wordSetToggleBtn) wordSetToggleBtn.textContent = '▼'; // Down arrow for collapsed state
+            if (panelToggle) panelToggle.textContent = '▶'; // Right arrow for collapsed state
+            
+            console.log('Panel curtain closed');
+        }
+    }
+    
+    // Expose the close function globally so other functions can use it
+    window.closePanelCurtain = closePanelCurtain;
 }
 
 
@@ -2006,6 +2027,9 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, checking for user name...');
     
+    // Setup word set panel immediately when DOM is ready
+    setupWordSetPanel();
+    
     // Set up results toggle button event listener
     const resultsToggleButton = document.getElementById('resultsToggleButton');
     if (resultsToggleButton) {
@@ -2887,6 +2911,11 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
     try {
         console.log(`Switching to word set: ${wordSetName} (${wordSetId})`);
         
+        // Close the word set panel curtain immediately when starting practice
+        if (window.closePanelCurtain) {
+            window.closePanelCurtain();
+        }
+        
         // Update the current words and UI
         words = [...wordSetWords];
         currentWordSetId = wordSetId;
@@ -3343,6 +3372,11 @@ function startMultiListChallenge() {
     if (checkboxes.length === 0) {
         showNotification('Please select at least one word set for the challenge.', 'warning');
         return;
+    }
+    
+    // Close the word set panel curtain immediately when starting challenge
+    if (window.closePanelCurtain) {
+        window.closePanelCurtain();
     }
     
     // Store original state
