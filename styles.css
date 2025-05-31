@@ -48,24 +48,23 @@ body {
 .user-welcome {
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    color: #374151;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .welcome-text {
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    color: #374151;
 }
 
 #currentUserName {
-    font-weight: 700;
-    color: #fbbf24;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+    color: #1f2937;
 }
 
 /* Celebration Animation Styles */
@@ -1283,24 +1282,23 @@ h1 {
 .user-welcome {
     display: flex;
     align-items: center;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: 600;
-    font-size: 0.9rem;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    color: #374151;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .welcome-text {
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    color: #374151;
 }
 
 #currentUserName {
-    font-weight: 700;
-    color: #fbbf24;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .title {
@@ -2676,7 +2674,7 @@ h1 {
 .word-preview-tooltip {
     display: none;
     position: fixed;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
     color: white;
     padding: 12px 16px;
     border-radius: 12px;
@@ -2684,9 +2682,9 @@ h1 {
     white-space: nowrap;
     z-index: 9999;
     max-width: 350px;
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 8px 25px rgba(96, 165, 250, 0.4);
     pointer-events: none;
-    border: 3px solid #60a5fa;
+    border: 3px solid #93c5fd;
     /* JavaScript will set left and top dynamically */
 }
 
@@ -2698,7 +2696,7 @@ h1 {
 .word-preview-header {
     font-weight: 700;
     margin-bottom: 8px;
-    color: #fbbf24;
+    color: #fef3c7;
     font-size: 0.9rem;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
