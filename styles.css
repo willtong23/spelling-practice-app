@@ -833,7 +833,7 @@ h1 {
 
 @media (max-width: 768px) {
     .word-set-panel {
-        max-height: 75vh; /* Increased from 60vh to 75vh for better mobile visibility */
+        max-height: 95vh; /* Increased from 90vh to 95vh for maximum mobile visibility */
     }
     
     .panel-header {
@@ -850,7 +850,7 @@ h1 {
     }
     
     .panel-content {
-        padding: 15px 20px 50px; /* Increased bottom padding from 25px to 50px */
+        padding: 15px 20px 80px; /* Increased bottom padding from 50px to 80px */
     }
     
     .main-content {
@@ -887,7 +887,7 @@ h1 {
 
 @media (max-width: 480px) {
     .word-set-panel {
-        max-height: 70vh; /* Increased from 50vh to 70vh for better visibility on small screens */
+        max-height: 90vh; /* Increased from 85vh to 90vh for maximum visibility on small screens */
     }
     
     .panel-header {
@@ -905,7 +905,7 @@ h1 {
     }
     
     .panel-content {
-        padding: 12px 15px 40px; /* Increased bottom padding from 20px to 40px */
+        padding: 12px 15px 70px; /* Increased bottom padding from 40px to 70px */
     }
 
     .main-content {
@@ -2532,7 +2532,7 @@ h1 {
     transition: transform 0.4s ease;
     overflow-y: auto;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    max-height: 85vh; /* Increased from 70vh to 85vh for better visibility */
+    max-height: 98vh; /* Nearly full screen - increased from 95vh for maximum coverage */
 }
 
 .word-set-panel.open {
@@ -2574,7 +2574,7 @@ h1 {
 }
 
 .panel-content {
-    padding: 20px 30px 60px; /* Increased bottom padding from 30px to 60px */
+    padding: 20px 30px 100px; /* Significantly increased bottom padding from 60px to 100px */
     background: rgba(255, 255, 255, 0.05);
 }
 
