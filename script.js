@@ -3683,7 +3683,7 @@ function updateMultiChallengeUI() {
         if (isMultiListChallenge) {
             const listNumber = currentChallengeListIndex + 1;
             const totalLists = selectedWordSetsForChallenge.length;
-            title.innerHTML = logoHtml + `🏃 Multi-Challenge: List ${listNumber}/${totalLists}`;
+            title.innerHTML = logoHtml + `🏃 Multi List ${listNumber}/${totalLists}`;
             title.style.color = '#3b82f6';
         } else if (isIndividualWordPractice) {
             title.innerHTML = logoHtml + '🎯 Word Practice';
@@ -3701,7 +3701,7 @@ function updateMultiChallengeUI() {
     if (exitButton) {
         if (isMultiListChallenge) {
             exitButton.style.display = 'inline-block';
-            exitButton.textContent = '🚪 Exit Multi-Challenge';
+            exitButton.textContent = '🚪 Exit Multi List';
         } else if (isIndividualWordPractice) {
             exitButton.style.display = 'inline-block';
             exitButton.textContent = '🔙 Back to Practice';
