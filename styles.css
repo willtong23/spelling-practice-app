@@ -28,16 +28,21 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
 }
 
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
-    position: relative;
+    gap: 12px;
 }
 
 /* Celebration Animation Styles */
@@ -1235,9 +1240,21 @@ h1 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 6px;
-    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+    margin-bottom: 20px;
+    padding: 0 10px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .title {
@@ -2608,4 +2625,159 @@ h1 {
 }
 
 .main-content {
+}
+
+/* Practice mode exit button styling */
+#exitPracticeButton {
+    background: linear-gradient(45deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    display: none;
+    white-space: nowrap;
+}
+
+#exitPracticeButton:hover {
+    background: linear-gradient(45deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Multi-List Challenge Styles */
+.challenge-header {
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+}
+
+.challenge-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.challenge-btn {
+    background: linear-gradient(45deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.multi-challenge-btn {
+    background: linear-gradient(45deg, #10b981, #059669);
+}
+
+.multi-challenge-btn:hover:not(:disabled) {
+    background: linear-gradient(45deg, #059669, #047857);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.multi-challenge-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.challenge-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 16px 0 8px 0;
+}
+
+.challenge-divider::before,
+.challenge-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #d1d5db;
+}
+
+.challenge-divider span {
+    padding: 0 16px;
+    color: #6b7280;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.word-set-selection {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 16px;
+    padding: 0 8px 0 0; /* Add right padding to create space from edge */
+}
+
+.word-set-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.word-set-radio {
+    margin: 0;
+    cursor: pointer;
+}
+
+.word-set-checkbox {
+    margin: 0 12px 0 0; /* Add right margin for spacing from edge */
+    cursor: pointer;
+    accent-color: #3b82f6;
+    transform: scale(1.2);
+}
+
+.checkbox-text {
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Challenge Progress Styles */
+.challenge-progress {
+    background: linear-gradient(45deg, #3b82f6, #2563eb);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Mobile responsiveness for challenge controls */
+@media (max-width: 768px) {
+    .challenge-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .challenge-btn {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .word-set-selection {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        justify-content: space-between;
+    }
 } 

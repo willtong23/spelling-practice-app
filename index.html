@@ -42,10 +42,13 @@
     <div class="main-content" id="mainContent">
         <div class="container">
             <div class="header">
-                <h1 class="title">
-                    <img src="logo.png" alt="Spelling Practice Logo" class="logo">
-                    Spelling Practice
-                </h1>
+                <div class="header-left">
+                    <h1 class="title">
+                        <img src="logo.png" alt="Spelling Practice Logo" class="logo">
+                        Spelling Practice
+                    </h1>
+                    <button class="control-btn exit-practice-btn" id="exitPracticeButton" style="display:none;">🚪 Exit Practice</button>
+                </div>
                 <div class="header-right">
                     <div class="celebration-area">
                         <div class="celebration-animation" id="celebrationAnimation">
@@ -59,7 +62,7 @@
                             <div class="celebration-text" id="celebrationText">Perfect!</div>
                         </div>
                     </div>
-                    <button id="clearDataBtn" class="control-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); font-size: 0.8rem; padding: 6px 12px;">�� Sign Out</button>
+                    <button id="clearDataBtn" class="control-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); font-size: 0.8rem; padding: 6px 12px;">🚪 Sign Out</button>
                     <a href="teacher.html" class="teacher-link">👨‍🏫 Teacher Dashboard</a>
                 </div>
             </div>
@@ -88,7 +91,6 @@
                         <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
                         <button class="control-btn voice-input-btn" id="voiceInputButton">🎤 Voice Input</button>
                         <button class="control-btn results-toggle-btn" id="resultsToggleButton">📊 Hide Results</button>
-                        <button class="control-btn exit-practice-btn" id="exitPracticeButton" style="display:none;">🚪 Exit Practice</button>
                     </div>
                     
                     <div class="letter-hint" id="letterHint">

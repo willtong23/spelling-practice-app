@@ -11,6 +11,14 @@ let userAssignmentId = null;
 let isIndividualWordPractice = false;
 let originalPracticeState = null;
 
+// Multi-list challenge variables
+let isMultiListChallenge = false;
+let selectedWordSetsForChallenge = [];
+let currentChallengeListIndex = 0;
+let challengeResults = [];
+let originalSingleListState = null;
+let challengeSelectionOrder = []; // Track the order of checkbox selections
+
 async function getWordsFromAssignment(userName) {
     try {
         console.log(`=== GETTING WORDS FOR USER: ${userName} ===`);
@@ -297,6 +305,23 @@ async function loadAvailableWordSets() {
             if (availableWordSets.length === 0) {
                 wordSetList.innerHTML = '<div class="no-sets-message">No word sets assigned</div>';
             } else {
+                // Add multi-list challenge header if there are multiple sets
+                if (availableWordSets.length > 1) {
+                    const challengeHeader = document.createElement('div');
+                    challengeHeader.className = 'challenge-header';
+                    challengeHeader.innerHTML = `
+                        <div class="challenge-controls">
+                            <button id="startMultiChallengeBtn" class="challenge-btn multi-challenge-btn" disabled>
+                                🏃 Start Multi-List Challenge
+                            </button>
+                        </div>
+                        <div class="challenge-divider">
+                            <span>Select Multiple Lists for Challenge</span>
+                        </div>
+                    `;
+                    wordSetList.appendChild(challengeHeader);
+                }
+                
                 availableWordSets.forEach((set, index) => {
                     const setItem = document.createElement('div');
                     setItem.className = 'word-set-item';
@@ -304,38 +329,69 @@ async function loadAvailableWordSets() {
                     const isDefault = index === 0; // First set is default
                     
                     setItem.innerHTML = `
-                        <label class="word-set-label">
-                            <input type="radio" name="selectedWordSet" value="${set.id}" ${isDefault ? 'checked' : ''} class="word-set-radio">
-                            <span class="word-set-name">${set.name}</span>
-                            <span class="word-set-count">(${set.words.length} words)</span>
-                        </label>
+                        <div class="word-set-selection">
+                            <label class="word-set-label">
+                                <input type="radio" name="selectedWordSet" value="${set.id}" ${isDefault ? 'checked' : ''} class="word-set-radio">
+                                <span class="word-set-name">${set.name}</span>
+                                <span class="word-set-count">(${set.words.length} words)</span>
+                            </label>
+                            ${availableWordSets.length > 1 ? `
+                                <input type="checkbox" value="${set.id}" class="word-set-checkbox" data-set-name="${set.name}" data-word-count="${set.words.length}">
+                            ` : ''}
+                        </div>
                     `;
                     
-                    // Simplified event handling - only use radio button change event
+                    // Radio button event handling (existing single-list functionality)
                     const radio = setItem.querySelector('input[type="radio"]');
-                    
-                    // Single event listener for radio button change
                     radio.addEventListener('change', function(e) {
                         if (this.checked) {
                             console.log(`Word set selected: ${set.name} (${set.id})`);
-                            e.stopPropagation(); // Prevent event bubbling
+                            e.stopPropagation();
                             switchToWordSet(set.id, set.name, set.words);
                         }
                     });
                     
+                    // Checkbox event handling (new multi-list functionality)
+                    const checkbox = setItem.querySelector('input[type="checkbox"]');
+                    if (checkbox) {
+                        checkbox.addEventListener('change', function(e) {
+                            e.stopPropagation();
+                            
+                            if (this.checked) {
+                                // Add to selection order if not already present
+                                if (!challengeSelectionOrder.includes(this.value)) {
+                                    challengeSelectionOrder.push(this.value);
+                                }
+                            } else {
+                                // Remove from selection order
+                                const index = challengeSelectionOrder.indexOf(this.value);
+                                if (index > -1) {
+                                    challengeSelectionOrder.splice(index, 1);
+                                }
+                            }
+                            
+                            updateMultiChallengeButton();
+                        });
+                    }
+                    
                     // Make the entire item clickable by clicking the radio when item is clicked
                     setItem.addEventListener('click', function(e) {
-                        // Only trigger if not clicking directly on the radio button
-                        if (e.target !== radio) {
+                        // Only trigger if not clicking directly on inputs
+                        if (e.target !== radio && e.target !== checkbox) {
                             e.preventDefault();
                             e.stopPropagation();
                             console.log(`Item clicked: selecting ${set.name} (${set.id})`);
-                            radio.click(); // This will trigger the change event above
+                            radio.click();
                         }
                     });
                     
                     wordSetList.appendChild(setItem);
                 });
+                
+                // Set up multi-challenge button handlers
+                if (availableWordSets.length > 1) {
+                    setupMultiChallengeHandlers();
+                }
                 
                 // Auto-select and load the first (default) word set
                 if (availableWordSets.length > 0) {
@@ -1284,8 +1340,15 @@ function moveToNextWord() {
         currentWordIndex++;
         updateDisplay();
     } else {
-        quizComplete = true;
-        showEndOfQuizFeedback();
+        // End of current word list
+        if (isMultiListChallenge) {
+            // For multi-list challenge, complete current list and move to next
+            completeCurrentChallengeList();
+        } else {
+            // For regular quiz, show feedback
+            quizComplete = true;
+            showEndOfQuizFeedback();
+        }
     }
 }
 
@@ -1411,7 +1474,9 @@ if (hintButton) {
 // Exit Practice button to return to main quiz
 if (exitPracticeButton) {
     exitPracticeButton.addEventListener('click', () => {
-        if (isIndividualWordPractice) {
+        if (isMultiListChallenge) {
+            exitMultiListChallenge();
+        } else if (isIndividualWordPractice) {
             exitIndividualWordPractice();
         } else {
             exitPracticeMode();
@@ -1695,10 +1760,12 @@ async function saveQuizResults() {
         
         const now = new Date();
         
-        // Calculate total time if we have a start time
+        // Calculate total time with 10-minute cap
         let totalTimeSeconds = 0;
         if (window.quizStartTime) {
-            totalTimeSeconds = Math.round((now - window.quizStartTime) / 1000);
+            const rawTime = Math.round((now - window.quizStartTime) / 1000);
+            // Cap at 10 minutes (600 seconds) - user likely forgot to sign out
+            totalTimeSeconds = Math.min(rawTime, 600);
         }
         
         const quizData = {
@@ -1709,7 +1776,10 @@ async function saveQuizResults() {
             wordSetName: currentWordSetName, // Include word set name for display
             timestamp: now, // Firebase timestamp for server-side operations
             completedAt: now, // Additional timestamp for completion tracking
-            totalTimeSeconds: totalTimeSeconds // Add total time in seconds
+            totalTimeSeconds: totalTimeSeconds, // Add total time in seconds
+            // Add start and end times for teacher dashboard display
+            startTime: window.quizStartTime ? window.quizStartTime.toISOString() : now.toISOString(),
+            finishTime: now.toISOString()
         };
         
         console.log('Final quiz data to save:', JSON.stringify(quizData, null, 2));
@@ -2292,6 +2362,7 @@ function handleAlphabetKeyClick(event) {
 let isVoiceInputActive = false;
 let recognition = null;
 let voiceInputButton = null;
+let accumulatedVoiceText = ''; // Store accumulated voice input text
 
 // Initialize voice input when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
@@ -2337,16 +2408,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle speech recognition results
     recognition.onresult = function(event) {
         let finalTranscript = '';
+        let interimTranscript = '';
         
         for (let i = event.resultIndex; i < event.results.length; i++) {
             const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
                 finalTranscript += transcript;
+            } else {
+                interimTranscript += transcript;
             }
         }
         
-        if (finalTranscript) {
-            processVoiceInput(finalTranscript.toLowerCase().trim());
+        // Add final transcript to accumulated text
+        if (finalTranscript.trim()) {
+            accumulatedVoiceText += finalTranscript + ' ';
+            console.log('Added to accumulated text:', finalTranscript);
+            console.log('Total accumulated text:', accumulatedVoiceText);
+        }
+        
+        // Process all accumulated text + current interim text
+        const totalText = accumulatedVoiceText + interimTranscript;
+        if (totalText.trim()) {
+            processVoiceInput(totalText.toLowerCase().trim());
+        }
+        
+        // Show interim feedback if available
+        if (interimTranscript.trim()) {
+            showNotification(`Listening: "${interimTranscript}"`, 'info');
         }
     };
     
@@ -2368,6 +2456,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle speech recognition start
     recognition.onstart = function() {
         console.log('Speech recognition started');
+        // Clear accumulated text when starting fresh
+        accumulatedVoiceText = '';
     };
     
     // Handle speech recognition end
@@ -2760,6 +2850,8 @@ function startVoiceInput() {
     
     try {
         isVoiceInputActive = true;
+        processedLetterCount = 0; // Reset processed letter count
+        accumulatedVoiceText = ''; // Reset accumulated text
         recognition.start();
         
         // Update button appearance
@@ -2801,22 +2893,41 @@ function stopVoiceInput() {
 }
 
 // Function to process voice input and convert to letters
+let processedLetterCount = 0; // Track how many letters we've already processed
+
 function processVoiceInput(transcript) {
     console.log('Processing voice input:', transcript);
     
     // Clean up the transcript and extract letters
     const words = transcript.split(/\s+/);
+    let extractedLetters = [];
     
     for (const word of words) {
         // Check if it's a single letter (a-z)
         if (word.length === 1 && /^[a-z]$/.test(word)) {
-            inputLetterToBox(word);
+            extractedLetters.push(word);
         } else {
             // Try to extract letters from common speech patterns
             const letter = extractLetterFromSpeech(word);
             if (letter) {
-                inputLetterToBox(letter);
+                extractedLetters.push(letter);
             }
+        }
+    }
+    
+    console.log('Extracted letters:', extractedLetters);
+    console.log('Already processed:', processedLetterCount, 'letters');
+    
+    // Only process new letters (skip letters we've already processed)
+    const newLetters = extractedLetters.slice(processedLetterCount);
+    console.log('New letters to process:', newLetters);
+    
+    // Process each new letter
+    for (const letter of newLetters) {
+        const success = inputLetterToBox(letter);
+        if (success) {
+            processedLetterCount++;
+            console.log('Successfully processed letter:', letter, 'Total processed:', processedLetterCount);
         }
     }
 }
@@ -2859,7 +2970,7 @@ function extractLetterFromSpeech(word) {
 // Function to input a letter to the appropriate box
 function inputLetterToBox(letter) {
     if (!letterInputs || letterInputs.length === 0) {
-        return;
+        return false;
     }
     
     // Find the first empty box
@@ -2875,7 +2986,7 @@ function inputLetterToBox(letter) {
             setTimeout(() => {
                 checkSpelling();
             }, 500);
-            return;
+            return false;
         }
         // If not all filled but no empty box found, use the first box
         targetBox = letterInputs[0];
@@ -2927,7 +3038,11 @@ function inputLetterToBox(letter) {
             stopVoiceInput();
             showNotification('All letters filled! Checking spelling...', 'success');
         }
+        
+        return true; // Successfully added letter
     }
+    
+    return false; // Failed to add letter
 }
 
 // Function to practice an individual word
@@ -3084,3 +3199,531 @@ async function cleanupDuplicateWordSets() {
 
 // Add this function to the global scope for debugging
 window.cleanupDuplicateWordSets = cleanupDuplicateWordSets;
+
+// Multi-List Challenge Functions
+function setupMultiChallengeHandlers() {
+    const startChallengeBtn = document.getElementById('startMultiChallengeBtn');
+    
+    if (startChallengeBtn) {
+        startChallengeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            startMultiListChallenge();
+        });
+    }
+}
+
+function updateMultiChallengeButton() {
+    const startChallengeBtn = document.getElementById('startMultiChallengeBtn');
+    const checkboxes = document.querySelectorAll('.word-set-checkbox');
+    
+    if (!startChallengeBtn || !checkboxes) return;
+    
+    const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    if (selectedCount === 0) {
+        startChallengeBtn.disabled = true;
+        startChallengeBtn.textContent = '🏃 Start Multi-List Challenge';
+    } else {
+        startChallengeBtn.disabled = false;
+        const totalWords = Array.from(checkboxes)
+            .filter(cb => cb.checked)
+            .reduce((sum, cb) => sum + parseInt(cb.dataset.wordCount), 0);
+        startChallengeBtn.textContent = `🏃 Start Challenge (${selectedCount} lists, ${totalWords} words)`;
+    }
+}
+
+function startMultiListChallenge() {
+    const checkboxes = document.querySelectorAll('.word-set-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        showNotification('Please select at least one word set for the challenge.', 'warning');
+        return;
+    }
+    
+    // Store original state
+    originalSingleListState = {
+        words: [...words],
+        currentWordSetId: currentWordSetId,
+        currentWordSetName: currentWordSetName,
+        isPracticeMode: isPracticeMode,
+        isIndividualWordPractice: isIndividualWordPractice
+    };
+    
+    // Prepare challenge data in selection order
+    selectedWordSetsForChallenge = challengeSelectionOrder.map(setId => {
+        const wordSet = availableWordSets.find(set => set.id === setId);
+        const checkbox = document.querySelector(`.word-set-checkbox[value="${setId}"]`);
+        
+        return {
+            id: setId,
+            name: checkbox.dataset.setName,
+            words: wordSet ? wordSet.words : [],
+            wordCount: parseInt(checkbox.dataset.wordCount)
+        };
+    });
+    
+    // Initialize challenge state
+    isMultiListChallenge = true;
+    currentChallengeListIndex = 0;
+    challengeResults = [];
+    
+    console.log(`Starting multi-list challenge with ${selectedWordSetsForChallenge.length} word sets in selection order:`, selectedWordSetsForChallenge);
+    
+    // Start with the first word set
+    startNextChallengeList();
+    
+    // Update UI
+    updateMultiChallengeUI();
+    
+    showNotification(`🏃 Multi-List Challenge Started! ${selectedWordSetsForChallenge.length} word sets to complete.`, 'success');
+}
+
+function startNextChallengeList() {
+    if (currentChallengeListIndex >= selectedWordSetsForChallenge.length) {
+        // Challenge complete
+        completeMultiListChallenge();
+        return;
+    }
+    
+    const currentSet = selectedWordSetsForChallenge[currentChallengeListIndex];
+    console.log(`Starting challenge list ${currentChallengeListIndex + 1}: ${currentSet.name}`);
+    
+    // Set individual list start time
+    window.currentListStartTime = new Date();
+    
+    // Set up the current word set
+    words = [...currentSet.words];
+    currentWordSetId = currentSet.id;
+    currentWordSetName = currentSet.name;
+    
+    // Shuffle words for this list
+    if (words.length > 1) {
+        shuffleArray(words);
+    }
+    
+    // Reset quiz state for this list
+    resetQuizState();
+    updateDisplay();
+    updateMultiChallengeUI();
+    
+    const listNumber = currentChallengeListIndex + 1;
+    const totalLists = selectedWordSetsForChallenge.length;
+    
+    // Show list transition notification (brief)
+    if (currentChallengeListIndex > 0) {
+        showNotification(`📚 List ${listNumber}/${totalLists}: "${currentSet.name}" - ${words.length} words`, 'info');
+    } else {
+        showNotification(`🏃 Challenge Started! List ${listNumber}/${totalLists}: "${currentSet.name}"`, 'success');
+    }
+    
+    // Speak the first word after a brief delay
+    setTimeout(() => {
+        if (words.length > 0) speakWord(words[0]);
+    }, currentChallengeListIndex > 0 ? 800 : 500); // Slightly longer delay for list transitions
+}
+
+function completeCurrentChallengeList() {
+    const listEndTime = new Date();
+    
+    // Store results for this list with individual timing
+    const listResult = {
+        listIndex: currentChallengeListIndex,
+        wordSetId: currentWordSetId,
+        wordSetName: currentWordSetName,
+        words: [...words],
+        userAnswers: [...userAnswers],
+        hintUsed: [...hintUsed],
+        startedAt: window.currentListStartTime || new Date(),
+        completedAt: listEndTime
+    };
+    
+    challengeResults.push(listResult);
+    
+    console.log(`Completed challenge list ${currentChallengeListIndex + 1}: ${currentWordSetName}`);
+    
+    // Move to next list
+    currentChallengeListIndex++;
+    
+    if (currentChallengeListIndex >= selectedWordSetsForChallenge.length) {
+        // All lists complete - show final results
+        completeMultiListChallenge();
+    } else {
+        // Immediately continue to next list
+        startNextChallengeList();
+    }
+}
+
+function continueToNextChallengeList() {
+    closeModal();
+    setTimeout(() => {
+        startNextChallengeList();
+    }, 200);
+}
+
+function completeMultiListChallenge() {
+    console.log('Multi-list challenge complete!');
+    
+    // Calculate overall statistics
+    let totalWords = 0;
+    let totalCorrectFirstTry = 0;
+    let totalHintsUsed = 0;
+    
+    challengeResults.forEach(listResult => {
+        totalWords += listResult.words.length;
+        
+        listResult.words.forEach((word, index) => {
+            const userAnswer = listResult.userAnswers[index];
+            const attempts = userAnswer ? userAnswer.attempts : [];
+            const firstTryCorrect = attempts.length > 0 && attempts[0] === word;
+            
+            if (firstTryCorrect) totalCorrectFirstTry++;
+            if (Array.isArray(listResult.hintUsed[index]) ? listResult.hintUsed[index].length > 0 : listResult.hintUsed[index]) {
+                totalHintsUsed++;
+            }
+        });
+    });
+    
+    const overallScore = Math.round((totalCorrectFirstTry / totalWords) * 100);
+    
+    // Show detailed completion modal with better scrolling
+    let html = `
+        <div style="max-height: 75vh; overflow-y: auto; padding-right: 8px;">
+            <h2 style="color: #22c55e; margin-bottom: 16px; text-align: center;">🏆 Multi-List Challenge Complete!</h2>
+            <div style="background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <h3 style="margin: 0 0 12px 0; color: #1e40af;">📊 Overall Results</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; font-size: 0.9rem;">
+                    <div><strong>Total Words:</strong> ${totalWords}</div>
+                    <div><strong>First-Try Correct:</strong> ${totalCorrectFirstTry}</div>
+                    <div><strong>Overall Score:</strong> ${overallScore}%</div>
+                    <div><strong>Hints Used:</strong> ${totalHintsUsed}</div>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 12px; color: #1e293b;">📚 Detailed Results by List</h3>
+    `;
+    
+    // Show detailed results for each list
+    challengeResults.forEach((listResult, listIndex) => {
+        const listCorrect = listResult.words.filter((word, wordIndex) => {
+            const userAnswer = listResult.userAnswers[wordIndex];
+            const attempts = userAnswer ? userAnswer.attempts : [];
+            return attempts.length > 0 && attempts[0] === word;
+        }).length;
+        
+        const listScore = Math.round((listCorrect / listResult.words.length) * 100);
+        
+        html += `
+            <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 12px 0; color: #1e293b; font-size: 1.1rem;">
+                    📋 List ${listIndex + 1}: ${listResult.wordSetName}
+                </h4>
+                <div style="margin-bottom: 12px; color: #64748b; font-weight: 600;">
+                    Score: ${listScore}% (${listCorrect}/${listResult.words.length} words)
+                </div>
+                
+                <div style="overflow-x: auto; margin-bottom: 8px;">
+                    <table style="width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 0.85rem;">
+                        <tr style="background: #e2e8f0;">
+                            <th style="text-align: left; padding: 6px 8px; border-radius: 4px 0 0 4px;">Word</th>
+                            <th style="text-align: center; padding: 6px 8px;">First Try</th>
+                            <th style="text-align: left; padding: 6px 8px; border-radius: 0 4px 4px 0;">All Attempts</th>
+                        </tr>
+        `;
+        
+        // Show each word in this list
+        listResult.words.forEach((word, wordIndex) => {
+            const userAnswer = listResult.userAnswers[wordIndex];
+            const attempts = userAnswer ? userAnswer.attempts : [];
+            const firstTryCorrect = attempts.length > 0 && attempts[0] === word;
+            const eventuallyCorrect = attempts.includes(word);
+            const hintsUsedForWord = Array.isArray(listResult.hintUsed[wordIndex]) ? 
+                listResult.hintUsed[wordIndex].length > 0 : listResult.hintUsed[wordIndex];
+            
+            html += `<tr style="background: #ffffff;">
+                <td style="font-weight: 600; padding: 6px 8px; border-radius: 4px 0 0 4px;">${word}</td>
+                <td style="text-align: center; padding: 6px 8px;">`;
+            
+            // Show first try result
+            if (firstTryCorrect) {
+                html += `<span style='font-size: 1.3em; color: #22c55e;'>✅</span>`;
+            } else {
+                html += `<span style='font-size: 1.3em; color: #ef4444;'>❌</span>`;
+            }
+            
+            // Add hint indicator
+            if (hintsUsedForWord) {
+                html += `<span style='color: #fbbf24; font-weight: 700; font-size: 1.1em; margin-left: 4px;' title='Hint used'>H</span>`;
+            }
+            
+            html += `</td><td style="color: #4b5563; padding: 6px 8px; border-radius: 0 4px 4px 0;">`;
+            
+            // Show all attempts with color coding
+            if (attempts.length > 0) {
+                const attemptsList = attempts.map((attempt, idx) => {
+                    if (attempt === word) {
+                        return `<span style="color: #22c55e; font-weight: 600;">${attempt}</span>`;
+                    } else {
+                        return `<span style="color: #ef4444; font-weight: 600;">${attempt}</span>`;
+                    }
+                }).join(' → ');
+                html += attemptsList;
+                
+                // Add status if eventually correct but not first try
+                if (!firstTryCorrect && eventuallyCorrect) {
+                    html += ` <span style="color: #f59e0b; font-size: 0.75em;">(eventually correct)</span>`;
+                }
+            } else {
+                html += '<span style="color: #9ca3af;">No attempts</span>';
+            }
+            
+            html += '</td></tr>';
+        });
+        
+        html += `
+                    </table>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+        <div style="margin-top: 20px; padding-top: 16px; border-top: 2px solid #e5e7eb; display: flex; gap: 12px; justify-content: center; background: white; position: sticky; bottom: 0;">
+            <button onclick="exitMultiListChallenge()" style="background: #6b7280; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease;" onmouseover="this.style.background='#4b5563'" onmouseout="this.style.background='#6b7280'">
+                Return to Word Sets
+            </button>
+        </div>
+    `;
+    
+    showModal(html);
+    
+    // Save challenge results to Firebase
+    saveMultiListChallengeResults();
+    
+    // Mark as complete
+    isMultiListChallenge = false;
+}
+
+function exitMultiListChallenge() {
+    console.log('Exiting multi-list challenge...');
+    
+    // Restore original state
+    if (originalSingleListState) {
+        words = [...originalSingleListState.words];
+        currentWordSetId = originalSingleListState.currentWordSetId;
+        currentWordSetName = originalSingleListState.currentWordSetName;
+        isPracticeMode = originalSingleListState.isPracticeMode;
+        isIndividualWordPractice = originalSingleListState.isIndividualWordPractice;
+    }
+    
+    // Reset challenge state
+    isMultiListChallenge = false;
+    selectedWordSetsForChallenge = [];
+    currentChallengeListIndex = 0;
+    challengeResults = [];
+    originalSingleListState = null;
+    challengeSelectionOrder = []; // Reset selection order
+    
+    // Reset quiz and update UI
+    resetQuizState();
+    updateDisplay();
+    updateWordSetPanel();
+    updatePracticeModeUI();
+    
+    closeModal();
+    showNotification('Returned to single word set mode', 'info');
+}
+
+function updateMultiChallengeUI() {
+    const title = document.querySelector('.title');
+    const exitButton = document.getElementById('exitPracticeButton');
+    
+    if (title) {
+        const logoHtml = '<img src="logo.png" alt="Spelling Practice Logo" class="logo">';
+        
+        if (isMultiListChallenge) {
+            const listNumber = currentChallengeListIndex + 1;
+            const totalLists = selectedWordSetsForChallenge.length;
+            title.innerHTML = logoHtml + `🏃 Multi-Challenge: List ${listNumber}/${totalLists}`;
+            title.style.color = '#3b82f6';
+        } else if (isIndividualWordPractice) {
+            title.innerHTML = logoHtml + '🎯 Word Practice';
+            title.style.color = '#10b981';
+        } else if (isPracticeMode) {
+            title.innerHTML = logoHtml + '🎯 Practice Mode';
+            title.style.color = '#f59e0b';
+        } else {
+            title.innerHTML = logoHtml + 'Spelling Practice';
+            title.style.color = '#2563eb';
+        }
+    }
+    
+    // Show/hide exit button
+    if (exitButton) {
+        if (isMultiListChallenge) {
+            exitButton.style.display = 'inline-block';
+            exitButton.textContent = '🚪 Exit Multi-Challenge';
+        } else if (isIndividualWordPractice) {
+            exitButton.style.display = 'inline-block';
+            exitButton.textContent = '🔙 Back to Practice';
+        } else if (isPracticeMode) {
+            exitButton.style.display = 'inline-block';
+            exitButton.textContent = '🚪 Exit Practice';
+        } else {
+            exitButton.style.display = 'none';
+        }
+    }
+}
+
+async function saveMultiListChallengeResults() {
+    try {
+        console.log('Saving multi-list challenge results...');
+        
+        const now = new Date();
+        let totalTimeSeconds = 0;
+        if (window.quizStartTime) {
+            const rawTime = Math.round((now - window.quizStartTime) / 1000);
+            // Cap at 10 minutes (600 seconds) - user likely forgot to sign out
+            totalTimeSeconds = Math.min(rawTime, 600);
+        }
+        
+        // Save each list as a separate result entry (so teacher dashboard can see them)
+        const savePromises = [];
+        
+        for (let i = 0; i < challengeResults.length; i++) {
+            const listResult = challengeResults[i];
+            
+            // Transform the list data to match regular quiz format
+            const wordsData = listResult.words.map((word, index) => {
+                const userAnswer = listResult.userAnswers[index] || { attempts: [], correct: false };
+                const attempts = userAnswer.attempts || [];
+                
+                // A word is only correct if the FIRST attempt was correct
+                const firstAttemptCorrect = attempts.length > 0 && attempts[0] === word;
+                
+                return {
+                    word: word,
+                    correct: firstAttemptCorrect, // Only true if first attempt was correct
+                    attempts: attempts,
+                    hint: Array.isArray(listResult.hintUsed[index]) ? listResult.hintUsed[index].length > 0 : listResult.hintUsed[index] || false,
+                    hintLetters: Array.isArray(listResult.hintUsed[index]) ? listResult.hintUsed[index] : [], // Track which letters were hinted
+                    firstTryCorrect: firstAttemptCorrect // Explicit field for first-try scoring
+                };
+            });
+            
+            // Calculate time for this list (using individual timing with 10-min cap)
+            let listTimeSeconds;
+            if (listResult.startedAt && listResult.completedAt) {
+                const rawListTime = Math.round((listResult.completedAt - listResult.startedAt) / 1000);
+                // Cap individual list time at 10 minutes (600 seconds)
+                listTimeSeconds = Math.min(rawListTime, 600);
+            } else {
+                // Fallback to proportional time, also capped
+                const proportionalTime = Math.round(totalTimeSeconds / challengeResults.length);
+                listTimeSeconds = Math.min(proportionalTime, 600);
+            }
+            
+            // Create individual list result (same format as regular quiz)
+            const listQuizData = {
+                user: userName,
+                date: now.toISOString(),
+                words: wordsData,
+                wordSetId: listResult.wordSetId,
+                wordSetName: listResult.wordSetName,
+                timestamp: now,
+                completedAt: listResult.completedAt,
+                totalTimeSeconds: listTimeSeconds,
+                // Add individual list start and end times for teacher dashboard display
+                startTime: listResult.startedAt ? listResult.startedAt.toISOString() : now.toISOString(),
+                finishTime: listResult.completedAt.toISOString(),
+                // Add multi-challenge context
+                multiChallenge: true,
+                challengeListIndex: i + 1,
+                challengeTotalLists: challengeResults.length,
+                challengeId: `${userName}_${now.getTime()}` // Common ID for all lists in this challenge
+            };
+            
+            console.log(`Saving individual list ${i + 1}:`, listQuizData);
+            
+            // Save this list as a separate result
+            const savePromise = window.db.collection('results').add(listQuizData);
+            savePromises.push(savePromise);
+        }
+        
+        // Also save the overall challenge summary (optional - for detailed analysis)
+        const challengeSummaryData = {
+            user: userName,
+            date: now.toISOString(),
+            type: 'multi-list-challenge-summary',
+            challengeResults: challengeResults,
+            totalLists: selectedWordSetsForChallenge.length,
+            totalTimeSeconds: totalTimeSeconds,
+            timestamp: now,
+            completedAt: now,
+            challengeId: `${userName}_${now.getTime()}`
+        };
+        
+        savePromises.push(window.db.collection('results').add(challengeSummaryData));
+        
+        // Wait for all saves to complete
+        const results = await Promise.all(savePromises);
+        
+        console.log(`Multi-list challenge results saved successfully!`);
+        console.log(`- ${challengeResults.length} individual list results saved`);
+        console.log(`- 1 challenge summary saved`);
+        console.log('Document IDs:', results.map(doc => doc.id));
+        
+        showNotification('Challenge results saved successfully!', 'success');
+    } catch (error) {
+        console.error('Error saving challenge results:', error);
+        showNotification('Error saving challenge results.', 'error');
+    }
+}
+
+// Make functions globally available
+window.continueToNextChallengeList = continueToNextChallengeList;
+window.exitMultiListChallenge = exitMultiListChallenge;
+
+function nextWord() {
+    console.log('nextWord called, current state:', {
+        isIndividualWordPractice,
+        isMultiListChallenge,
+        currentWordIndex,
+        wordsLength: words.length
+    });
+    
+    if (isIndividualWordPractice && originalPracticeState) {
+        // For individual word practice, return to the practice mode
+        console.log('Completing individual word practice...');
+        exitIndividualWordPractice();
+        return;
+    }
+    
+    // Check if this is the end of the current word list
+    if (currentWordIndex >= words.length - 1) {
+        console.log('End of word list reached');
+        
+        if (isMultiListChallenge) {
+            // Complete current challenge list and move to next or finish
+            completeCurrentChallengeList();
+            return;
+        } else {
+            // Regular quiz completion - show feedback
+            quizComplete = true;
+            showEndOfQuizFeedback();
+            return;
+        }
+    }
+    
+    // Move to next word in current list
+    currentWordIndex++;
+    updateDisplay();
+    
+    // Speak the new word
+    setTimeout(() => {
+        if (words[currentWordIndex]) {
+            speakWord(words[currentWordIndex]);
+        }
+    }, 200);
+}

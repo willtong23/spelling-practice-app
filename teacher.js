@@ -2370,6 +2370,18 @@ function applyAnalyticsFilter() {
                 const aScoreDesc = calculateScore(a);
                 const bScoreDesc = calculateScore(b);
                 return bScoreDesc - aScoreDesc;
+            case 'totaltime_asc':
+                const aTotalTime = a.totalTimeSeconds || 
+                    (a.startTime && a.finishTime ? Math.round((new Date(a.finishTime) - new Date(a.startTime)) / 1000) : 0);
+                const bTotalTime = b.totalTimeSeconds || 
+                    (b.startTime && b.finishTime ? Math.round((new Date(b.finishTime) - new Date(b.startTime)) / 1000) : 0);
+                return aTotalTime - bTotalTime;
+            case 'totaltime_desc':
+                const aTotalTimeDesc = a.totalTimeSeconds || 
+                    (a.startTime && a.finishTime ? Math.round((new Date(a.finishTime) - new Date(a.startTime)) / 1000) : 0);
+                const bTotalTimeDesc = b.totalTimeSeconds || 
+                    (b.startTime && b.finishTime ? Math.round((new Date(b.finishTime) - new Date(b.startTime)) / 1000) : 0);
+                return bTotalTimeDesc - aTotalTimeDesc;
             default:
                 return new Date(b.date || b.endTime) - new Date(a.date || a.endTime);
         }
@@ -2901,6 +2913,7 @@ function renderFilteredAnalyticsTable() {
                     <div class="row-1">${dateRow}</div>
                     ${startTimeRow ? `<div class="row-2">Start: ${startTimeRow}</div>` : ''}
                     ${finishTimeRow ? `<div class="row-3">End: ${finishTimeRow}</div>` : ''}
+                    ${result.totalTimeSeconds ? `<div class="row-4">Total: ${formatTimeDisplay(result.totalTimeSeconds)}</div>` : ''}
                 </td>
                 <td class="summary-cell multi-row-cell">
                     <div class="summary-row row-1">${firstTryCorrect}/${totalWords}</div>
@@ -3482,9 +3495,9 @@ function exportAnalyticsData() {
         
         // Format dates and times
         const date = result.date ? new Date(result.date).toLocaleDateString() : 'Unknown';
-        const startTime = result.startTime ? new Date(result.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
-                         (result.date ? new Date(result.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown');
-        const finishTime = result.finishTime ? new Date(result.finishTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+        // Only show end time, not start time as per user request
+        const finishTime = result.finishTime ? new Date(result.finishTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                          (result.date ? new Date(result.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Unknown');
         
         const words = result.words || [];
         
@@ -3505,7 +3518,7 @@ function exportAnalyticsData() {
         
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
-        doc.text(`Date: ${date} | Start: ${startTime} | End: ${finishTime}`, 20, yPos);
+        doc.text(`Date: ${date} | End: ${finishTime}`, 20, yPos);
         yPos += 6;
         doc.text(`Score: ${fraction} (${score}%) | Time: ${result.totalTimeSeconds || 0}s`, 20, yPos);
         yPos += 12;
@@ -3630,10 +3643,89 @@ async function exportScreenshot() {
                     box-sizing: border-box;
                 `;
                 
+                // Generate table rows for this student
+                const tableRows = studentResults.map((result, index) => {
+                    const words = result.words || [];
+                    const firstTryCorrect = words.filter(w => {
+                        const attempts = w.attempts || [];
+                        return attempts.length > 0 && attempts[0] === w.word;
+                    }).length;
+                    const totalWords = words.length;
+                    const scoreText = `${firstTryCorrect}/${totalWords}`;
+                    
+                    // Get end time
+                    let endTimeText = 'Unknown';
+                    if (result.finishTime) {
+                        const finishDate = new Date(result.finishTime);
+                        endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else if (result.date) {
+                        const resultDate = new Date(result.date);
+                        endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+                    
+                    // Create detailed learning information
+                    let learningDetails = '';
+                    const mistakesAndHints = words.filter(w => !w.correct || w.hint);
+                    
+                    if (mistakesAndHints.length > 0) {
+                        learningDetails = mistakesAndHints.map(w => {
+                            let wordDetail = '';
+                            
+                            if (!w.correct) {
+                                // Show wrong spelling in red, then correct spelling in green
+                                const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                                wordDetail += `<span style="background: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; font-weight: 600; font-size: 18px;">${wrongAttempt}</span>`;
+                                wordDetail += ` → `;
+                                wordDetail += `<span style="background: #dcfce7; color: #059669; padding: 2px 4px; border-radius: 3px; font-weight: 600; font-size: 18px;">${w.word}</span>`;
+                            }
+                            
+                            if (w.hint) {
+                                // Show word with hint letters highlighted in yellow and underlined
+                                if (wordDetail) wordDetail += ' | ';
+                                wordDetail += 'Hint: ';
+                                
+                                if (w.hintLetters && w.hintLetters.length > 0) {
+                                    wordDetail += w.word.split('').map((letter, letterIndex) => {
+                                        if (w.hintLetters.includes(letterIndex)) {
+                                            return `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 700; font-size: 18px;">${letter}</span>`;
+                                        }
+                                        return `<span style="color: #374151; font-size: 18px;">${letter}</span>`;
+                                    }).join('');
+                                } else {
+                                    wordDetail += `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 600; font-size: 18px;">${w.word}</span>`;
+                                }
+                            }
+                            
+                            return `<div style="margin-bottom: 8px; line-height: 1.4;">${wordDetail}</div>`;
+                        }).join('');
+                    } else {
+                        learningDetails = '<span style="color: #059669; font-weight: 600; font-size: 18px;">🎉 Perfect! All words correct without hints</span>';
+                    }
+                    
+                    return `
+                        <tr style="border-bottom: 2px solid #e2e8f0; ${index % 2 === 0 ? 'background: #f8fafc;' : 'background: white;'}">
+                            <td style="padding: 18px 15px; font-size: 18px; color: #475569; border-right: 1px solid #e2e8f0;">${result.wordSetName || 'Unknown Set'}</td>
+                            <td style="padding: 18px 15px; text-align: center; border-right: 1px solid #e2e8f0;">
+                                <span style="background: ${firstTryCorrect === totalWords ? '#dcfce7' : firstTryCorrect >= totalWords * 0.8 ? '#fef3c7' : '#fee2e2'}; 
+                                           color: ${firstTryCorrect === totalWords ? '#166534' : firstTryCorrect >= totalWords * 0.8 ? '#92400e' : '#dc2626'}; 
+                                           padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 20px;">
+                                    ${scoreText}
+                                </span>
+                            </td>
+                            <td style="padding: 18px 15px; border-right: 1px solid #e2e8f0; max-width: 400px;">
+                                ${learningDetails}
+                            </td>
+                            <td style="padding: 18px 15px; font-size: 18px; color: #64748b; font-weight: 600;">
+                                ${endTimeText}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
                 screenshotContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
-                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px; object-fit: contain;">
-                        <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #22c55e; padding-bottom: 20px;">
+                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px;">
+                        <div style="flex: 1; text-align: center;">
                             <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Spelling Feedback</h1>
                         </div>
                         <div style="text-align: right; color: #64748b; font-size: 18px; font-weight: 600;">
@@ -3651,83 +3743,7 @@ async function exportScreenshot() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${studentResults.map((result, index) => {
-                                const words = result.words || [];
-                                const firstTryCorrect = words.filter(w => {
-                                    const attempts = w.attempts || [];
-                                    return attempts.length > 0 && attempts[0] === w.word;
-                                }).length;
-                                const totalWords = words.length;
-                                const scoreText = `${firstTryCorrect}/${totalWords}`;
-                                
-                                // Get end time
-                                let endTimeText = 'Unknown';
-                                if (result.finishTime) {
-                                    const finishDate = new Date(result.finishTime);
-                                    endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                } else if (result.date) {
-                                    const resultDate = new Date(result.date);
-                                    endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                }
-                                
-                                // Create detailed learning information
-                                let learningDetails = '';
-                                const mistakesAndHints = words.filter(w => !w.correct || w.hint);
-                                
-                                if (mistakesAndHints.length > 0) {
-                                    learningDetails = mistakesAndHints.map(w => {
-                                        let wordDetail = '';
-                                        
-                                        if (!w.correct) {
-                                            // Show wrong spelling in red, then correct spelling in green
-                                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                                            wordDetail += `<span style="background: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; font-weight: 600; font-size: 18px;">${wrongAttempt}</span>`;
-                                            wordDetail += ` → `;
-                                            wordDetail += `<span style="background: #dcfce7; color: #059669; padding: 2px 4px; border-radius: 3px; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                        }
-                                        
-                                        if (w.hint) {
-                                            // Show word with hint letters highlighted in yellow and underlined
-                                            if (wordDetail) wordDetail += ' | ';
-                                            wordDetail += 'Hint: ';
-                                            
-                                            if (w.hintLetters && w.hintLetters.length > 0) {
-                                                wordDetail += w.word.split('').map((letter, letterIndex) => {
-                                                    if (w.hintLetters.includes(letterIndex)) {
-                                                        return `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 700; font-size: 18px;">${letter}</span>`;
-                                                    }
-                                                    return `<span style="color: #374151; font-size: 18px;">${letter}</span>`;
-                                                }).join('');
-                                            } else {
-                                                wordDetail += `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                            }
-                                        }
-                                        
-                                        return `<div style="margin-bottom: 8px; line-height: 1.4;">${wordDetail}</div>`;
-                                    }).join('');
-                                } else {
-                                    learningDetails = '<span style="color: #059669; font-weight: 600; font-size: 18px;">🎉 Perfect! All words correct without hints</span>';
-                                }
-                                
-                                return `
-                                    <tr style="border-bottom: 2px solid #e2e8f0; ${index % 2 === 0 ? 'background: #f8fafc;' : 'background: white;'}">
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #475569; border-right: 1px solid #e2e8f0;">${result.wordSetName || 'Unknown Set'}</td>
-                                        <td style="padding: 18px 15px; text-align: center; border-right: 1px solid #e2e8f0;">
-                                            <span style="background: ${firstTryCorrect === totalWords ? '#dcfce7' : firstTryCorrect >= totalWords * 0.8 ? '#fef3c7' : '#fee2e2'}; 
-                                                       color: ${firstTryCorrect === totalWords ? '#166534' : firstTryCorrect >= totalWords * 0.8 ? '#92400e' : '#dc2626'}; 
-                                                       padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 20px;">
-                                                ${scoreText}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 18px 15px; border-right: 1px solid #e2e8f0; max-width: 400px;">
-                                            ${learningDetails}
-                                        </td>
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #64748b; font-weight: 600;">
-                                            ${endTimeText}
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
+                            ${tableRows}
                         </tbody>
                     </table>
                 `;
@@ -3789,20 +3805,94 @@ async function exportScreenshot() {
                     box-sizing: border-box;
                 `;
                 
+                // Generate table rows for this page
+                const tableRows = pageResults.map((result, index) => {
+                    const words = result.words || [];
+                    const firstTryCorrect = words.filter(w => {
+                        const attempts = w.attempts || [];
+                        return attempts.length > 0 && attempts[0] === w.word;
+                    }).length;
+                    const totalWords = words.length;
+                    const scoreText = `${firstTryCorrect}/${totalWords}`;
+                    
+                    let endTimeText = 'Unknown';
+                    if (result.finishTime) {
+                        const finishDate = new Date(result.finishTime);
+                        endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    } else if (result.date) {
+                        const resultDate = new Date(result.date);
+                        endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+                    
+                    let learningDetails = '';
+                    const mistakesAndHints = words.filter(w => !w.correct || w.hint);
+                    
+                    if (mistakesAndHints.length > 0) {
+                        learningDetails = mistakesAndHints.map(w => {
+                            let wordDetail = '';
+                            
+                            if (!w.correct) {
+                                const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
+                                wordDetail += `<span style="background: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; font-weight: 600; font-size: 18px;">${wrongAttempt}</span>`;
+                                wordDetail += ` → `;
+                                wordDetail += `<span style="background: #dcfce7; color: #059669; padding: 2px 4px; border-radius: 3px; font-weight: 600; font-size: 18px;">${w.word}</span>`;
+                            }
+                            
+                            if (w.hint) {
+                                if (wordDetail) wordDetail += ' | ';
+                                wordDetail += 'Hint: ';
+                                
+                                if (w.hintLetters && w.hintLetters.length > 0) {
+                                    wordDetail += w.word.split('').map((letter, letterIndex) => {
+                                        if (w.hintLetters.includes(letterIndex)) {
+                                            return `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 700; font-size: 18px;">${letter}</span>`;
+                                        }
+                                        return `<span style="color: #374151; font-size: 18px;">${letter}</span>`;
+                                    }).join('');
+                                } else {
+                                    wordDetail += `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 600; font-size: 18px;">${w.word}</span>`;
+                                }
+                            }
+                            
+                            return `<div style="margin-bottom: 8px; line-height: 1.4;">${wordDetail}</div>`;
+                        }).join('');
+                    } else {
+                        learningDetails = '<span style="color: #059669; font-weight: 600; font-size: 18px;">🎉 Perfect! All words correct without hints</span>';
+                    }
+                    
+                    return `
+                        <tr style="border-bottom: 2px solid #e2e8f0; ${index % 2 === 0 ? 'background: #f8fafc;' : 'background: white;'}">
+                            <td style="padding: 18px 15px; font-weight: 600; font-size: 20px; color: #1e293b; border-right: 1px solid #e2e8f0;">${result.user || 'Unknown'}</td>
+                            <td style="padding: 18px 15px; font-size: 18px; color: #475569; border-right: 1px solid #e2e8f0;">${result.wordSetName || 'Unknown Set'}</td>
+                            <td style="padding: 18px 15px; text-align: center; border-right: 1px solid #e2e8f0;">
+                                <span style="background: ${firstTryCorrect === totalWords ? '#dcfce7' : firstTryCorrect >= totalWords * 0.8 ? '#fef3c7' : '#fee2e2'}; 
+                                           color: ${firstTryCorrect === totalWords ? '#166534' : firstTryCorrect >= totalWords * 0.8 ? '#92400e' : '#dc2626'}; 
+                                           padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 20px;">
+                                    ${scoreText}
+                                </span>
+                            </td>
+                            <td style="padding: 18px 15px; border-right: 1px solid #e2e8f0; max-width: 400px;">
+                                ${learningDetails}
+                            </td>
+                            <td style="padding: 18px 15px; font-size: 18px; color: #64748b; font-weight: 600;">
+                                ${endTimeText}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
                 screenshotContainer.innerHTML = `
-                    <div style="display: flex; align-items: center; margin-bottom: 30px;">
-                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px; object-fit: contain;">
-                        <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #3b82f6; padding-bottom: 20px;">
+                        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px;">
+                        <div style="flex: 1; text-align: center;">
                             <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Spelling Feedback</h1>
-                        </div>
-                        <div style="text-align: right; color: #64748b; font-size: 18px; font-weight: 600;">
-                            📋 ${studentName}
                         </div>
                     </div>
                     
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
                         <thead>
-                            <tr style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">
+                            <tr style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Student</th>
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
                                 <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Score</th>
                                 <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Learning Details</th>
@@ -3810,78 +3900,7 @@ async function exportScreenshot() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${pageResults.map((result, index) => {
-                                const words = result.words || [];
-                                const firstTryCorrect = words.filter(w => {
-                                    const attempts = w.attempts || [];
-                                    return attempts.length > 0 && attempts[0] === w.word;
-                                }).length;
-                                const totalWords = words.length;
-                                const scoreText = `${firstTryCorrect}/${totalWords}`;
-                                
-                                let endTimeText = 'Unknown';
-                                if (result.finishTime) {
-                                    const finishDate = new Date(result.finishTime); endTimeText = finishDate.toLocaleDateString() + ' ' + finishDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                } else if (result.date) {
-                                    const resultDate = new Date(result.date); endTimeText = resultDate.toLocaleDateString() + ' ' + resultDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                                }
-                                
-                                let learningDetails = '';
-                                const mistakesAndHints = words.filter(w => !w.correct || w.hint);
-                                
-                                if (mistakesAndHints.length > 0) {
-                                    learningDetails = mistakesAndHints.map(w => {
-                                        let wordDetail = '';
-                                        
-                                        if (!w.correct) {
-                                            const wrongAttempt = w.attempts && w.attempts.length > 0 ? w.attempts[0] : 'no attempt';
-                                            wordDetail += `<span style="background: #fee2e2; color: #dc2626; padding: 2px 4px; border-radius: 3px; text-decoration: line-through; font-weight: 600; font-size: 18px;">${wrongAttempt}</span>`;
-                                            wordDetail += ` → `;
-                                            wordDetail += `<span style="background: #dcfce7; color: #059669; padding: 2px 4px; border-radius: 3px; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                        }
-                                        
-                                        if (w.hint) {
-                                            if (wordDetail) wordDetail += ' | ';
-                                            wordDetail += 'Hint: ';
-                                            
-                                            if (w.hintLetters && w.hintLetters.length > 0) {
-                                                wordDetail += w.word.split('').map((letter, letterIndex) => {
-                                                    if (w.hintLetters.includes(letterIndex)) {
-                                                        return `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 700; font-size: 18px;">${letter}</span>`;
-                                                    }
-                                                    return `<span style="color: #374151; font-size: 18px;">${letter}</span>`;
-                                                }).join('');
-                                            } else {
-                                                wordDetail += `<span style="background: #fef3c7; color: #d97706; text-decoration: underline; font-weight: 600; font-size: 18px;">${w.word}</span>`;
-                                            }
-                                        }
-                                        
-                                        return `<div style="margin-bottom: 8px; line-height: 1.4;">${wordDetail}</div>`;
-                                    }).join('');
-                                } else {
-                                    learningDetails = '<span style="color: #059669; font-weight: 600; font-size: 18px;">🎉 Perfect! All words correct without hints</span>';
-                                }
-                                
-                                return `
-                                    <tr style="border-bottom: 2px solid #e2e8f0; ${index % 2 === 0 ? 'background: #f8fafc;' : 'background: white;'}">
-                                        <td style="padding: 18px 15px; font-weight: 600; font-size: 20px; color: #1e293b; border-right: 1px solid #e2e8f0;">${result.user || 'Unknown'}</td>
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #475569; border-right: 1px solid #e2e8f0;">${result.wordSetName || 'Unknown Set'}</td>
-                                        <td style="padding: 18px 15px; text-align: center; border-right: 1px solid #e2e8f0;">
-                                            <span style="background: ${firstTryCorrect === totalWords ? '#dcfce7' : firstTryCorrect >= totalWords * 0.8 ? '#fef3c7' : '#fee2e2'}; 
-                                                       color: ${firstTryCorrect === totalWords ? '#166534' : firstTryCorrect >= totalWords * 0.8 ? '#92400e' : '#dc2626'}; 
-                                                       padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 20px;">
-                                                ${scoreText}
-                                            </span>
-                                        </td>
-                                        <td style="padding: 18px 15px; border-right: 1px solid #e2e8f0; max-width: 400px;">
-                                            ${learningDetails}
-                                        </td>
-                                        <td style="padding: 18px 15px; font-size: 18px; color: #64748b; font-weight: 600;">
-                                            ${endTimeText}
-                                        </td>
-                                    </tr>
-                                `;
-                            }).join('')}
+                            ${tableRows}
                         </tbody>
                     </table>
                 `;
@@ -3966,7 +3985,7 @@ function showItemsPerPageModal() {
                 
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
                     <button id="cancelItemsPerPage" class="btn-secondary">Cancel</button>
-                    <button id="confirmItemsPerPage" class="btn-primary" disabled>Export Screenshots</button>
+                    <button id="confirmItemsPerPage" class="btn-primary">Export Screenshots</button>
                 </div>
             </div>
         `;
@@ -3974,7 +3993,7 @@ function showItemsPerPageModal() {
         showModal('Export Screenshot Options', modalContent);
         
         let selectedValue = 5; // Default to 5
-        let selectedMode = 'items'; // 'items' or 'separate'
+        let selectedMode = 'items'; // Default to items mode since 5 is pre-selected
         
         // Handle items per page button selection
         document.querySelectorAll('.items-per-page-btn').forEach(btn => {
@@ -5332,5 +5351,24 @@ function hideWordSetPreview() {
     const tooltip = document.getElementById('wordset-preview-tooltip');
     if (tooltip) {
         tooltip.remove();
+    }
+}
+
+// Add time formatting function at the top of the file
+function formatTimeDisplay(seconds) {
+    if (!seconds || seconds <= 0) return '0s';
+    
+    // Cap at 10 minutes (600 seconds)
+    if (seconds > 600) return '10m+';
+    
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    if (minutes === 0) {
+        return `${remainingSeconds}s`;
+    } else if (remainingSeconds === 0) {
+        return `${minutes}m`;
+    } else {
+        return `${minutes}m${remainingSeconds}s`;
     }
 }
