@@ -10,7 +10,10 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     min-height: 100vh;
     margin: 0;
-    padding: 0;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .container {
@@ -22,7 +25,7 @@ body {
     padding: 20px;
     max-width: 1300px;
     width: 100%;
-    margin: 0 auto; /* Center the container */
+    margin: 20px auto; /* Added margin for better spacing */
 }
 
 .header {
@@ -808,10 +811,14 @@ h1 {
 
 /* Responsive Design */
 @media (max-width: 900px) {
+    body {
+        padding: 15px;
+    }
+    
     .container {
         max-width: 95vw;
         padding: 12px;
-        margin: 8px;
+        margin: 0; /* Remove margin since flexbox centers it */
     }
     .practice-card {
         padding: 12px;
@@ -832,6 +839,12 @@ h1 {
 }
 
 @media (max-width: 768px) {
+    body {
+        padding: 12px;
+        align-items: flex-start; /* Align to top on smaller screens */
+        padding-top: 20px;
+    }
+    
     .word-set-panel {
         max-height: 95vh; /* Increased from 90vh to 95vh for maximum mobile visibility */
     }
@@ -882,10 +895,15 @@ h1 {
         padding: 15px;
         border-radius: 15px;
         max-width: 95%;
+        margin: 0; /* Remove margin since flexbox centers it */
     }
 }
 
 @media (max-width: 480px) {
+    body {
+        padding: 8px;
+    }
+    
     .word-set-panel {
         max-height: 90vh; /* Increased from 85vh to 90vh for maximum visibility on small screens */
     }
@@ -937,6 +955,7 @@ h1 {
         padding: 12px;
         border-radius: 12px;
         max-width: 98%;
+        margin: 0; /* Remove margin since flexbox centers it */
     }
 }
 
