@@ -2575,6 +2575,7 @@ h1 {
     border: 2px solid #e5e7eb;
     border-radius: 8px;
     transition: all 0.2s ease;
+    position: relative;
 }
 
 .word-set-item:hover {
@@ -2622,6 +2623,86 @@ h1 {
 
 .word-set-item:has(.word-set-radio:checked) .word-set-count {
     color: #3b82f6;
+}
+
+/* Word Preview Tooltip Styles */
+.word-preview-tooltip {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    margin-left: 12px;
+    background: #1f2937;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-width: 300px;
+    min-width: 200px;
+    font-size: 0.9rem;
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.word-preview-tooltip[style*="block"] {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.word-preview-header {
+    font-weight: 600;
+    color: #f3f4f6;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.word-preview-list {
+    color: #e5e7eb;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+/* Arrow pointing to the word set item */
+.word-preview-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 20px;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid #1f2937;
+}
+
+/* Responsive positioning for smaller screens */
+@media (max-width: 768px) {
+    .word-preview-tooltip {
+        left: 50%;
+        top: 100%;
+        margin-left: 0;
+        margin-top: 8px;
+        transform: translateX(-50%) translateY(-10px);
+        max-width: 280px;
+    }
+    
+    .word-preview-tooltip[style*="block"] {
+        transform: translateX(-50%) translateY(0);
+    }
+    
+    .word-preview-tooltip::before {
+        left: 50%;
+        top: -8px;
+        margin-left: -8px;
+        border-top: none;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid #1f2937;
+    }
 }
 
 .main-content {

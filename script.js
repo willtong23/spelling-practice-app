@@ -339,6 +339,10 @@ async function loadAvailableWordSets() {
                                 <input type="checkbox" value="${set.id}" class="word-set-checkbox" data-set-name="${set.name}" data-word-count="${set.words.length}">
                             ` : ''}
                         </div>
+                        <div class="word-preview-tooltip" style="display: none;">
+                            <div class="word-preview-header">Words in this set:</div>
+                            <div class="word-preview-list">${set.words.join(', ')}</div>
+                        </div>
                     `;
                     
                     // Radio button event handling (existing single-list functionality)
@@ -373,6 +377,31 @@ async function loadAvailableWordSets() {
                             updateMultiChallengeButton();
                         });
                     }
+                    
+                    // Hover tooltip functionality
+                    const tooltip = setItem.querySelector('.word-preview-tooltip');
+                    let hoverTimeout;
+                    
+                    setItem.addEventListener('mouseenter', function(e) {
+                        // Clear any existing timeout
+                        clearTimeout(hoverTimeout);
+                        
+                        // Hide all other tooltips first
+                        document.querySelectorAll('.word-preview-tooltip').forEach(t => t.style.display = 'none');
+                        
+                        // Show this tooltip after a short delay
+                        hoverTimeout = setTimeout(() => {
+                            tooltip.style.display = 'block';
+                        }, 300);
+                    });
+                    
+                    setItem.addEventListener('mouseleave', function(e) {
+                        // Clear timeout if mouse leaves before tooltip shows
+                        clearTimeout(hoverTimeout);
+                        
+                        // Hide tooltip
+                        tooltip.style.display = 'none';
+                    });
                     
                     // Make the entire item clickable by clicking the radio when item is clicked
                     setItem.addEventListener('click', function(e) {
