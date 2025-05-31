@@ -3966,12 +3966,14 @@ function showItemsPerPageModal() {
                 <div style="margin-bottom: 32px;">
                     <h4 style="margin: 0 0 16px 0; color: #1e293b; font-size: 1.1rem;">📄 Items Per Page</h4>
                     <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.9rem;">All students mixed together on each page:</p>
-                    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 16px;">
                         <button class="items-per-page-btn" data-value="4" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">4</button>
-                        <button class="items-per-page-btn" data-value="5" style="padding: 12px; border: 2px solid #3b82f6; border-radius: 8px; background: #3b82f6; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">5</button>
-                        <button class="items-per-page-btn" data-value="8" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">8</button>
+                        <button class="items-per-page-btn" data-value="5" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">5</button>
+                        <button class="items-per-page-btn" data-value="8" style="padding: 12px; border: 2px solid #3b82f6; border-radius: 8px; background: #3b82f6; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">8</button>
                         <button class="items-per-page-btn" data-value="10" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">10</button>
                         <button class="items-per-page-btn" data-value="12" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">12</button>
+                        <button class="items-per-page-btn" data-value="15" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">15</button>
+                        <button class="items-per-page-btn" data-value="20" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">20</button>
                     </div>
                 </div>
                 
@@ -3992,8 +3994,8 @@ function showItemsPerPageModal() {
         
         showModal('Export Screenshot Options', modalContent);
         
-        let selectedValue = 5; // Default to 5
-        let selectedMode = 'items'; // Default to items mode since 5 is pre-selected
+        let selectedValue = 8; // Default to 8
+        let selectedMode = 'items'; // Default to items mode since 8 is pre-selected
         
         // Handle items per page button selection
         document.querySelectorAll('.items-per-page-btn').forEach(btn => {
