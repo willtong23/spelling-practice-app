@@ -237,7 +237,7 @@ async function loadWordSets() {
         snapshot.forEach(doc => {
             wordSets.push({ id: doc.id, ...doc.data() });
         });
-        
+        wordSets.sort((a, b) => a.name.localeCompare(b.name));       
         // Also load word set folders
         await loadWordSetFolders();
     } catch (error) {
@@ -245,7 +245,7 @@ async function loadWordSets() {
         wordSets = [];
     }
 }
-wordSets.sort((a, b) => a.name.localeCompare(b.name));
+
 // New function to load word set folders
 async function loadWordSetFolders() {
     try {
