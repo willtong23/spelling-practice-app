@@ -29,18 +29,31 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('=== TEACHER DASHBOARD INITIALIZING ===');
     
+    // Function to update loading status
+    function updateLoadingStatus(message) {
+        const statusElement = document.getElementById('loadingStatus');
+        if (statusElement) {
+            statusElement.textContent = message;
+        }
+        console.log('Loading:', message);
+    }
+    
     // Test Firebase connection first
+    updateLoadingStatus('Testing database connection...');
     const connectionOk = await testFirebaseConnection();
     if (!connectionOk) {
+        updateLoadingStatus('❌ Database connection failed!');
         showNotification('Failed to connect to Firebase database. Please check your internet connection.', 'error');
         return;
     }
     
     // Check password
+    updateLoadingStatus('Verifying access...');
     const urlParams = new URLSearchParams(window.location.search);
     const isAlreadyAuthenticated = urlParams.get('auth') === 'verified';
     
     if (!isAlreadyAuthenticated) {
+        updateLoadingStatus('Please enter password...');
         const password = prompt('Enter teacher password:');
         if (password !== '9739') {
             alert('Incorrect password');
@@ -52,16 +65,44 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
     
+    updateLoadingStatus('Initializing interface...');
     // Initialize tabs
     initializeTabs();
     
+    updateLoadingStatus('Loading dashboard data...');
     // Load all data
     await loadAllData();
     
+    updateLoadingStatus('Setting up controls...');
     // Setup event listeners
     setupEventListeners();
     
-    console.log('=== TEACHER DASHBOARD INITIALIZED ===');
+    updateLoadingStatus('Almost ready...');
+    
+    // Hide loading screen and show dashboard with smooth transition
+    setTimeout(() => {
+        const loadingScreen = document.getElementById('loadingScreen');
+        const dashboardContainer = document.getElementById('dashboardContainer');
+        
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            loadingScreen.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 300);
+        }
+        
+        if (dashboardContainer) {
+            dashboardContainer.style.display = 'block';
+            dashboardContainer.style.opacity = '0';
+            dashboardContainer.style.transition = 'opacity 0.3s ease-in';
+            setTimeout(() => {
+                dashboardContainer.style.opacity = '1';
+            }, 50);
+        }
+        
+        console.log('=== TEACHER DASHBOARD READY ===');
+    }, 800); // Slightly longer delay for smoother experience
 });
 
 // Tab functionality
@@ -204,7 +245,7 @@ async function loadWordSets() {
         wordSets = [];
     }
 }
-
+wordSets.sort((a, b) => a.name.localeCompare(b.name));
 // New function to load word set folders
 async function loadWordSetFolders() {
     try {
