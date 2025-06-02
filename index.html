@@ -40,7 +40,7 @@
 
     <!-- Main Content Area -->
     <div class="main-content" id="mainContent">
-        <div class="container">
+    <div class="container">
             <div class="header">
                 <div class="header-left">
                     <div class="word-set-toggle-container">
@@ -99,68 +99,114 @@
                         <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
                         <button class="control-btn voice-input-btn" id="voiceInputButton">🎤 Voice Input</button>
                         <button class="control-btn results-toggle-btn" id="resultsToggleButton">📊 Hide Results</button>
+                        <button class="control-btn sentence-practice-btn" id="sentencePracticeButton">📝 Practice Sentences</button>
                     </div>
                     
-                    <div class="letter-hint" id="letterHint">
-                        <!-- Letter input boxes will be generated here -->
-                    </div>
-                    
-                    <!-- Virtual Alphabet Keyboard -->
-                    <div class="alphabet-keyboard" id="alphabetKeyboard" style="display:none;">
-                        <div class="alphabet-grid">
-                            <!-- First row: A-M -->
-                            <div class="alphabet-row">
-                                <button class="alphabet-key" data-letter="a">a</button>
-                                <button class="alphabet-key" data-letter="b">b</button>
-                                <button class="alphabet-key" data-letter="c">c</button>
-                                <button class="alphabet-key" data-letter="d">d</button>
-                                <button class="alphabet-key" data-letter="e">e</button>
-                                <button class="alphabet-key" data-letter="f">f</button>
-                                <button class="alphabet-key" data-letter="g">g</button>
-                                <button class="alphabet-key" data-letter="h">h</button>
-                                <button class="alphabet-key" data-letter="i">i</button>
-                                <button class="alphabet-key" data-letter="j">j</button>
-                                <button class="alphabet-key" data-letter="k">k</button>
-                                <button class="alphabet-key" data-letter="l">l</button>
-                                <button class="alphabet-key" data-letter="m">m</button>
+                    <!-- Original Spelling Practice Mode -->
+                    <div id="spellingPracticeMode" class="practice-mode-content">
+                        <div class="letter-hint" id="letterHint">
+                            <!-- Letter input boxes will be generated here -->
+                        </div>
+                        
+                        <!-- Virtual Alphabet Keyboard -->
+                        <div class="alphabet-keyboard" id="alphabetKeyboard" style="display:none;">
+                            <div class="alphabet-grid">
+                                <!-- First row: A-M -->
+                                <div class="alphabet-row">
+                                    <button class="alphabet-key" data-letter="a">a</button>
+                                    <button class="alphabet-key" data-letter="b">b</button>
+                                    <button class="alphabet-key" data-letter="c">c</button>
+                                    <button class="alphabet-key" data-letter="d">d</button>
+                                    <button class="alphabet-key" data-letter="e">e</button>
+                                    <button class="alphabet-key" data-letter="f">f</button>
+                                    <button class="alphabet-key" data-letter="g">g</button>
+                                    <button class="alphabet-key" data-letter="h">h</button>
+                                    <button class="alphabet-key" data-letter="i">i</button>
+                                    <button class="alphabet-key" data-letter="j">j</button>
+                                    <button class="alphabet-key" data-letter="k">k</button>
+                                    <button class="alphabet-key" data-letter="l">l</button>
+                                    <button class="alphabet-key" data-letter="m">m</button>
+                                </div>
+                                <!-- Second row: N-Z -->
+                                <div class="alphabet-row">
+                                    <button class="alphabet-key" data-letter="n">n</button>
+                                    <button class="alphabet-key" data-letter="o">o</button>
+                                    <button class="alphabet-key" data-letter="p">p</button>
+                                    <button class="alphabet-key" data-letter="q">q</button>
+                                    <button class="alphabet-key" data-letter="r">r</button>
+                                    <button class="alphabet-key" data-letter="s">s</button>
+                                    <button class="alphabet-key" data-letter="t">t</button>
+                                    <button class="alphabet-key" data-letter="u">u</button>
+                                    <button class="alphabet-key" data-letter="v">v</button>
+                                    <button class="alphabet-key" data-letter="w">w</button>
+                                    <button class="alphabet-key" data-letter="x">x</button>
+                                    <button class="alphabet-key" data-letter="y">y</button>
+                                    <button class="alphabet-key" data-letter="z">z</button>
+                                </div>
                             </div>
-                            <!-- Second row: N-Z -->
-                            <div class="alphabet-row">
-                                <button class="alphabet-key" data-letter="n">n</button>
-                                <button class="alphabet-key" data-letter="o">o</button>
-                                <button class="alphabet-key" data-letter="p">p</button>
-                                <button class="alphabet-key" data-letter="q">q</button>
-                                <button class="alphabet-key" data-letter="r">r</button>
-                                <button class="alphabet-key" data-letter="s">s</button>
-                                <button class="alphabet-key" data-letter="t">t</button>
-                                <button class="alphabet-key" data-letter="u">u</button>
-                                <button class="alphabet-key" data-letter="v">v</button>
-                                <button class="alphabet-key" data-letter="w">w</button>
-                                <button class="alphabet-key" data-letter="x">x</button>
-                                <button class="alphabet-key" data-letter="y">y</button>
-                                <button class="alphabet-key" data-letter="z">z</button>
+                        </div>
+                        
+                        <!-- Celebration Animation Area -->
+                        <div class="celebration-area" id="celebrationArea">
+                            <div class="celebration-animation" id="celebrationAnimation">
+                                <div class="celebration-stars">
+                                    <div class="star star-1">⭐</div>
+                                    <div class="star star-2">✨</div>
+                                    <div class="star star-3">🌟</div>
+                                    <div class="star star-4">⭐</div>
+                                    <div class="star star-5">✨</div>
+                                </div>
+                                <div class="celebration-text" id="celebrationText">Great Job!</div>
                             </div>
+                        </div>
+                        
+                        <div class="result-message" id="resultMessage"></div>
+                        
+                        <div class="action-controls">
+                            <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
                         </div>
                     </div>
                     
-                    <!-- Celebration Animation Area -->
-                    <div class="celebration-area" id="celebrationArea">
-                        <div class="celebration-animation" id="celebrationAnimation">
-                            <div class="celebration-stars">
-                                <div class="star star-1">⭐</div>
-                                <div class="star star-2">✨</div>
-                                <div class="star star-3">🌟</div>
-                                <div class="star star-4">⭐</div>
-                                <div class="star star-5">✨</div>
-                            </div>
-                            <div class="celebration-text" id="celebrationText">Great Job!</div>
+                    <!-- New Sentence Practice Mode -->
+                    <div id="sentencePracticeMode" class="practice-mode-content" style="display: none;">
+                        <div class="sentence-practice-header">
+                            <h3>Create a sentence using: 
+                                <span id="sentenceTargetWord" class="target-word">word</span>
+                            </h3>
+                            <p class="sentence-instructions">Make a complete sentence that includes the word above. You can type and speak to create your sentence.</p>
                         </div>
-                    </div>
-                    
-                    <div class="result-message" id="resultMessage"></div>
-                    
-                    <div class="action-controls">
-                        <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
+                        
+                        <div class="sentence-input-container">
+                            <!-- Merged Typing and Voice Input -->
+                            <div id="typingInputContainer" class="input-container active">
+                                <div class="merged-input-header">
+                                    <span class="input-mode-label">✏️ Type your sentence or 🎤 click Voice to add words</span>
+                                    <div class="voice-controls-mini">
+                                        <button class="voice-control-btn-mini" id="startVoiceMiniBtn">🎤 Add Voice</button>
+                                        <button class="voice-control-btn-mini" id="stopVoiceMiniBtn" disabled style="display: none;">⏹️ Stop</button>
+                                    </div>
+                                </div>
+                                <textarea id="sentenceTextarea" placeholder="Type your sentence here... Click 'Add Voice' to speak words at cursor position" rows="4" maxlength="500"></textarea>
+                                <div class="input-help">
+                                    <span class="char-counter"><span id="charCount">0</span>/500</span>
+                                    <span class="input-tip">💡 Make sure to include the word "<span id="requiredWordHint">word</span>" in your sentence</span>
+                                </div>
+                                <div class="voice-status-mini" id="sentenceVoiceStatusMini" style="display: none;">
+                                    <span class="voice-icon-mini">🎤</span>
+                                    <span class="voice-text-mini">Click "Add Voice" to speak words</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sentence-validation" id="sentenceValidation">
+                            <!-- Validation feedback will appear here -->
+                        </div>
+                        
+                        <div class="sentence-actions">
+                            <button class="action-btn check-btn" id="checkSentenceButton">✓ Check Sentence</button>
+                            <button class="action-btn secondary-btn" id="skipSentenceButton">⏭️ Skip Word</button>
+                            <button class="action-btn secondary-btn" id="backToSpellingButton">🔙 Back to Spelling</button>
+                        </div>
                     </div>
                 </div>
                 
@@ -252,7 +298,7 @@
                 <h2>Welcome to Spelling Practice!</h2>
                 <p>Please enter your name and password to sign in</p>
             </div>
-            
+
             <div class="password-modal-body">
                 <div class="password-input-container">
                     <input type="text" id="studentNameInput" placeholder="Enter your name" maxlength="50" autocomplete="name">

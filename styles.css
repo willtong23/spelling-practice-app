@@ -10,7 +10,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     min-height: 100vh;
     margin: 0;
-    padding: 20px;
+    padding: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -22,10 +22,11 @@ body {
     border-radius: 20px;
     box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
     border: 1px solid rgba(255, 255, 255, 0.18);
-    padding: 20px;
-    max-width: 1300px;
-    width: 100%;
-    margin: 20px auto; /* Added margin for better spacing */
+    padding: 40px;
+    max-width: 2000px;
+    width: 99.5%;
+    margin: 8px auto;
+    min-height: auto;
 }
 
 .header {
@@ -379,19 +380,15 @@ h1 {
 }
 
 .practice-card {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
-    padding: 25px 35px 30px 35px;
-    border-radius: 28px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 8px 20px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    min-width: 500px;
-    width: 100%;
-    max-width: 900px;
-    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin: 0 !important;
 }
 
 .progress-bar-container {
@@ -812,41 +809,42 @@ h1 {
 /* Responsive Design */
 @media (max-width: 900px) {
     body {
-        padding: 15px;
+        padding: 8px;
     }
     
     .container {
-        max-width: 95vw;
-        padding: 12px;
-        margin: 0; /* Remove margin since flexbox centers it */
+        max-width: 99%;
+        width: 99%;
+        padding: 35px;
+        margin: 8px auto;
     }
     .practice-card {
-        padding: 12px;
+        padding: 20px;
         min-width: unset;
     }
     h1 {
         font-size: 1.8rem;
     }
     .modal-content {
-        padding: 15px;
+        padding: 20px;
     }
     .title {
         font-size: 1.6rem;
     }
     .main-content {
-        padding: 8px;
+        padding: 12px;
     }
 }
 
 @media (max-width: 768px) {
     body {
-        padding: 12px;
-        align-items: flex-start; /* Align to top on smaller screens */
-        padding-top: 20px;
+        padding: 6px;
+        align-items: flex-start;
+        padding-top: 8px;
     }
     
     .word-set-panel {
-        max-height: 95vh; /* Increased from 90vh to 95vh for maximum mobile visibility */
+        max-height: 95vh;
     }
     
     .panel-header {
@@ -863,13 +861,13 @@ h1 {
     }
     
     .panel-content {
-        padding: 15px 20px 80px; /* Increased bottom padding from 50px to 80px */
+        padding: 15px 20px 80px;
     }
     
     .main-content {
         margin-left: 0;
-        width: 100%;
-        padding: 15px;
+    width: 100%;
+        padding: 18px;
     }
     
     .main-content.panel-open {
@@ -892,20 +890,21 @@ h1 {
     }
     
     .container {
-        padding: 15px;
+        padding: 25px;
         border-radius: 15px;
-        max-width: 95%;
-        margin: 0; /* Remove margin since flexbox centers it */
+        max-width: 98%;
+        width: 98%;
+        margin: 6px auto;
     }
 }
 
 @media (max-width: 480px) {
     body {
-        padding: 8px;
+    padding: 4px;
     }
     
     .word-set-panel {
-        max-height: 90vh; /* Increased from 85vh to 90vh for maximum visibility on small screens */
+        max-height: 90vh;
     }
     
     .panel-header {
@@ -923,13 +922,13 @@ h1 {
     }
     
     .panel-content {
-        padding: 12px 15px 70px; /* Increased bottom padding from 40px to 70px */
+        padding: 12px 15px 70px;
     }
 
     .main-content {
         margin-left: 0;
-        width: 100%;
-        padding: 12px;
+    width: 100%;
+        padding: 18px;
     }
 
     .main-content.panel-open {
@@ -952,10 +951,11 @@ h1 {
     }
     
     .container {
-        padding: 12px;
+        padding: 22px;
         border-radius: 12px;
-        max-width: 98%;
-        margin: 0; /* Remove margin since flexbox centers it */
+        max-width: 97%;
+        width: 97%;
+        margin: 4px auto;
     }
 }
 
@@ -1322,8 +1322,8 @@ h1 {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 20px;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-    width: 90%;
-    max-width: 450px;
+    width: 95%;
+    max-width: 550px;
     overflow: hidden;
     animation: slideUp 0.4s ease-out;
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1332,7 +1332,7 @@ h1 {
 .password-modal-header {
     background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
     color: white;
-    padding: 30px 25px 25px;
+    padding: 40px 35px 35px;
     text-align: center;
     position: relative;
 }
@@ -1375,7 +1375,7 @@ h1 {
 }
 
 .password-modal-body {
-    padding: 30px 25px;
+    padding: 40px 35px;
 }
 
 .password-input-container {
@@ -1577,16 +1577,16 @@ h1 {
 /* Responsive design */
 @media (max-width: 480px) {
     .password-modal {
-        width: 95%;
+        width: 96%;
         margin: 20px;
     }
     
     .password-modal-header {
-        padding: 25px 20px 20px;
+        padding: 35px 25px 30px;
     }
     
     .password-modal-body {
-        padding: 25px 20px;
+        padding: 35px 25px;
     }
     
     .password-modal-actions {
@@ -1635,7 +1635,7 @@ h1 {
 .practice-layout {
     display: grid;
     grid-template-columns: 1fr 350px;
-    gap: 20px;
+    gap: 4px;
     align-items: start;
 }
 
@@ -1648,6 +1648,7 @@ h1 {
     padding: 30px;
     text-align: center;
     transition: all 0.3s ease;
+    margin: 0 !important;
 }
 
 /* Results Panel Styles */
@@ -1663,6 +1664,7 @@ h1 {
     position: sticky;
     top: 20px;
     display: block !important; /* Force visibility */
+    margin: 0 !important;
 }
 
 .results-header {
@@ -1846,7 +1848,7 @@ h1 {
 @media (max-width: 1200px) {
     .practice-layout {
         grid-template-columns: 1fr 300px;
-        gap: 15px;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden {
@@ -1865,7 +1867,7 @@ h1 {
 @media (max-width: 1000px) {
     .practice-layout {
         grid-template-columns: 1fr 280px;
-        gap: 15px;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden {
@@ -1892,7 +1894,43 @@ h1 {
     .practice-layout {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 4px;
+    }
+    
+    .practice-layout.results-hidden .results-panel {
+        display: none !important;
+    }
+    
+    .results-panel {
+        padding: 15px;
+        border-radius: 15px;
+        max-height: 50vh;
+        order: 2;
+    }
+    
+    .results-panel.hidden {
+        display: none !important;
+    }
+    
+    .results-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .result-item {
+        padding: 12px;
+    }
+    
+    .result-word {
+        font-size: 1rem;
+    }
+}
+
+/* Switch to column layout only on small mobile screens (480px and below) */
+@media (max-width: 480px) {
+    .practice-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden .results-panel {
@@ -2008,7 +2046,7 @@ h1 {
 @media (max-width: 1200px) {
     .practice-layout {
         grid-template-columns: 1fr 300px;
-        gap: 15px;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden {
@@ -2027,7 +2065,7 @@ h1 {
 @media (max-width: 1000px) {
     .practice-layout {
         grid-template-columns: 1fr 280px;
-        gap: 15px;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden {
@@ -2054,7 +2092,7 @@ h1 {
     .practice-layout {
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        gap: 4px;
     }
     
     .practice-layout.results-hidden .results-panel {
@@ -2308,6 +2346,24 @@ h1 {
 }
 
 .main-content {
+    width: 100%;
+    height: auto;
+    min-height: 90vh;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Specific styling for mainContent ID */
+#mainContent {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 90vh !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
 }
 
 /* Practice mode exit button styling */
@@ -2647,3 +2703,366 @@ h1 {
 }
 
 /* Remove floating toggle button styles */
+
+/* ===== SENTENCE PRACTICE MODE STYLES ===== */
+
+/* Practice Mode Container */
+.practice-mode-content {
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure sentence practice stays within practice-card */
+#sentencePracticeMode {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Merged Input Header and Controls */
+.merged-input-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 0;
+}
+
+.input-mode-label {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-weight: 500;
+    text-align: center;
+}
+
+.voice-controls-mini {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.voice-control-btn-mini {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.voice-control-btn-mini:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.voice-control-btn-mini:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+#stopVoiceMiniBtn {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+#stopVoiceMiniBtn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+.voice-status-mini {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voice-icon-mini {
+    color: #10b981;
+    font-size: 1rem;
+}
+
+.voice-text-mini {
+    color: #065f46;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Sentence Practice Header */
+.sentence-practice-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    border-radius: 12px;
+    border: 1px solid #d1d5db;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sentence-practice-header h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.6rem;
+    color: #374151;
+    font-weight: 600;
+}
+
+.target-word {
+    color: #7c3aed;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    padding: 0 8px;
+    border-radius: 6px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.sentence-instructions {
+    margin: 0;
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Input Container */
+.input-container {
+    display: none;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: white;
+    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-container.active {
+    display: block;
+}
+
+.sentence-input-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#sentenceTextarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+    box-sizing: border-box;
+}
+
+#sentenceTextarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.input-help {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: #6b7280;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.char-counter {
+    font-weight: 500;
+}
+
+.input-tip {
+    text-align: right;
+    flex: 1;
+    margin-left: 12px;
+}
+
+/* Sentence Validation */
+.sentence-validation {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-weight: 500;
+    display: none;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sentence-validation.success {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+    display: block;
+}
+
+.sentence-validation.error {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    display: block;
+}
+
+.sentence-validation.warning {
+    background: #fefce8;
+    color: #ca8a04;
+    border: 1px solid #fde047;
+    display: block;
+}
+
+/* Sentence Actions */
+.sentence-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.secondary-btn {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    color: white;
+}
+
+.secondary-btn:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    transform: translateY(-1px);
+}
+
+.sentence-practice-btn {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.sentence-practice-btn:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .sentence-practice-header {
+        padding: 16px;
+    }
+    
+    .sentence-practice-header h3 {
+        font-size: 1.3rem;
+    }
+    
+    #sentenceTextarea {
+        min-height: 100px;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .sentence-actions {
+        flex-direction: column;
+    }
+    
+    .input-help {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+    
+    .input-tip {
+        text-align: left;
+        margin-left: 0;
+    }
+}
+
+/* Sentence Practice Responsive Design Complete */
+
+/* Specific styling for nameModal ID - Sign-in page */
+#nameModal {
+    width: 100% !important;
+    height: 100% !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+#nameModal .password-modal {
+    width: 96% !important;
+    max-width: 600px !important;
+    transform: translateX(-50%) translateY(-50%) !important;
+    left: 50% !important;
+    top: 50% !important;
+    position: absolute !important;
+}
+
+#nameModal .password-modal-header {
+    padding: 45px 40px 40px !important;
+    font-size: 1.1rem !important;
+}
+
+#nameModal .password-modal-body {
+    padding: 45px 40px !important;
+}
+
+#nameModal .password-input-container input {
+    padding: 20px 60px 20px 24px !important;
+    font-size: 1.1rem !important;
+}
+
+#nameModal .btn-cancel, 
+#nameModal .btn-submit {
+    padding: 16px 24px !important;
+    font-size: 1.1rem !important;
+}
+
+@media (max-width: 768px) {
+    #nameModal .password-modal {
+        width: 96% !important;
+        max-width: 500px !important;
+    }
+    
+    #nameModal .password-modal-header {
+        padding: 40px 30px 35px !important;
+    }
+    
+    #nameModal .password-modal-body {
+        padding: 40px 30px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #nameModal .password-modal {
+        width: 96% !important;
+        max-width: 450px !important;
+    }
+    
+    #nameModal .password-modal-header {
+        padding: 35px 25px 30px !important;
+    }
+    
+    #nameModal .password-modal-body {
+        padding: 35px 25px !important;
+    }
+}
+
+/* Specific styling for mainContent ID */

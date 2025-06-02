@@ -1328,7 +1328,7 @@ function updateDisplay() {
     // Ensure currentWordIndex is within bounds
     if (currentWordIndex < 0) currentWordIndex = 0;
     if (currentWordIndex >= words.length) currentWordIndex = words.length - 1;
-    
+
     currentWordNumber.textContent = currentWordIndex + 1;
     totalWords.textContent = words.length;
     resultMessage.innerHTML = '';
@@ -1394,7 +1394,7 @@ function startNewRound() {
     // Instead, just shuffle the existing Firebase words
     if (words.length > 1) shuffleArray(words);
     resetQuizState();
-    updateDisplay();
+            updateDisplay();
 }
 
 async function resetQuiz() {
@@ -1415,7 +1415,7 @@ async function resetQuiz() {
                     setId: selectedSet.id,
                     setName: selectedSet.name
                 };
-            } else {
+        } else {
                 // Fallback to assignment
                 wordData = await getWordsFromAssignment(userName);
             }
@@ -1517,7 +1517,7 @@ function checkSpelling() {
         setTimeout(() => {
             if (isCorrectWithoutHints) {
                 playSuccessSound(); // Exciting celebration for perfect answers
-            } else {
+    } else {
                 playHintSuccessSound(); // Gentle, assuring sound for hint-assisted answers
             }
         }, 100);
@@ -3897,9 +3897,344 @@ function autoSpeakFirstWord() {
 function startPracticeImmediately() {
     console.log('Starting practice immediately...');
     
-    // Initialize practice
-    initializePractice();
-    
     // Auto-speak first word
     autoSpeakFirstWord();
+}
+
+// ===== SENTENCE PRACTICE FUNCTIONALITY =====
+
+// Variables for sentence practice
+let isSentencePracticeMode = false;
+let currentSentenceWord = '';
+let isSentenceVoiceInputActive = false;
+let sentenceRecognition = null;
+let cursorPosition = 0; // Track cursor position for merged input
+
+// Initialize sentence practice when DOM loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        const sentenceBtn = document.getElementById('sentencePracticeButton');
+        const backBtn = document.getElementById('backToSpellingButton');
+        const checkBtn = document.getElementById('checkSentenceButton');
+        
+        console.log('Sentence practice setup:', {
+            sentenceBtn: !!sentenceBtn,
+            backBtn: !!backBtn,
+            checkBtn: !!checkBtn,
+            spellingMode: !!document.getElementById('spellingPracticeMode'),
+            sentenceMode: !!document.getElementById('sentencePracticeMode')
+        });
+        
+        // Mini voice controls for merged input
+        const startVoiceMiniBtn = document.getElementById('startVoiceMiniBtn');
+        const stopVoiceMiniBtn = document.getElementById('stopVoiceMiniBtn');
+        
+        if (sentenceBtn) {
+            sentenceBtn.addEventListener('click', function() {
+                console.log('Sentence practice button clicked! Mode:', isSentencePracticeMode);
+                if (isSentencePracticeMode) {
+                    exitSentenceMode();
+                } else {
+                    enterSentenceMode();
+                }
+            });
+            console.log('Sentence practice button event listener added');
+        } else {
+            console.error('Sentence practice button not found!');
+        }
+        
+        if (backBtn) {
+            backBtn.addEventListener('click', exitSentenceMode);
+        }
+        
+        if (checkBtn) {
+            checkBtn.addEventListener('click', checkSentence);
+        }
+        
+        // Mini voice controls for merged input
+        if (startVoiceMiniBtn) {
+            startVoiceMiniBtn.addEventListener('click', startMergedVoiceInput);
+        }
+        
+        if (stopVoiceMiniBtn) {
+            stopVoiceMiniBtn.addEventListener('click', stopMergedVoiceInput);
+        }
+        
+        // Setup character counter and cursor tracking
+        const textarea = document.getElementById('sentenceTextarea');
+        const charCount = document.getElementById('charCount');
+        if (textarea && charCount) {
+            textarea.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+            });
+            
+            // Track cursor position for merged voice input
+            textarea.addEventListener('click', function() {
+                cursorPosition = this.selectionStart;
+            });
+            
+            textarea.addEventListener('keyup', function() {
+                cursorPosition = this.selectionStart;
+            });
+        }
+        
+        // Initialize sentence voice recognition
+        initializeSentenceVoiceRecognition();
+    }, 1000);
+});
+
+function enterSentenceMode() {
+    isSentencePracticeMode = true;
+    document.getElementById('spellingPracticeMode').style.display = 'none';
+    document.getElementById('sentencePracticeMode').style.display = 'block';
+    document.getElementById('sentencePracticeButton').textContent = '🔤 Back to Spelling';
+    
+    // Set current word
+    const words = getWords();
+    if (words && words.length > 0) {
+        currentSentenceWord = words[currentWordIndex || 0];
+        document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
+        document.getElementById('requiredWordHint').textContent = currentSentenceWord;
+    }
+    
+    showNotification('Sentence practice mode activated! Create sentences using the given words.', 'info');
+}
+
+function exitSentenceMode() {
+    isSentencePracticeMode = false;
+    document.getElementById('spellingPracticeMode').style.display = 'block';
+    document.getElementById('sentencePracticeMode').style.display = 'none';
+    document.getElementById('sentencePracticeButton').textContent = '📝 Practice Sentences';
+    
+    // Clear inputs
+    document.getElementById('sentenceTextarea').value = '';
+    document.getElementById('charCount').textContent = '0';
+    
+    showNotification('Back to spelling practice!', 'info');
+}
+
+function checkSentence() {
+    const textarea = document.getElementById('sentenceTextarea');
+    const validation = document.getElementById('sentenceValidation');
+    
+    // Get text from textarea (merged input mode)
+    let sentence = (textarea?.value || '').trim();
+    
+    if (!sentence) {
+        validation.textContent = 'Please enter a sentence first.';
+        validation.className = 'sentence-validation error';
+        return;
+    }
+    
+    if (sentence.length < 5) {
+        validation.textContent = 'Your sentence is too short.';
+        validation.className = 'sentence-validation warning';
+        return;
+    }
+    
+    // Check if word is included
+    const hasWord = sentence.toLowerCase().includes(currentSentenceWord.toLowerCase());
+    
+    if (!hasWord) {
+        validation.textContent = `Your sentence must include the word "${currentSentenceWord}".`;
+        validation.className = 'sentence-validation error';
+        return;
+    }
+    
+    validation.textContent = `Great! Your sentence includes "${currentSentenceWord}".`;
+    validation.className = 'sentence-validation success';
+    
+    // Stop voice input if active
+    if (isSentenceVoiceInputActive) {
+        stopMergedVoiceInput();
+    }
+    
+    // Move to next word after delay
+    setTimeout(() => {
+        const words = getWords();
+        if (words && words.length > 0) {
+            currentWordIndex = (currentWordIndex + 1) % words.length;
+            currentSentenceWord = words[currentWordIndex];
+            document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
+            document.getElementById('requiredWordHint').textContent = currentSentenceWord;
+            
+            // Clear inputs
+            if (textarea) textarea.value = '';
+            document.getElementById('charCount').textContent = '0';
+            validation.style.display = 'none';
+        }
+    }, 2000);
+}
+
+// ===== MERGED VOICE INPUT FUNCTIONS =====
+
+function initializeSentenceVoiceRecognition() {
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        console.log('Speech recognition not supported for sentence practice');
+        return;
+    }
+    
+    // Initialize speech recognition for sentence practice
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    sentenceRecognition = new SpeechRecognition();
+    
+    // Configure for sentence dictation (capturing words, not letters)
+    sentenceRecognition.continuous = false;
+    sentenceRecognition.interimResults = true;
+    sentenceRecognition.lang = 'en-US';
+    sentenceRecognition.maxAlternatives = 1;
+    
+    // Handle recognition results
+    sentenceRecognition.onresult = function(event) {
+        let finalTranscript = '';
+        
+        for (let i = 0; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript;
+            }
+        }
+        
+        // Insert at cursor position in textarea
+        if (finalTranscript.trim()) {
+            const textarea = document.getElementById('sentenceTextarea');
+            if (textarea) {
+                const currentText = textarea.value;
+                const beforeCursor = currentText.substring(0, cursorPosition);
+                const afterCursor = currentText.substring(cursorPosition);
+                
+                // Add space before and after if needed
+                let textToInsert = finalTranscript.trim();
+                if (beforeCursor.length > 0 && !beforeCursor.endsWith(' ')) {
+                    textToInsert = ' ' + textToInsert;
+                }
+                if (afterCursor.length > 0 && !textToInsert.endsWith(' ')) {
+                    textToInsert = textToInsert + ' ';
+                }
+                
+                // Insert the text
+                const newText = beforeCursor + textToInsert + afterCursor;
+                textarea.value = newText;
+                
+                // Update cursor position
+                const newCursorPosition = beforeCursor.length + textToInsert.length;
+                textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+                cursorPosition = newCursorPosition;
+                
+                // Update character count
+                const charCount = document.getElementById('charCount');
+                if (charCount) {
+                    charCount.textContent = textarea.value.length;
+                }
+                
+                // Update status
+                const voiceStatusMini = document.getElementById('sentenceVoiceStatusMini');
+                if (voiceStatusMini) {
+                    const voiceTextMini = voiceStatusMini.querySelector('.voice-text-mini');
+                    if (voiceTextMini) {
+                        voiceTextMini.textContent = 'Added: "' + finalTranscript.trim() + '" - Keep speaking or click Stop';
+                    }
+                }
+            }
+        }
+    };
+    
+    // Handle recognition end
+    sentenceRecognition.onend = function() {
+        stopMergedVoiceInput();
+    };
+    
+    // Handle recognition errors
+    sentenceRecognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        stopMergedVoiceInput();
+    };
+}
+
+function startMergedVoiceInput() {
+    if (!sentenceRecognition) {
+        showNotification('Voice input not available', 'error');
+        return;
+    }
+    
+    if (isSentenceVoiceInputActive) {
+        showNotification('Voice input is already active', 'warning');
+        return;
+    }
+    
+    const textarea = document.getElementById('sentenceTextarea');
+    if (textarea) {
+        // Store current cursor position
+        cursorPosition = textarea.selectionStart;
+        textarea.focus();
+    }
+    
+    try {
+        isSentenceVoiceInputActive = true;
+        sentenceRecognition.start();
+        
+        // Update UI
+        const startMiniBtn = document.getElementById('startVoiceMiniBtn');
+        const stopMiniBtn = document.getElementById('stopVoiceMiniBtn');
+        const voiceStatusMini = document.getElementById('sentenceVoiceStatusMini');
+        
+        if (startMiniBtn) {
+            startMiniBtn.disabled = true;
+            startMiniBtn.style.display = 'none';
+        }
+        if (stopMiniBtn) {
+            stopMiniBtn.disabled = false;
+            stopMiniBtn.style.display = 'inline-flex';
+        }
+        
+        if (voiceStatusMini) {
+            voiceStatusMini.style.display = 'flex';
+            const voiceTextMini = voiceStatusMini.querySelector('.voice-text-mini');
+            if (voiceTextMini) {
+                voiceTextMini.textContent = 'Listening... Speak words to add at cursor position';
+            }
+        }
+        
+        console.log('Merged voice input started at cursor position:', cursorPosition);
+    } catch (error) {
+        console.error('Error starting merged voice input:', error);
+        showNotification('Failed to start voice input', 'error');
+        isSentenceVoiceInputActive = false;
+    }
+}
+
+function stopMergedVoiceInput() {
+    if (sentenceRecognition) {
+        isSentenceVoiceInputActive = false;
+        sentenceRecognition.stop();
+        
+        // Update UI
+        const startMiniBtn = document.getElementById('startVoiceMiniBtn');
+        const stopMiniBtn = document.getElementById('stopVoiceMiniBtn');
+        const voiceStatusMini = document.getElementById('sentenceVoiceStatusMini');
+        
+        if (startMiniBtn) {
+            startMiniBtn.disabled = false;
+            startMiniBtn.style.display = 'inline-flex';
+        }
+        if (stopMiniBtn) {
+            stopMiniBtn.disabled = true;
+            stopMiniBtn.style.display = 'none';
+        }
+        
+        if (voiceStatusMini) {
+            const voiceTextMini = voiceStatusMini.querySelector('.voice-text-mini');
+            if (voiceTextMini) {
+                voiceTextMini.textContent = 'Voice input stopped. Click "Add Voice" to continue.';
+            }
+            
+            // Hide status after a delay
+            setTimeout(() => {
+                voiceStatusMini.style.display = 'none';
+            }, 2000);
+        }
+        
+        console.log('Merged voice input stopped');
+    }
 }
