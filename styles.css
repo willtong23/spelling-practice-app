@@ -726,13 +726,13 @@ h1 {
 }
 
 .clear-btn {
-    background: linear-gradient(135deg, #a55eea 0%, #8b5cf6 100%);
-    box-shadow: 0 4px 15px rgba(165, 94, 234, 0.3);
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3) !important;
 }
 
-.clear-btn:hover {
-    background: linear-gradient(135deg, #9c88ff 0%, #7c3aed 100%);
-    box-shadow: 0 6px 20px rgba(165, 94, 234, 0.4);
+.clear-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4) !important;
 }
 
 .exit-practice-btn {

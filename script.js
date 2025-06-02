@@ -3916,6 +3916,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const sentenceBtn = document.getElementById('sentencePracticeButton');
         const backBtn = document.getElementById('backToSpellingButton');
         const checkBtn = document.getElementById('checkSentenceButton');
+        const skipBtn = document.getElementById('skipSentenceButton');
         
         console.log('Sentence practice setup:', {
             sentenceBtn: !!sentenceBtn,
@@ -3928,6 +3929,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mini voice controls for merged input
         const startVoiceMiniBtn = document.getElementById('startVoiceMiniBtn');
         const stopVoiceMiniBtn = document.getElementById('stopVoiceMiniBtn');
+        const clearSentenceBtn = document.getElementById('clearSentenceBtn');
         
         if (sentenceBtn) {
             sentenceBtn.addEventListener('click', function() {
@@ -3951,6 +3953,11 @@ document.addEventListener('DOMContentLoaded', function() {
             checkBtn.addEventListener('click', checkSentence);
         }
         
+        // Skip button for sentence practice
+        if (skipBtn) {
+            skipBtn.addEventListener('click', skipToNextWord);
+        }
+        
         // Mini voice controls for merged input
         if (startVoiceMiniBtn) {
             startVoiceMiniBtn.addEventListener('click', startMergedVoiceInput);
@@ -3958,6 +3965,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (stopVoiceMiniBtn) {
             stopVoiceMiniBtn.addEventListener('click', stopMergedVoiceInput);
+        }
+        
+        // Clear button for sentence textarea
+        if (clearSentenceBtn) {
+            clearSentenceBtn.addEventListener('click', clearSentenceInput);
         }
         
         // Setup character counter and cursor tracking
@@ -4007,8 +4019,7 @@ function exitSentenceMode() {
     document.getElementById('sentencePracticeButton').textContent = '📝 Practice Sentences';
     
     // Clear inputs
-    document.getElementById('sentenceTextarea').value = '';
-    document.getElementById('charCount').textContent = '0';
+    clearSentenceInput();
     
     showNotification('Back to spelling practice!', 'info');
 }
@@ -4058,10 +4069,32 @@ function checkSentence() {
             document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
             document.getElementById('requiredWordHint').textContent = currentSentenceWord;
             
-            // Clear inputs
-            if (textarea) textarea.value = '';
-            document.getElementById('charCount').textContent = '0';
-            validation.style.display = 'none';
+            // Clear inputs using the dedicated function (but without notification)
+            const textarea = document.getElementById('sentenceTextarea');
+            const charCount = document.getElementById('charCount');
+            const validation = document.getElementById('sentenceValidation');
+            
+            if (textarea) {
+                textarea.value = '';
+                textarea.focus(); // Keep focus on textarea
+                cursorPosition = 0; // Reset cursor position for voice input
+            }
+            
+            if (charCount) {
+                charCount.textContent = '0';
+            }
+            
+            if (validation) {
+                validation.style.display = 'none';
+            }
+            
+            // Stop voice input if active
+            if (isSentenceVoiceInputActive) {
+                stopMergedVoiceInput();
+            }
+            
+            // Show notification for new word
+            showNotification(`Next word: "${currentSentenceWord}" - Create a new sentence!`, 'info');
         }
     }, 2000);
 }
@@ -4236,5 +4269,72 @@ function stopMergedVoiceInput() {
         }
         
         console.log('Merged voice input stopped');
+    }
+}
+
+function clearSentenceInput() {
+    const textarea = document.getElementById('sentenceTextarea');
+    const charCount = document.getElementById('charCount');
+    const validation = document.getElementById('sentenceValidation');
+    
+    if (textarea) {
+        textarea.value = '';
+        textarea.focus(); // Keep focus on textarea after clearing
+        cursorPosition = 0; // Reset cursor position for voice input
+    }
+    
+    if (charCount) {
+        charCount.textContent = '0';
+    }
+    
+    // Hide any validation messages
+    if (validation) {
+        validation.style.display = 'none';
+    }
+    
+    // Stop voice input if active
+    if (isSentenceVoiceInputActive) {
+        stopMergedVoiceInput();
+    }
+    
+    // Show notification
+    showNotification('Sentence cleared!', 'info');
+}
+
+// Function to skip to next word without checking sentence
+function skipToNextWord() {
+    const words = getWords();
+    if (words && words.length > 0) {
+        currentWordIndex = (currentWordIndex + 1) % words.length;
+        currentSentenceWord = words[currentWordIndex];
+        document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
+        document.getElementById('requiredWordHint').textContent = currentSentenceWord;
+        
+        // Clear inputs using the dedicated function (but without "cleared" notification)
+        const textarea = document.getElementById('sentenceTextarea');
+        const charCount = document.getElementById('charCount');
+        const validation = document.getElementById('sentenceValidation');
+        
+        if (textarea) {
+            textarea.value = '';
+            textarea.focus(); // Keep focus on textarea
+            cursorPosition = 0; // Reset cursor position for voice input
+        }
+        
+        if (charCount) {
+            charCount.textContent = '0';
+        }
+        
+        if (validation) {
+            validation.style.display = 'none';
+        }
+        
+        // Stop voice input if active
+        if (isSentenceVoiceInputActive) {
+            stopMergedVoiceInput();
+        }
+        
+        // Show notification for skipped word
+        showNotification(`Skipped to: "${currentSentenceWord}" - Create a sentence!`, 'info');
     }
 }
