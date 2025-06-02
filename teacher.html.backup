@@ -6,9 +6,11 @@
     <title>Teacher Dashboard - Spelling Practice</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="teacher.css">
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
@@ -284,7 +286,7 @@
             background: #1d4ed8;
         }
         .btn-secondary {
-            background: #6b7280;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -292,10 +294,13 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
         .btn-secondary:hover {
-            background: #4b5563;
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
         }
         
         /* Modal Styles */
@@ -362,10 +367,13 @@
             font-size: 2rem;
             font-weight: 800;
             margin-bottom: 4px;
+            color: #ffffff;
         }
         .stat-label {
             font-size: 0.9rem;
-            opacity: 0.9;
+            color: #ffffff;
+            font-weight: 600;
+            opacity: 1;
         }
         
         /* Table Styles */
@@ -390,6 +398,64 @@
 
         .assignment-tag:hover {
             background: #3b82f6;
+            color: white;
+        }
+
+        /* Enhanced Assignment Display Styles */
+        .assignment-tag-detailed {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        .assignment-tag-detailed:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+        }
+        .assignment-name {
+            font-weight: 600;
+            color: #1e40af;
+            margin-bottom: 4px;
+        }
+        .assignment-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+        .assignment-date {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .assignment-type {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: capitalize;
+        }
+        .btn-tiny {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+        .btn-tiny.btn-delete {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .btn-tiny.btn-delete:hover {
+            background: #dc2626;
             color: white;
         }
 
@@ -451,6 +517,55 @@
             flex: 1;
             min-width: 200px;
         }
+        
+        /* Multi-row table cell styles */
+        .multi-row-cell {
+            vertical-align: top;
+            line-height: 1.4;
+        }
+        
+        .multi-row-cell .row-1 {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+        
+        .multi-row-cell .row-2 {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        
+        .multi-row-cell .row-3 {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+        
+        /* Word set cell specific styling */
+        .word-set-cell {
+            max-width: 140px;
+            word-wrap: break-word;
+        }
+        
+        /* Date time cell specific styling */
+        .date-time-cell {
+            max-width: 120px;
+            font-size: 0.85rem;
+        }
+        
+        /* Summary cell styling */
+        .summary-cell {
+            max-width: 150px;
+        }
+        
+        .summary-cell .summary-row {
+            margin-bottom: 3px;
+            padding: 1px 0;
+        }
+        
+        .summary-cell .summary-row:last-child {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -468,6 +583,7 @@
             <button class="tab-btn active" data-tab="word-sets">Word Sets</button>
             <button class="tab-btn" data-tab="students">Students & Classes</button>
             <button class="tab-btn" data-tab="assignments">Assignments</button>
+            <button class="tab-btn" data-tab="sentences">Sentences</button>
             <button class="tab-btn" data-tab="analytics">Analytics</button>
         </div>
         
@@ -488,26 +604,26 @@
         <div class="tab-content" id="students">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2 style="margin: 0; color: #1e293b;">Students & Classes</h2>
-                <button class="btn-secondary" onclick="checkAllClassAssignments()" title="Check assignment status across all classes">
-                    Check All Assignments
-                </button>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn-secondary" onclick="showAddStudentModal()" title="Add a new student to the system" style="background: #10b981; color: white; border: 2px solid #059669;">
+                        👤 Add Student
+                    </button>
+                    <button class="btn-secondary" onclick="cleanupDuplicateAssignments()" title="Remove duplicate assignments from the database" style="background: #f59e0b; color: white; border: 2px solid #d97706;">
+                        🧹 Clean Duplicates
+                    </button>
+                    <button class="btn-secondary" onclick="checkAllClassAssignments()" title="Check assignment status across all classes">
+                        📊 Check All Assignments
+                    </button>
+                </div>
             </div>
             <div class="students-classes-container">
                 <div class="classes-section">
-                    <div class="section-header">
-                        <h3>Classes</h3>
-                        <button class="btn btn-primary" onclick="showCreateClassModal()">Add Class</button>
-                    </div>
                     <div id="classesContainer">
                         <!-- Classes will be rendered here -->
                     </div>
                 </div>
                 
                 <div class="students-section">
-                    <div class="section-header">
-                        <h3>Students</h3>
-                        <button class="btn btn-primary" onclick="showAddStudentModal()">Add Student</button>
-                    </div>
                     <div id="studentsContainer">
                         <!-- Students will be rendered here -->
                     </div>
@@ -556,7 +672,12 @@
             
             <div class="section-card" style="margin-top: 24px;">
                 <div class="section-title">Current Assignments</div>
-                <button class="btn-secondary" id="refreshAssignmentsBtn" style="margin-bottom: 12px;">Refresh Status</button>
+                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                    <button class="btn-secondary" onclick="cleanupDuplicateAssignments()" title="Remove duplicate assignments from the database" style="background: #f59e0b; color: white; border: 2px solid #d97706;">
+                        🧹 Clean Duplicates
+                    </button>
+                    <button class="btn-secondary" id="refreshAssignmentsBtn">Refresh Status</button>
+                </div>
                 <table class="data-table" id="assignmentsTable">
                     <thead>
                         <tr>
@@ -575,41 +696,63 @@
             </div>
         </div>
         
+        <!-- Sentences Tab -->
+        <div class="tab-content" id="sentences">
+            <h2 style="margin-bottom: 20px; color: #1e293b;">Student Sentences</h2>
+            
+            <!-- Filter Options -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div class="section-title">Filter Sentences</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 16px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Filter by Student:</label>
+                        <select class="form-select" id="sentenceFilterStudent">
+                            <option value="">All Students</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Filter by Word:</label>
+                        <select class="form-select" id="sentenceFilterWord">
+                            <option value="">All Words</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">From Date:</label>
+                        <input type="date" class="form-input" id="sentenceFilterDate">
+                    </div>
+                    <div>
+                        <button class="btn-primary" id="applySentenceFilter">Apply Filter</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sentences Display -->
+            <div class="section-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title">Saved Sentences</div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportSentencesBtn">Export Sentences</button>
+                        <button class="btn-secondary" id="clearAllSentencesBtn" style="background: #dc2626; color: white;">Clear All Sentences</button>
+                    </div>
+                </div>
+                <div id="sentencesContainer">
+                    <div style="text-align: center; padding: 40px; color: #64748b;">
+                        <div style="font-size: 3rem; margin-bottom: 16px;">📝</div>
+                        <h3 style="margin-bottom: 8px;">No sentences saved yet</h3>
+                        <p>Student sentences will appear here when they use the sentence practice feature.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Analytics Tab -->
         <div class="tab-content" id="analytics">
             <h2 style="margin-bottom: 20px; color: #1e293b;">Learning Analytics</h2>
             
-            <!-- Detailed Results - Moved to Top -->
+            <!-- Analytics Filters & Sorting - Moved to Top -->
             <div class="section-card" style="margin-bottom: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <div class="section-title">Detailed Results</div>
-                    <div style="display: flex; gap: 12px;">
-                        <button class="btn-secondary" id="exportAnalyticsBtn">Export CSV</button>
-                        <button class="btn-secondary" id="exportPdfBtn">Export PDF</button>
-                        <button class="btn-secondary" id="deleteAllResultsBtn" style="background: #dc2626; color: white; border: 2px solid #b91c1c;" title="⚠️ DANGER: This will permanently delete ALL quiz results from ALL students!">⚠️ Delete All Data</button>
-                    </div>
-                </div>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Word Set</th>
-                            <th>Date & Time</th>
-                            <th>Summary</th>
-                            <th>Learning Details</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="analyticsTableBody">
-                        <!-- Analytics data will be displayed here -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Analytics Filters -->
-            <div class="section-card" style="margin-bottom: 24px;">
-                <div class="section-title">Analytics Filters</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 16px; align-items: end;">
+                <div class="section-title">Analytics Filters & Sorting</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 16px; align-items: end;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label class="form-label">Filter by:</label>
                         <select class="form-select" id="analyticsFilterType">
@@ -632,10 +775,54 @@
                         <label class="form-label">To Date:</label>
                         <input type="date" class="form-input" id="analyticsToDate">
                     </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Sort by:</label>
+                        <select class="form-select" id="analyticsSortBy">
+                            <option value="date_desc">Latest End Time First</option>
+                            <option value="date_asc">Oldest End Time First</option>
+                            <option value="student_asc">Student Name (A-Z)</option>
+                            <option value="student_desc">Student Name (Z-A)</option>
+                            <option value="wordset_asc">Word Set (A-Z)</option>
+                            <option value="wordset_desc">Word Set (Z-A)</option>
+                            <option value="mistakes_asc">Fewest Mistakes First</option>
+                            <option value="mistakes_desc">Most Mistakes First</option>
+                            <option value="score_asc">Lowest Score First</option>
+                            <option value="score_desc">Highest Score First</option>
+                            <option value="totaltime_asc">Shortest Total Time First</option>
+                            <option value="totaltime_desc">Longest Total Time First</option>
+                        </select>
+                    </div>
                     <div>
-                        <button class="btn-primary" id="applyAnalyticsFilter">Apply Filter</button>
+                        <button class="btn-primary" id="applyAnalyticsFilter">Apply Filter & Sort</button>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Detailed Results -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title">Detailed Results</div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportScreenshotBtn">📸 Export Screenshot</button>
+                        <button class="btn-secondary" id="exportPdfBtn">Export PDF</button>
+                        <button class="btn-secondary" id="deleteAllResultsBtn" style="background: #dc2626; color: white; border: 2px solid #b91c1c;" title="⚠️ DANGER: This will permanently delete ALL quiz results from ALL students!">⚠️ Delete All Data</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Student</th>
+                            <th style="width: 140px;">Word Set</th>
+                            <th style="width: 120px;">Date & Time</th>
+                            <th style="width: 150px;">Summary</th>
+                            <th style="width: 300px;">Learning Details</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsTableBody">
+                        <!-- Analytics data will be displayed here -->
+                    </tbody>
+                </table>
             </div>
             
             <!-- Analytics Stats -->
@@ -716,5 +903,93 @@
     </div>
     
     <script src="teacher.js"></script>
+    
+    <!-- Tooltip Fix Script - Prevents stuck tooltips -->
+    <script>
+        // Enhanced Tooltip Management System
+        function clearAllStuckTooltips() {
+            // Remove all existing tooltips
+            const tooltips = document.querySelectorAll('.wordset-preview-tooltip, #wordset-preview-tooltip');
+            tooltips.forEach(tooltip => {
+                tooltip.remove();
+                console.log('Removed stuck tooltip:', tooltip);
+            });
+            
+            if (tooltips.length > 0) {
+                console.log(`Cleared ${tooltips.length} stuck tooltip(s)`);
+            }
+        }
+
+        // Run immediately when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Tooltip fix system initialized');
+            
+            // Clear any existing tooltips
+            clearAllStuckTooltips();
+            
+            // Set up comprehensive event handlers to prevent stuck tooltips
+            document.addEventListener('click', clearAllStuckTooltips);
+            document.addEventListener('scroll', clearAllStuckTooltips, true);
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    clearAllStuckTooltips();
+                }
+            });
+            
+            // Hide tooltips when window loses focus
+            window.addEventListener('blur', clearAllStuckTooltips);
+            
+            // Hide tooltips when mouse leaves document
+            document.addEventListener('mouseleave', clearAllStuckTooltips);
+            
+            // Periodic cleanup every 5 seconds
+            setInterval(function() {
+                const stuckTooltips = document.querySelectorAll('.wordset-preview-tooltip, #wordset-preview-tooltip');
+                if (stuckTooltips.length > 0) {
+                    console.log('Auto-cleaning stuck tooltips...');
+                    clearAllStuckTooltips();
+                }
+            }, 5000);
+        });
+
+        // Override the hideWordSetPreview function to use our enhanced version
+        window.addEventListener('load', function() {
+            if (typeof window.hideWordSetPreview === 'function') {
+                window.originalHideWordSetPreview = window.hideWordSetPreview;
+            }
+            
+            window.hideWordSetPreview = function() {
+                clearAllStuckTooltips();
+            };
+            
+            // Make the cleanup function globally available
+            window.clearAllStuckTooltips = clearAllStuckTooltips;
+            
+            console.log('Enhanced tooltip system ready - tooltips will auto-clear on any interaction');
+        });
+
+        // CRITICAL: Clear tooltips when navigating away from the page
+        window.addEventListener('beforeunload', function() {
+            console.log('Page unloading - clearing tooltips');
+            clearAllStuckTooltips();
+        });
+
+        // Clear tooltips when page visibility changes (tab switching, etc.)
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('Page hidden - clearing tooltips');
+                clearAllStuckTooltips();
+            }
+        });
+
+        // Clear tooltips on any link click or form submission
+        document.addEventListener('click', function(e) {
+            // Clear tooltips immediately on any navigation-like click
+            if (e.target.tagName === 'A' || e.target.closest('a') || 
+                e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                clearAllStuckTooltips();
+            }
+        });
+    </script>
 </body>
 </html> 

@@ -583,6 +583,7 @@
             <button class="tab-btn active" data-tab="word-sets">Word Sets</button>
             <button class="tab-btn" data-tab="students">Students & Classes</button>
             <button class="tab-btn" data-tab="assignments">Assignments</button>
+            <button class="tab-btn" data-tab="sentences">Sentences</button>
             <button class="tab-btn" data-tab="analytics">Analytics</button>
         </div>
         
@@ -695,6 +696,112 @@
             </div>
         </div>
         
+        
+        <!-- Sentences Tab -->
+        <div class="tab-content" id="sentences">
+            <h2 style="margin-bottom: 20px; color: #1e293b;">Student Sentences</h2>
+            
+            <!-- Sentences Filters & Sorting -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div class="section-title">Sentences Filters & Sorting</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto auto; gap: 16px; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Filter by:</label>
+                        <select class="form-select" id="sentencesFilterType">
+                            <option value="all">All Students</option>
+                            <option value="student">Individual Student</option>
+                            <option value="wordset">Word Set</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Select:</label>
+                        <select class="form-select" id="sentencesFilterValue" disabled>
+                            <option value="">Choose...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">From Date:</label>
+                        <input type="date" class="form-input" id="sentencesFromDate">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">To Date:</label>
+                        <input type="date" class="form-input" id="sentencesToDate">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">Sort by:</label>
+                        <select class="form-select" id="sentencesSortBy">
+                            <option value="date_desc">Latest First</option>
+                            <option value="date_asc">Oldest First</option>
+                            <option value="student_asc">Student Name (A-Z)</option>
+                            <option value="student_desc">Student Name (Z-A)</option>
+                            <option value="word_asc">Target Word (A-Z)</option>
+                            <option value="word_desc">Target Word (Z-A)</option>
+                            <option value="wordset_asc">Word Set (A-Z)</option>
+                            <option value="wordset_desc">Word Set (Z-A)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn-primary" id="applySentencesFilter">Apply Filter & Sort</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Detailed Results -->
+            <div class="section-card" style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div class="section-title">Detailed Results</div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn-secondary" id="exportSentencesScreenshotBtn">📸 Export Screenshot</button>
+                        <button class="btn-secondary" id="exportSentencesPdfBtn">Export PDF</button>
+                        <button class="btn-secondary" id="deleteAllSentencesBtn" style="background: #dc2626; color: white; border: 2px solid #b91c1c;" title="⚠️ DANGER: This will permanently delete ALL sentences from ALL students!">⚠️ Delete All Data</button>
+                    </div>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 120px;">Student</th>
+                            <th style="width: 100px;">Target Word</th>
+                            <th style="width: 120px;">Word Set</th>
+                            <th style="width: 120px;">Date & Time</th>
+                            <th style="width: 400px;">Sentence</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sentencesTableBody">
+                        <!-- Sentences data will be displayed here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Sentences Stats -->
+            <div class="analytics-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredSentenceStudents">0</div>
+                    <div class="stat-label" id="filteredSentenceStudentsLabel">Students</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredTotalSentences">0</div>
+                    <div class="stat-label">Total Sentences</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredUniqueWords">0</div>
+                    <div class="stat-label">Unique Words Used</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filteredSentenceWordSets">0</div>
+                    <div class="stat-label">Word Sets Practiced</div>
+                </div>
+            </div>
+            
+            <!-- AI Insights Section -->
+            <div class="section-card" style="margin-bottom: 24px;" id="sentenceInsightsSection" style="display: none;">
+                <div class="section-title">📝 Sentence Insights & Suggestions</div>
+                <div id="sentencesInsights" style="background: #f8fafc; padding: 16px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <p style="color: #64748b; margin: 0;">Apply filters to see personalized insights and suggestions about sentence practice.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Analytics Tab -->
         <div class="tab-content" id="analytics">
             <h2 style="margin-bottom: 20px; color: #1e293b;">Learning Analytics</h2>
@@ -853,6 +960,7 @@
     </div>
     
     <script src="teacher.js"></script>
+    <script src="sentences.js"></script>
     
     <!-- Tooltip Fix Script - Prevents stuck tooltips -->
     <script>

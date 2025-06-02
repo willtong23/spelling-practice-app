@@ -819,7 +819,7 @@ h1 {
         margin: 8px auto;
     }
     .practice-card {
-        padding: 20px;
+    padding: 20px;
         min-width: unset;
     }
     h1 {
@@ -1594,7 +1594,7 @@ h1 {
     }
     
     .btn-cancel, .btn-submit {
-        width: 100%;
+    width: 100%;
     }
 }
 
@@ -1917,7 +1917,7 @@ h1 {
     }
     
     .result-item {
-        padding: 12px;
+    padding: 12px;
     }
     
     .result-word {
@@ -3062,7 +3062,7 @@ h1 {
     
     #nameModal .password-modal-body {
         padding: 35px 25px !important;
-    }
+} 
 }
 
 /* Specific styling for mainContent ID */

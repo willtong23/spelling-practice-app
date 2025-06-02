@@ -137,6 +137,11 @@ function initializeTabs() {
         case "assignments":
           renderAssignments();
           break;
+        case "sentences":
+          if (typeof renderSentences === "function") {
+            renderSentences();
+          }
+          break;
         case "analytics":
           renderAnalytics();
           break;
@@ -231,6 +236,11 @@ async function loadAllData() {
       case "assignments":
         renderAssignments();
         break;
+        case "sentences":
+          if (typeof renderSentences === "function") {
+            renderSentences();
+          }
+          break;
       case "analytics":
         renderAnalytics();
         break;
@@ -4270,12 +4280,12 @@ async function exportScreenshot() {
         // Create individual student report
         const screenshotContainer = document.createElement("div");
         screenshotContainer.style.cssText = `
-                    width: 1200px;
+                    width: 1600px !important; max-width: none !important; min-width: 1600px !important;
                     background: white;
                     padding: 40px;
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                     color: #1e293b;
-                    box-sizing: border-box;
+                    box-sizing: border-box !important; position: absolute !important; margin: 0 !important; border: none !important; overflow: visible !important; display: block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999; transform: none !important;
                 `;
 
         // Generate table rows for this student
@@ -4414,7 +4424,7 @@ async function exportScreenshot() {
             useCORS: true,
             allowTaint: true,
             backgroundColor: "#ffffff",
-            width: 1200,
+            width: 1600,
             height: screenshotContainer.scrollHeight,
           });
 
@@ -4465,12 +4475,12 @@ async function exportScreenshot() {
         // Create a clean container for screenshot
         const screenshotContainer = document.createElement("div");
         screenshotContainer.style.cssText = `
-                    width: 1200px;
+                    width: 1600px !important; max-width: none !important; min-width: 1600px !important;
                     background: white;
                     padding: 40px;
                     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
                     color: #1e293b;
-                    box-sizing: border-box;
+                    box-sizing: border-box !important; position: absolute !important; margin: 0 !important; border: none !important; overflow: visible !important; display: block !important; visibility: visible !important; opacity: 1 !important; z-index: 9999; transform: none !important;
                 `;
 
         // Generate table rows for this page
@@ -4604,7 +4614,7 @@ async function exportScreenshot() {
             useCORS: true,
             allowTaint: true,
             backgroundColor: "#ffffff",
-            width: 1200,
+            width: 1600,
             height: screenshotContainer.scrollHeight,
           });
 

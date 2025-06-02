@@ -710,6 +710,13 @@ function isUserAuthenticated() {
     return isAuthenticated && storedUserName && userName;
 }
 
+// Check if user has a valid session (similar to isUserAuthenticated but simpler)
+function hasValidUserSession() {
+    const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
+    const storedUserName = localStorage.getItem('userName');
+    return isAuthenticated && storedUserName;
+}
+
 // Disable app interface when not authenticated
 function disableAppInterface() {
     const practiceSection = document.querySelector('.practice-card');
@@ -2940,6 +2947,10 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
             if (words.length > 0) speakWord(words[0]);
         }, 500);
         
+        // Store word set information in localStorage for sentence practice
+        localStorage.setItem('currentWordSetId', wordSetId);
+        localStorage.setItem('currentWordSetName', wordSetName);
+        
     } catch (error) {
         console.error('Error switching word set:', error);
         showNotification('Error switching word set. Please try again.', 'error');
@@ -3915,42 +3926,39 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         const sentenceBtn = document.getElementById('sentencePracticeButton');
         const backBtn = document.getElementById('backToSpellingButton');
-        const checkBtn = document.getElementById('checkSentenceButton');
         const skipBtn = document.getElementById('skipSentenceButton');
+        const clearSentenceBtn = document.getElementById('clearSentenceBtn');
         
         console.log('Sentence practice setup:', {
             sentenceBtn: !!sentenceBtn,
             backBtn: !!backBtn,
-            checkBtn: !!checkBtn,
             spellingMode: !!document.getElementById('spellingPracticeMode'),
             sentenceMode: !!document.getElementById('sentencePracticeMode')
         });
         
+        // Add sentence practice button event listener
+        if (sentenceBtn) {
+            sentenceBtn.addEventListener('click', function() {
+                console.log('Sentence practice button clicked!');
+                toggleSentenceMode();
+            });
+            console.log('Sentence practice button listener added successfully');
+        } else {
+            console.error('sentencePracticeButton not found!');
+        }
+        
         // Mini voice controls for merged input
         const startVoiceMiniBtn = document.getElementById('startVoiceMiniBtn');
         const stopVoiceMiniBtn = document.getElementById('stopVoiceMiniBtn');
-        const clearSentenceBtn = document.getElementById('clearSentenceBtn');
-        
-        if (sentenceBtn) {
-            sentenceBtn.addEventListener('click', function() {
-                console.log('Sentence practice button clicked! Mode:', isSentencePracticeMode);
-                if (isSentencePracticeMode) {
-                    exitSentenceMode();
-                } else {
-                    enterSentenceMode();
-                }
-            });
-            console.log('Sentence practice button event listener added');
-        } else {
-            console.error('Sentence practice button not found!');
-        }
         
         if (backBtn) {
             backBtn.addEventListener('click', exitSentenceMode);
         }
         
-        if (checkBtn) {
-            checkBtn.addEventListener('click', checkSentence);
+        // Update to use saveSentenceButton instead of checkSentenceButton
+        const saveSentenceBtn = document.getElementById('saveSentenceButton');
+        if (saveSentenceBtn) {
+            saveSentenceBtn.addEventListener('click', saveSentence);
         }
         
         // Skip button for sentence practice
@@ -3996,20 +4004,74 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function enterSentenceMode() {
+    console.log('enterSentenceMode called');
     isSentencePracticeMode = true;
-    document.getElementById('spellingPracticeMode').style.display = 'none';
-    document.getElementById('sentencePracticeMode').style.display = 'block';
-    document.getElementById('sentencePracticeButton').textContent = '🔤 Back to Spelling';
     
-    // Set current word
-    const words = getWords();
-    if (words && words.length > 0) {
-        currentSentenceWord = words[currentWordIndex || 0];
-        document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
-        document.getElementById('requiredWordHint').textContent = currentSentenceWord;
+    const spellingMode = document.getElementById('spellingPracticeMode');
+    const sentenceMode = document.getElementById('sentencePracticeMode');
+    const button = document.getElementById('sentencePracticeButton');
+    
+    console.log('Elements found:', {
+        spellingMode: !!spellingMode,
+        sentenceMode: !!sentenceMode,
+        button: !!button
+    });
+    
+    if (spellingMode) {
+        spellingMode.style.display = 'none';
+        console.log('Hidden spelling practice mode');
+    } else {
+        console.error('spellingPracticeMode element not found!');
     }
     
-    showNotification('Sentence practice mode activated! Create sentences using the given words.', 'info');
+    if (sentenceMode) {
+        sentenceMode.style.display = 'block';
+        console.log('Showed sentence practice mode');
+    } else {
+        console.error('sentencePracticeMode element not found!');
+    }
+    
+    if (button) {
+        button.textContent = '🔤 Back to Spelling';
+        console.log('Changed button text to Back to Spelling');
+    } else {
+        console.error('sentencePracticeButton element not found!');
+    }
+    
+    // Use the EXACT current word from the global words array (the same one used in spelling practice)
+    if (words && words.length > 0 && currentWordIndex >= 0 && currentWordIndex < words.length) {
+        // Use the current word from the active spelling practice session
+        currentSentenceWord = words[currentWordIndex];
+        console.log('Set current sentence word to:', currentSentenceWord, 'at index:', currentWordIndex, 'from global words array:', words);
+        
+        const targetWordElement = document.getElementById('sentenceTargetWord');
+        const hintElement = document.getElementById('requiredWordHint');
+        
+        if (targetWordElement) {
+            targetWordElement.textContent = currentSentenceWord;
+            console.log('Updated target word display');
+        }
+        
+        if (hintElement) {
+            hintElement.textContent = currentSentenceWord;
+            console.log('Updated hint display');
+        }
+    } else {
+        console.error('No words available for sentence practice or invalid currentWordIndex:', {
+            words: words,
+            currentWordIndex: currentWordIndex,
+            wordsLength: words ? words.length : 'undefined'
+        });
+        
+        // Fallback to first word if there's an issue
+        if (words && words.length > 0) {
+            currentSentenceWord = words[0];
+            console.log('Fallback: Using first word:', currentSentenceWord);
+        }
+    }
+    
+    showNotification(`Create a sentence using the word: "${currentSentenceWord}"`, 'info');
+    console.log('enterSentenceMode completed');
 }
 
 function exitSentenceMode() {
@@ -4062,7 +4124,7 @@ function checkSentence() {
     
     // Move to next word after delay
     setTimeout(() => {
-        const words = getWords();
+        // Use the global words array (same as spelling practice)
         if (words && words.length > 0) {
             currentWordIndex = (currentWordIndex + 1) % words.length;
             currentSentenceWord = words[currentWordIndex];
@@ -4303,7 +4365,7 @@ function clearSentenceInput() {
 
 // Function to skip to next word without checking sentence
 function skipToNextWord() {
-    const words = getWords();
+    // Use the global words array (same as spelling practice)
     if (words && words.length > 0) {
         currentWordIndex = (currentWordIndex + 1) % words.length;
         currentSentenceWord = words[currentWordIndex];
@@ -4337,4 +4399,192 @@ function skipToNextWord() {
         // Show notification for skipped word
         showNotification(`Skipped to: "${currentSentenceWord}" - Create a sentence!`, 'info');
     }
+}
+
+// Function to save sentence to Firebase
+async function saveSentence() {
+    const textarea = document.getElementById('sentenceTextarea');
+    const validation = document.getElementById('sentenceValidation');
+    
+    // Get text from textarea (merged input mode)
+    let sentence = (textarea?.value || '').trim();
+    
+    if (!sentence) {
+        validation.textContent = 'Please enter a sentence first.';
+        validation.className = 'sentence-validation error';
+        return;
+    }
+    
+    if (sentence.length < 5) {
+        validation.textContent = 'Your sentence is too short.';
+        validation.className = 'sentence-validation warning';
+        return;
+    }
+    
+    // Check if word is included
+    const hasWord = sentence.toLowerCase().includes(currentSentenceWord.toLowerCase());
+    
+    if (!hasWord) {
+        validation.textContent = `Your sentence must include the word "${currentSentenceWord}".`;
+        validation.className = 'sentence-validation error';
+        return;
+    }
+    
+    // Save sentence to Firebase
+    try {
+        const currentUser = localStorage.getItem('userName'); // Fixed: was 'currentUser', should be 'userName'
+        if (!currentUser) {
+            validation.textContent = 'Error: Please log in to save sentences.';
+            validation.className = 'sentence-validation error';
+            return;
+        }
+        
+        const sentenceData = {
+            studentName: currentUser,
+            targetWord: currentSentenceWord,
+            sentence: sentence,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            createdAt: new Date().toISOString(),
+            wordSetId: currentWordSetId || selectedWordSetId || null,
+            wordSetName: currentWordSetName || localStorage.getItem('currentWordSetName') || 'Unknown Set'
+        };
+        
+        await window.db.collection('sentences').add(sentenceData);
+        
+        validation.textContent = `✅ Sentence saved! Great use of "${currentSentenceWord}".`;
+        validation.className = 'sentence-validation success';
+        
+        // Show success notification
+        showNotification(`Sentence saved successfully! 📝`, 'success');
+        
+    } catch (error) {
+        console.error('Error saving sentence:', error);
+        validation.textContent = 'Error saving sentence. Please try again.';
+        validation.className = 'sentence-validation error';
+        return;
+    }
+    
+    // Stop voice input if active
+    if (isSentenceVoiceInputActive) {
+        stopMergedVoiceInput();
+    }
+    
+    // Move to next word after delay
+    setTimeout(() => {
+        // Use the global words array (same as spelling practice)
+        if (words && words.length > 0) {
+            currentWordIndex = (currentWordIndex + 1) % words.length;
+            currentSentenceWord = words[currentWordIndex];
+            document.getElementById('sentenceTargetWord').textContent = currentSentenceWord;
+            document.getElementById('requiredWordHint').textContent = currentSentenceWord;
+            
+            // Clear inputs using the dedicated function (but without notification)
+            const textarea = document.getElementById('sentenceTextarea');
+            const charCount = document.getElementById('charCount');
+            const validation = document.getElementById('sentenceValidation');
+            
+            if (textarea) {
+                textarea.value = '';
+                textarea.focus(); // Keep focus on textarea
+                cursorPosition = 0; // Reset cursor position for voice input
+            }
+            
+            if (charCount) {
+                charCount.textContent = '0';
+            }
+            
+            if (validation) {
+                validation.style.display = 'none';
+            }
+            
+            // Stop voice input if active
+            if (isSentenceVoiceInputActive) {
+                stopMergedVoiceInput();
+            }
+            
+            // Show notification for new word
+            showNotification(`Next word: "${currentSentenceWord}" - Create a new sentence!`, 'info');
+        }
+    }, 2000);
+}
+
+// Sentence practice event listeners
+const sentencePracticeBtn = document.getElementById('sentencePracticeButton');
+const backToSpellingBtn = document.getElementById('backToSpellingButton');
+const saveSentenceBtn = document.getElementById('saveSentenceButton');
+const skipSentenceBtn = document.getElementById('skipSentenceButton');
+const clearSentenceBtn = document.getElementById('clearSentenceBtn');
+
+// COMMENTED OUT TO PREVENT CONFLICTS - event listener is added in DOMContentLoaded
+// if (sentencePracticeBtn) {
+//     sentencePracticeBtn.addEventListener('click', toggleSentenceMode);
+// }
+
+if (backToSpellingBtn) {
+    backToSpellingBtn.addEventListener('click', exitSentenceMode);
+}
+
+if (saveSentenceBtn) {
+    saveSentenceBtn.addEventListener('click', saveSentence);
+}
+
+if (skipSentenceBtn) {
+    skipSentenceBtn.addEventListener('click', skipToNextWord);
+}
+
+if (clearSentenceBtn) {
+    clearSentenceBtn.addEventListener('click', clearSentenceInput);
+}
+
+console.log('App initialization completed.');
+
+// Auto-start if user is returning
+if (hasValidUserSession()) {
+    startPracticeImmediately();
+}
+
+// COMMENTED OUT TO PREVENT CONFLICTS - event listener is already added in DOMContentLoaded
+// // Ensure sentence practice button is properly set up
+// setTimeout(function() {
+//     const sentenceBtn = document.getElementById('sentencePracticeButton');
+//     if (sentenceBtn && !sentenceBtn.hasAttribute('data-listener-added')) {
+//         console.log('Adding sentence practice button listener in main init');
+//         sentenceBtn.addEventListener('click', function() {
+//             console.log('Sentence practice button clicked from main init!');
+//             console.log('Current mode before toggle:', isSentencePracticeMode);
+//             toggleSentenceMode();
+//         });
+//         sentenceBtn.setAttribute('data-listener-added', 'true');
+//         console.log('Sentence practice button listener added successfully');
+//     } else if (sentenceBtn) {
+//         console.log('Sentence practice button already has listener');
+//     } else {
+//         console.error('Sentence practice button not found in main init!');
+//     }
+// }, 500);
+
+// Toggle function to handle sentence mode switching
+function toggleSentenceMode() {
+    console.log('toggleSentenceMode called, current mode:', isSentencePracticeMode);
+    
+    // Get the elements to make sure they exist
+    const spellingMode = document.getElementById('spellingPracticeMode');
+    const sentenceMode = document.getElementById('sentencePracticeMode');
+    const button = document.getElementById('sentencePracticeButton');
+    
+    console.log('Elements found:', {
+        spellingMode: !!spellingMode,
+        sentenceMode: !!sentenceMode,
+        button: !!button
+    });
+    
+    if (isSentencePracticeMode) {
+        console.log('Switching to spelling mode');
+        exitSentenceMode();
+    } else {
+        console.log('Switching to sentence mode');
+        enterSentenceMode();
+    }
+    
+    console.log('Mode after toggle:', isSentencePracticeMode);
 }
