@@ -707,7 +707,7 @@ let isCheckingSpelling = false; // Prevent double-checking
 let inactivityTimer = null;
 let lastActivityTime = null;
 let hasAutoSaved = false;
-const INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+const INACTIVITY_TIMEOUT = 1 * 60 * 1000; // 1 minute in milliseconds
 
 // Global authentication check function
 function isUserAuthenticated() {
@@ -4916,6 +4916,10 @@ function stopInactivityTracking() {
 async function autoSavePartialQuiz() {
     if (hasAutoSaved || quizComplete || isPracticeMode) {
         console.log('Auto-save skipped - already saved, quiz complete, or in practice mode');
+        // Still trigger auto sign-out even if we don't save quiz results
+        setTimeout(() => {
+            autoSignOut('No activity detected for 1 minute.');
+        }, 3000); // Give 3 seconds delay for any existing processes
         return;
     }
     
@@ -4953,6 +4957,10 @@ async function autoSavePartialQuiz() {
         // Only save if there are attempted questions
         if (attemptedQuestions.length === 0) {
             console.log('No attempted questions found - not saving partial results');
+            // Still trigger auto sign-out even if no quiz data to save
+            setTimeout(() => {
+                autoSignOut('No activity detected for 1 minute.');
+            }, 1000);
             return;
         }
         
@@ -5010,25 +5018,52 @@ async function autoSavePartialQuiz() {
         // Show notification to student
         showNotification(`📝 Your progress was automatically saved! You answered ${correctCount}/${attemptedQuestions.length} questions correctly.`, 'info');
         
-        // Show completion dialog
-        showPartialQuizCompletionDialog(correctCount, attemptedQuestions.length, words.length, attemptedWords);
+        // Show completion dialog with auto sign-out message
+        showPartialQuizCompletionDialog(correctCount, attemptedQuestions.length, words.length, attemptedWords, true);
         
     } catch (error) {
         console.error('❌ Error auto-saving partial quiz results:', error);
         showNotification('Error saving your progress. Please try again or contact your teacher.', 'error');
         // Reset auto-save flag so user can try to continue
         hasAutoSaved = false;
+        
+        // Still trigger auto sign-out even if save failed
+        setTimeout(() => {
+            autoSignOut('Session timeout due to inactivity.');
+        }, 5000); // Give 5 seconds delay if there was an error
     }
 }
 
+// Function to handle automatic sign-out
+function autoSignOut(reason = 'Session timeout due to inactivity.') {
+    console.log('🚪 Auto sign-out triggered:', reason);
+    
+    // Stop any ongoing inactivity tracking
+    stopInactivityTracking();
+    
+    // Show sign-out notification
+    showNotification(`🚪 ${reason} Signing out for security...`, 'info');
+    
+    // Clear user session after a short delay
+    setTimeout(() => {
+        localStorage.clear();
+        showNotification('🚪 Signed out successfully! Reloading...', 'success');
+        
+        // Reload the page to return to login screen
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    }, 2000);
+}
+
 // Function to show partial quiz completion dialog
-function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCount, attemptedWords) {
+function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCount, attemptedWords, autoSignOut = false) {
     const percentage = Math.round((correctCount / attemptedCount) * 100);
     
     let html = `
         <h2 style="margin-bottom:18px;">⏰ Session Auto-Saved</h2>
         <div style="color:#64748b;font-size:0.9rem;margin-bottom:16px;">
-            No activity detected for 2 minutes - your progress has been automatically saved.
+            No activity detected for 1 minute - your progress has been automatically saved.
         </div>
         
         <div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:16px;">
@@ -5055,12 +5090,21 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
     
     html += `
         <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
-            <button onclick="continuePartialQuiz()" style="background:#3b82f6;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
-                ▶️ Continue Practice
-            </button>
-            <button onclick="startNewQuizRound()" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
-                🔄 Start New Round
-            </button>
+            ${!autoSignOut ? `
+                <button onclick="continuePartialQuiz()" style="background:#3b82f6;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    ▶️ Continue Practice
+                </button>
+                <button onclick="startNewQuizRound()" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    🔄 Start New Round
+                </button>
+            ` : `
+                <button onclick="autoSignOut('User requested immediate sign out.')" style="background:#ef4444;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    🚪 Sign Out Now
+                </button>
+                <button onclick="continuePartialQuiz(); cancelAutoSignOut();" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                    ⚡ Stay Signed In
+                </button>
+            `}
         </div>
         
         <div style="margin-top:16px;padding:12px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:0.9rem;">
@@ -5068,7 +5112,46 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
         </div>
     `;
     
+    if (autoSignOut) {
+        html += `
+            <div style="margin-top:20px;padding:16px;background:#ffedf0;border-radius:8px;color:#ef4444;font-size:0.9rem;">
+                ⚠️ <strong>Warning:</strong> No activity detected for 1 minute. You will be automatically signed out.
+            </div>
+        `;
+    }
+    
     showModal(html);
+    
+    // If auto sign-out is enabled, start a countdown timer
+    if (autoSignOut) {
+        let countdown = 10; // 10 seconds countdown
+        const countdownTimer = setInterval(() => {
+            const warningDiv = document.querySelector('[style*="background:#ffedf0"]');
+            if (warningDiv) {
+                warningDiv.innerHTML = `⚠️ <strong>Warning:</strong> Auto sign-out in ${countdown} seconds... <span style="font-size:0.8rem;">(Click "Stay Signed In" to cancel)</span>`;
+            }
+            countdown--;
+            
+            if (countdown < 0) {
+                clearInterval(countdownTimer);
+                closeModal();
+                autoSignOut('Automatic sign-out after inactivity timeout.');
+            }
+        }, 1000);
+        
+        // Store countdown timer ID for potential cancellation
+        window.autoSignOutTimer = countdownTimer;
+    }
+}
+
+// Function to cancel auto sign-out
+function cancelAutoSignOut() {
+    console.log('⚡ Auto sign-out cancelled by user');
+    if (window.autoSignOutTimer) {
+        clearInterval(window.autoSignOutTimer);
+        window.autoSignOutTimer = null;
+    }
+    showNotification('⚡ Staying signed in! Remember to sign out when finished.', 'success');
 }
 
 // Function to continue partial quiz
