@@ -94,6 +94,7 @@
                     
                     <div class="controls">
                         <button class="control-btn speak-btn" id="speakButton">🔊 Listen</button>
+                        <button class="control-btn voice-select-btn" id="voiceSelectButton">🎙️ Voice</button>
                         <button class="control-btn" id="allWordsButton">📋 Wordlist</button>
                         <button class="control-btn hint-btn" id="hintButton">💡 Hint</button>
                         <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
@@ -253,6 +254,28 @@
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Selection Modal -->
+    <div class="modal-overlay" id="voiceSelectionModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎙️ Choose Voice</h2>
+                <button class="close-btn" id="closeVoiceModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="voiceModalBody">
+                <div class="voice-selection-container">
+                    <p>Select a voice for the "Listen" button. Female voices are generally clearer for spelling practice:</p>
+                    <div class="voice-list" id="voiceList">
+                        <!-- Voice options will be populated here -->
+                    </div>
+                    <div class="voice-test-area">
+                        <button class="control-btn" id="testVoiceBtn">🔊 Test Selected Voice</button>
+                        <p class="voice-test-word">Test word: "<span id="testWord">hello</span>"</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1016,15 +1016,72 @@ async function verifyUserInDatabase(userName) {
 // --- Voice Selection ---
 function setBritishVoice() {
     const voices = speechSynthesis.getVoices();
-    // Prefer Google UK English voices for clarity
+    console.log('Available voices:', voices.map(v => `${v.name} (${v.lang}) - ${v.gender || 'unknown gender'}`));
+    
+    // First priority: Female voices (various options for iPad/iOS)
     let preferred = voices.find(v => v.name === 'Google UK English Female');
-    if (!preferred) preferred = voices.find(v => v.name === 'Google UK English Male');
-    // Fallback to any en-GB voice
-    if (!preferred) preferred = voices.find(v => v.lang === 'en-GB');
-    // Fallback to any voice with 'UK' in the name
+    if (!preferred) preferred = voices.find(v => v.name === 'Samantha'); // iOS female voice
+    if (!preferred) preferred = voices.find(v => v.name === 'Karen'); // iOS Australian female voice
+    if (!preferred) preferred = voices.find(v => v.name === 'Serena'); // iOS UK female voice
+    if (!preferred) preferred = voices.find(v => v.name === 'Kate'); // iOS UK female voice
+    if (!preferred) preferred = voices.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
+    
+    // Second priority: Any female voice in English
+    if (!preferred) {
+        preferred = voices.find(v => 
+            v.lang.startsWith('en') && 
+            (v.name.toLowerCase().includes('female') || 
+             v.name.toLowerCase().includes('woman') ||
+             // Common female voice names on different platforms
+             ['samantha', 'karen', 'serena', 'kate', 'susan', 'allison', 'ava', 'zoe'].includes(v.name.toLowerCase()))
+        );
+    }
+    
+    // Third priority: UK/GB voices (any gender, but prefer female if available)
+    if (!preferred) {
+        const ukVoices = voices.filter(v => v.lang === 'en-GB');
+        preferred = ukVoices.find(v => 
+            v.name.toLowerCase().includes('female') || 
+            ['samantha', 'karen', 'serena', 'kate', 'susan'].includes(v.name.toLowerCase())
+        ) || ukVoices[0];
+    }
+    
+    // Fourth priority: Any voice with 'UK' in the name
     if (!preferred) preferred = voices.find(v => v.name.toLowerCase().includes('uk'));
-    // Fallback to first available
+    
+    // Final fallback: First English voice available
+    if (!preferred) preferred = voices.find(v => v.lang.startsWith('en'));
+    
+    // FORCE FEMALE VOICE: If we still have a male voice, try harder to find a female one
+    if (preferred && (preferred.name.toLowerCase().includes('male') || preferred.name.toLowerCase().includes('man'))) {
+        console.log('Current selection is male voice, trying harder to find female voice...');
+        const anyFemaleVoice = voices.find(v => 
+            v.lang.startsWith('en') && 
+            (v.name.toLowerCase().includes('female') || 
+             ['samantha', 'karen', 'serena', 'kate', 'susan', 'allison', 'ava', 'zoe', 'emily', 'claire', 'anna'].includes(v.name.toLowerCase()))
+        );
+        if (anyFemaleVoice) {
+            preferred = anyFemaleVoice;
+            console.log('Switched to female voice:', preferred.name);
+        }
+    }
+    
+    // Last resort: Any voice
     selectedVoice = preferred || voices[0];
+    
+    if (selectedVoice) {
+        console.log('Selected voice:', selectedVoice.name, '(', selectedVoice.lang, ')');
+        // Show user-friendly notification about voice selection
+        const isFemale = selectedVoice.name.toLowerCase().includes('female') || 
+                         ['samantha', 'karen', 'serena', 'kate', 'susan', 'allison', 'ava', 'zoe'].includes(selectedVoice.name.toLowerCase());
+        if (isFemale) {
+            console.log('✅ Female voice selected automatically - should sound better!');
+        } else {
+            console.log('⚠️ Could not find female voice, using:', selectedVoice.name);
+        }
+    } else {
+        console.log('No voice selected - voices array might be empty');
+    }
 }
 if (typeof speechSynthesis !== 'undefined') {
     speechSynthesis.onvoiceschanged = setBritishVoice;
@@ -1035,6 +1092,134 @@ function speakWord(word) {
     utterance.rate = 0.8;
     if (selectedVoice) utterance.voice = selectedVoice;
     speechSynthesis.speak(utterance);
+}
+
+// --- Voice Selection Modal Functions ---
+let voiceSelectionModal;
+let voiceList;
+let testVoiceBtn;
+let closeVoiceModalBtn;
+
+function openVoiceSelectionModal() {
+    if (!voiceSelectionModal) {
+        voiceSelectionModal = document.getElementById('voiceSelectionModal');
+        voiceList = document.getElementById('voiceList');
+        testVoiceBtn = document.getElementById('testVoiceBtn');
+        closeVoiceModalBtn = document.getElementById('closeVoiceModalBtn');
+        
+        // Setup modal event listeners
+        closeVoiceModalBtn.addEventListener('click', closeVoiceSelectionModal);
+        testVoiceBtn.addEventListener('click', testSelectedVoice);
+        
+        // Close modal when clicking outside
+        voiceSelectionModal.addEventListener('click', function(e) {
+            if (e.target === voiceSelectionModal) {
+                closeVoiceSelectionModal();
+            }
+        });
+    }
+    
+    populateVoiceList();
+    voiceSelectionModal.style.display = 'flex';
+}
+
+function closeVoiceSelectionModal() {
+    if (voiceSelectionModal) {
+        voiceSelectionModal.style.display = 'none';
+    }
+}
+
+function populateVoiceList() {
+    const voices = speechSynthesis.getVoices();
+    voiceList.innerHTML = '';
+    
+    if (voices.length === 0) {
+        voiceList.innerHTML = '<p style="text-align: center; color: #6b7280; padding: 20px;">Loading voices... Please wait a moment and try again.</p>';
+        return;
+    }
+    
+    // Filter to only English voices and sort them
+    const englishVoices = voices.filter(voice => voice.lang.startsWith('en'));
+    
+    // Sort voices: female first, then by name
+    englishVoices.sort((a, b) => {
+        // Helper function to determine if a voice is likely female
+        const isFemale = (voice) => {
+            const name = voice.name.toLowerCase();
+            return name.includes('female') || 
+                   name.includes('woman') ||
+                   ['samantha', 'karen', 'serena', 'kate', 'susan', 'allison', 'ava', 'zoe', 'emily', 'claire', 'anna'].includes(name);
+        };
+        
+        const aFemale = isFemale(a);
+        const bFemale = isFemale(b);
+        
+        if (aFemale && !bFemale) return -1;
+        if (!aFemale && bFemale) return 1;
+        return a.name.localeCompare(b.name);
+    });
+    
+    englishVoices.forEach((voice, index) => {
+        const voiceOption = document.createElement('div');
+        voiceOption.className = 'voice-option';
+        
+        // Determine if this voice is currently selected
+        const isSelected = selectedVoice && selectedVoice.name === voice.name;
+        if (isSelected) {
+            voiceOption.classList.add('selected');
+        }
+        
+        // Determine gender for display
+        const name = voice.name.toLowerCase();
+        let gender = 'Unknown';
+        if (name.includes('female') || name.includes('woman') || 
+            ['samantha', 'karen', 'serena', 'kate', 'susan', 'allison', 'ava', 'zoe', 'emily', 'claire', 'anna'].includes(name)) {
+            gender = '♀ Female';
+        } else if (name.includes('male') || name.includes('man') || 
+                   ['daniel', 'alex', 'tom', 'oliver', 'james', 'arthur', 'gordon'].includes(name)) {
+            gender = '♂ Male';
+        }
+        
+        voiceOption.innerHTML = `
+            <input type="radio" name="voiceSelection" value="${voice.name}" ${isSelected ? 'checked' : ''}>
+            <div class="voice-info">
+                <div class="voice-name">${voice.name}</div>
+                <div class="voice-details">
+                    <span class="voice-lang">${voice.lang}</span>
+                    <span class="voice-gender">${gender}</span>
+                </div>
+            </div>
+        `;
+        
+        // Add click handler
+        voiceOption.addEventListener('click', function() {
+            const radio = voiceOption.querySelector('input[type="radio"]');
+            radio.checked = true;
+            
+            // Update selectedVoice
+            selectedVoice = voice;
+            
+            // Update visual selection
+            document.querySelectorAll('.voice-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            voiceOption.classList.add('selected');
+            
+            console.log('Voice changed to:', voice.name);
+        });
+        
+        voiceList.appendChild(voiceOption);
+    });
+}
+
+function testSelectedVoice() {
+    if (!selectedVoice) {
+        alert('Please select a voice first');
+        return;
+    }
+    
+    const testWord = document.getElementById('testWord').textContent;
+    speakWord(testWord);
 }
 
 // Play encouragement sound for incorrect answers
@@ -1576,6 +1761,12 @@ function checkSpelling() {
 speakButton.addEventListener('click', () => {
     if (words.length > 0) speakWord(words[currentWordIndex]);
 });
+
+// Voice selection button to open voice selection modal
+const voiceSelectButton = document.getElementById('voiceSelectButton');
+if (voiceSelectButton) {
+    voiceSelectButton.addEventListener('click', openVoiceSelectionModal);
+}
 
 allWordsButton.addEventListener('click', showAllWords);
 
