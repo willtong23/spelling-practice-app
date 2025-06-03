@@ -703,6 +703,12 @@ let isAlphabetKeyboardVisible = false;
 let currentFocusedLetterBox = null;
 let isCheckingSpelling = false; // Prevent double-checking
 
+// Inactivity tracking for auto-save
+let inactivityTimer = null;
+let lastActivityTime = null;
+let hasAutoSaved = false;
+const INACTIVITY_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+
 // Global authentication check function
 function isUserAuthenticated() {
     const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
@@ -1344,6 +1350,9 @@ function updateLetterHint() {
             // Prevent processing if quiz is complete or word has changed
             if (quizComplete || !words[currentWordIndex]) return;
             
+            // Reset inactivity timer on user input
+            resetInactivityTimer();
+            
             // Reset the checking flag when user starts typing again (fixes auto-check on subsequent attempts)
             if (isCheckingSpelling) {
                 isCheckingSpelling = false;
@@ -1375,6 +1384,9 @@ function updateLetterHint() {
         box.addEventListener('keydown', function(e) {
             // Prevent processing if quiz is complete
             if (quizComplete) return;
+            
+            // Reset inactivity timer on user activity
+            resetInactivityTimer();
             
             if (e.key === ' ') {
                 e.preventDefault();
@@ -1459,6 +1471,9 @@ function updateLetterHint() {
         });
         
         box.addEventListener('click', function(e) {
+            // Reset inactivity timer on user activity
+            resetInactivityTimer();
+            
             if (!box.disabled) return;
             if (words[currentWordIndex] && box.value === words[currentWordIndex][i]) return;
             if (words[currentWordIndex] && words[currentWordIndex][i]) {
@@ -1478,11 +1493,15 @@ function updateLetterHint() {
         // Track focus for virtual keyboard
         box.addEventListener('focus', function(e) {
             currentFocusedLetterBox = box;
+            // Reset inactivity timer when user focuses on input
+            resetInactivityTimer();
         });
         
         // Add double-click to clear any letter box (even hint letters)
         box.addEventListener('dblclick', function(e) {
             e.preventDefault();
+            // Reset inactivity timer on user activity
+            resetInactivityTimer();
             box.value = '';
             box.disabled = false;
             box.focus();
@@ -1491,6 +1510,8 @@ function updateLetterHint() {
         // Add right-click context menu to clear letter
         box.addEventListener('contextmenu', function(e) {
             e.preventDefault();
+            // Reset inactivity timer on user activity
+            resetInactivityTimer();
             box.value = '';
             box.disabled = false;
             box.focus();
@@ -1557,6 +1578,11 @@ function resetQuizState() {
     
     // Start time tracking
     window.quizStartTime = new Date();
+    
+    // Reset auto-save tracking
+    hasAutoSaved = false;
+    stopInactivityTracking(); // Clear any existing timer
+    resetInactivityTimer(); // Start new inactivity tracking
     
     // Stop voice input when resetting quiz
     if (isVoiceInputActive) {
@@ -1655,7 +1681,13 @@ function moveToNextWord() {
         } else {
             // For regular quiz, show feedback
             quizComplete = true;
-            showEndOfQuizFeedback();
+            
+            // Stop inactivity tracking since quiz is complete
+            stopInactivityTracking();
+            
+            setTimeout(() => {
+                showEndOfQuizFeedback();
+            }, 1000);
         }
     }
 }
@@ -1759,20 +1791,28 @@ function checkSpelling() {
 
 // --- Event Listeners ---
 speakButton.addEventListener('click', () => {
+    resetInactivityTimer(); // Reset timer on user activity
     if (words.length > 0) speakWord(words[currentWordIndex]);
 });
 
 // Voice selection button to open voice selection modal
 const voiceSelectButton = document.getElementById('voiceSelectButton');
 if (voiceSelectButton) {
-    voiceSelectButton.addEventListener('click', openVoiceSelectionModal);
+    voiceSelectButton.addEventListener('click', () => {
+        resetInactivityTimer(); // Reset timer on user activity
+        openVoiceSelectionModal();
+    });
 }
 
-allWordsButton.addEventListener('click', showAllWords);
+allWordsButton.addEventListener('click', () => {
+    resetInactivityTimer(); // Reset timer on user activity
+    showAllWords();
+});
 
 // Hint button to show hint instruction
 if (hintButton) {
     hintButton.addEventListener('click', () => {
+        resetInactivityTimer(); // Reset timer on user activity
         let message = 'Press SPACE on any letter box to reveal that letter';
         
         // Add voice input instructions if available
@@ -1788,6 +1828,7 @@ if (hintButton) {
 // Exit Practice button to return to main quiz
 if (exitPracticeButton) {
     exitPracticeButton.addEventListener('click', () => {
+        resetInactivityTimer(); // Reset timer on user activity
         if (isMultiListChallenge) {
             exitMultiListChallenge();
         } else if (isIndividualWordPractice) {
@@ -1801,6 +1842,7 @@ if (exitPracticeButton) {
 // Alphabets button to show/hide virtual keyboard
 if (alphabetsButton) {
     alphabetsButton.addEventListener('click', () => {
+        resetInactivityTimer(); // Reset timer on user activity
         toggleAlphabetKeyboard();
     });
 } else {
@@ -1813,6 +1855,8 @@ if (alphabetsButton) {
 
 prevButton.addEventListener('click', () => {
     if (currentWordIndex > 0 && !quizComplete && words.length > 0) {
+        // Reset inactivity timer on user activity
+        resetInactivityTimer();
         currentWordIndex--;
         console.log(`Navigating to previous word: ${currentWordIndex + 1}/${words.length}`);
         updateDisplay();
@@ -1827,6 +1871,8 @@ prevButton.addEventListener('click', () => {
 
 nextButton.addEventListener('click', () => {
     if (currentWordIndex < words.length - 1 && !quizComplete && words.length > 0) {
+        // Reset inactivity timer on user activity
+        resetInactivityTimer();
         currentWordIndex++;
         console.log(`Navigating to next word: ${currentWordIndex + 1}/${words.length}`);
         updateDisplay();
@@ -4831,4 +4877,215 @@ function toggleSentenceMode() {
     }
     
     console.log('Mode after toggle:', isSentencePracticeMode);
+}
+
+// Function to reset inactivity timer
+function resetInactivityTimer() {
+    // Only track inactivity if we're in an active quiz (not in practice mode)
+    if (isPracticeMode || quizComplete || hasAutoSaved) {
+        return;
+    }
+    
+    // Clear existing timer
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+    }
+    
+    // Update last activity time
+    lastActivityTime = new Date();
+    
+    // Set new timer
+    inactivityTimer = setTimeout(() => {
+        console.log('⏰ Inactivity timeout reached - auto-saving partial quiz results');
+        autoSavePartialQuiz();
+    }, INACTIVITY_TIMEOUT);
+    
+    console.log('🔄 Inactivity timer reset - will auto-save in', INACTIVITY_TIMEOUT / 1000, 'seconds');
+}
+
+// Function to stop inactivity tracking
+function stopInactivityTracking() {
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+        console.log('⏹️ Inactivity tracking stopped');
+    }
+}
+
+// Function to auto-save partial quiz results
+async function autoSavePartialQuiz() {
+    if (hasAutoSaved || quizComplete || isPracticeMode) {
+        console.log('Auto-save skipped - already saved, quiz complete, or in practice mode');
+        return;
+    }
+    
+    console.log('🔄 Auto-saving partial quiz due to inactivity...');
+    
+    try {
+        // Mark as auto-saved to prevent multiple saves
+        hasAutoSaved = true;
+        
+        // Stop the inactivity timer
+        stopInactivityTracking();
+        
+        // Calculate which questions were attempted (have at least one answer attempt)
+        const attemptedQuestions = [];
+        const attemptedWords = [];
+        let correctCount = 0;
+        
+        for (let i = 0; i <= currentWordIndex && i < words.length; i++) {
+            const userAnswer = userAnswers[i];
+            if (userAnswer && userAnswer.attempts && userAnswer.attempts.length > 0) {
+                attemptedQuestions.push({
+                    questionNumber: i + 1,
+                    word: words[i],
+                    attempts: userAnswer.attempts,
+                    correct: userAnswer.correct,
+                    hint: Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i] || false
+                });
+                attemptedWords.push(words[i]);
+                if (userAnswer.correct) {
+                    correctCount++;
+                }
+            }
+        }
+        
+        // Only save if there are attempted questions
+        if (attemptedQuestions.length === 0) {
+            console.log('No attempted questions found - not saving partial results');
+            return;
+        }
+        
+        // Transform data to match teacher dashboard expectations (only attempted words)
+        const wordsData = attemptedQuestions.map((question) => {
+            const firstAttemptCorrect = question.attempts.length > 0 && question.attempts[0] === question.word;
+            
+            return {
+                word: question.word,
+                correct: firstAttemptCorrect, // Only true if first attempt was correct
+                attempts: question.attempts,
+                hint: question.hint,
+                hintLetters: Array.isArray(hintUsed[question.questionNumber - 1]) ? hintUsed[question.questionNumber - 1] : [],
+                firstTryCorrect: firstAttemptCorrect
+            };
+        });
+        
+        const now = new Date();
+        
+        // Calculate total time from start to auto-save (when inactivity began)
+        let totalTimeSeconds = 0;
+        if (window.quizStartTime && lastActivityTime) {
+            const rawTime = Math.round((lastActivityTime - window.quizStartTime) / 1000);
+            // Cap at 10 minutes (600 seconds)
+            totalTimeSeconds = Math.min(rawTime, 600);
+        }
+        
+        const partialQuizData = {
+            user: userName,
+            date: lastActivityTime ? lastActivityTime.toISOString() : now.toISOString(),
+            words: wordsData,
+            wordSetId: currentWordSetId,
+            wordSetName: currentWordSetName,
+            timestamp: now,
+            completedAt: lastActivityTime || now,
+            totalTimeSeconds: totalTimeSeconds,
+            startTime: window.quizStartTime ? window.quizStartTime.toISOString() : now.toISOString(),
+            finishTime: lastActivityTime ? lastActivityTime.toISOString() : now.toISOString(),
+            // Partial quiz specific fields
+            isPartialQuiz: true,
+            autoSavedDueToInactivity: true,
+            totalQuestionsInSet: words.length,
+            questionsAttempted: attemptedQuestions.length,
+            questionsCorrect: correctCount,
+            lastQuestionAttempted: currentWordIndex + 1,
+            attemptedWords: attemptedWords,
+            inactivityTimeoutMinutes: INACTIVITY_TIMEOUT / (60 * 1000)
+        };
+        
+        console.log('Saving partial quiz data:', JSON.stringify(partialQuizData, null, 2));
+        
+        const docRef = await window.db.collection('results').add(partialQuizData);
+        console.log('✅ Partial quiz results auto-saved successfully with ID:', docRef.id);
+        
+        // Show notification to student
+        showNotification(`📝 Your progress was automatically saved! You answered ${correctCount}/${attemptedQuestions.length} questions correctly.`, 'info');
+        
+        // Show completion dialog
+        showPartialQuizCompletionDialog(correctCount, attemptedQuestions.length, words.length, attemptedWords);
+        
+    } catch (error) {
+        console.error('❌ Error auto-saving partial quiz results:', error);
+        showNotification('Error saving your progress. Please try again or contact your teacher.', 'error');
+        // Reset auto-save flag so user can try to continue
+        hasAutoSaved = false;
+    }
+}
+
+// Function to show partial quiz completion dialog
+function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCount, attemptedWords) {
+    const percentage = Math.round((correctCount / attemptedCount) * 100);
+    
+    let html = `
+        <h2 style="margin-bottom:18px;">⏰ Session Auto-Saved</h2>
+        <div style="color:#64748b;font-size:0.9rem;margin-bottom:16px;">
+            No activity detected for 2 minutes - your progress has been automatically saved.
+        </div>
+        
+        <div style="background:#f8fafc;padding:16px;border-radius:8px;margin-bottom:16px;">
+            <h3 style="margin:0 0 12px 0;color:#1e293b;">📊 Your Progress</h3>
+            <div style="margin:8px 0;">
+                <strong>Questions Attempted:</strong> ${attemptedCount} of ${totalCount}
+            </div>
+            <div style="margin:8px 0;">
+                <strong>Correct Answers:</strong> ${correctCount} of ${attemptedCount} (${percentage}%)
+            </div>
+        </div>
+    `;
+    
+    if (attemptedWords.length > 0) {
+        html += `
+            <div style="background:#f0f9ff;padding:16px;border-radius:8px;margin-bottom:16px;">
+                <h4 style="margin:0 0 12px 0;color:#0369a1;">📝 Words You Practiced</h4>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                    ${attemptedWords.map(word => `<span style="background:#3b82f6;color:white;padding:4px 8px;border-radius:4px;font-size:0.85rem;">${word}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
+            <button onclick="continuePartialQuiz()" style="background:#3b82f6;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                ▶️ Continue Practice
+            </button>
+            <button onclick="startNewQuizRound()" style="background:#10b981;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
+                🔄 Start New Round
+            </button>
+        </div>
+        
+        <div style="margin-top:16px;padding:12px;background:#fef3c7;border-radius:8px;color:#92400e;font-size:0.9rem;">
+            💡 <strong>Tip:</strong> Your teacher can see your partial progress in the analytics dashboard.
+        </div>
+    `;
+    
+    showModal(html);
+}
+
+// Function to continue partial quiz
+function continuePartialQuiz() {
+    closeModal();
+    hasAutoSaved = false; // Reset auto-save flag
+    resetInactivityTimer(); // Restart inactivity tracking
+    showNotification('▶️ Continuing where you left off...', 'info');
+}
+
+// Function to start new quiz round after partial save
+function startNewQuizRound() {
+    closeModal();
+    resetQuiz().then(() => {
+        showNotification('🔄 Starting fresh round...', 'success');
+        setTimeout(() => {
+            if (words.length > 0) speakWord(words[0]);
+        }, 200);
+    });
 }

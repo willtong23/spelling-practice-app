@@ -3433,8 +3433,8 @@ function renderFilteredAnalyticsTable() {
                     ${result.totalTimeSeconds ? `<div class="row-4">Total: ${formatTimeDisplay(result.totalTimeSeconds)}</div>` : ""}
                 </td>
                 <td class="summary-cell multi-row-cell">
-                    <div class="summary-row row-1">${firstTryCorrect}/${totalWords}</div>
-                    <div class="summary-row row-2">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? "s" : ""}</div>
+                    <div class="summary-row row-1">${firstTryCorrect}/${totalWords}${result.isPartialQuiz || result.autoSavedDueToInactivity ? ` (${result.questionsAttempted || totalWords}/${result.totalQuestionsInSet || totalWords} attempted)` : ""}</div>
+                    <div class="summary-row row-2">💡 ${hintsUsed.length} hint${hintsUsed.length !== 1 ? "s" : ""}</div>${result.isPartialQuiz || result.autoSavedDueToInactivity ? "<div class=\"summary-row row-3\" style=\"color:#d97706;font-size:0.75rem;\">⏰ Partial Session</div>" : ""}
                 </td>
                 <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;" title="${detailsHtml.replace(/<[^>]*>/g, "")}">${detailsHtml}</td>
                 <td>
