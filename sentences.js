@@ -261,9 +261,9 @@ function renderSentencesTable() {
           </span>
         </td>
         <td>
-          <span class="wordset-badge" style="background: #059669; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
+          <div class="wordset-badge" style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; line-height: 1.3; max-width: 200px; word-wrap: break-word; white-space: normal; display: inline-block; text-align: center;">
             ${wordSet}
-          </span>
+          </div>
         </td>
         <td style="font-size: 0.9rem; color: #64748b;">${date}<br>${time}</td>
         <td style="font-style: italic; line-height: 1.4; padding: 8px;">"${sentence.sentence || 'No sentence'}"</td>
@@ -483,7 +483,11 @@ async function exportSentencesScreenshot() {
           tableRows += `
             <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background: #f8fafc;' : ''}">
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.targetWord || 'N/A'}</td>
-              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">${sentence.wordSetName || 'Unknown Set'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb;">
+                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; max-width: 180px; word-wrap: break-word; text-align: center;">
+                  ${sentence.wordSetName || 'Unknown Set'}
+                </div>
+              </td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">
                 <div>${formattedDate}</div>
                 <div style="font-size: 12px; color: #94a3b8;">${formattedTime}</div>
@@ -610,7 +614,11 @@ async function exportSentencesScreenshot() {
             <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background: #f8fafc;' : ''}">
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.studentName || 'Unknown'}</td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #3b82f6;">${sentence.targetWord || 'N/A'}</td>
-              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">${sentence.wordSetName || 'Unknown Set'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb;">
+                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; max-width: 180px; word-wrap: break-word; text-align: center;">
+                  ${sentence.wordSetName || 'Unknown Set'}
+                </div>
+              </td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">
                 <div>${formattedDate}</div>
                 <div style="font-size: 12px; color: #94a3b8;">${formattedTime}</div>
