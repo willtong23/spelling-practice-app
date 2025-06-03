@@ -584,6 +584,132 @@ function deleteAllSentences() {
   }
 }
 
+// Function to clean up duplicate sentences
+async function cleanupDuplicateSentences() {
+  if (!confirm("This will scan and remove duplicate sentences from the database.\n\nDuplicates are identified as sentences with:\n- Same student name AND same sentence text\n\nThe oldest copy will be kept, newer duplicates will be deleted.\n\nThis action cannot be undone. Continue?")) {
+    return;
+  }
+
+  try {
+    if (typeof showNotification === 'function') {
+      showNotification("Scanning for duplicate sentences...", "info");
+    }
+
+    // Make sure we have fresh data
+    await loadSentences();
+
+    if (sentences.length === 0) {
+      if (typeof showNotification === 'function') {
+        showNotification("No sentences found to check for duplicates", "info");
+      }
+      return;
+    }
+
+    console.log(`Checking ${sentences.length} sentences for duplicates...`);
+
+    // Find duplicates
+    const duplicatesToDelete = [];
+    const seen = new Map(); // key: studentName + sentence text, value: earliest sentence
+
+    // Sort by creation date to keep the oldest sentence
+    const sortedSentences = [...sentences].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateA - dateB; // ascending order (oldest first)
+    });
+
+    for (const sentence of sortedSentences) {
+      // Create unique key: normalize to handle case variations and extra spaces
+      const studentName = (sentence.studentName || '').trim().toLowerCase();
+      const sentenceText = (sentence.sentence || '').trim().toLowerCase();
+      
+      if (!studentName || !sentenceText) {
+        // Skip sentences with missing student name or text
+        console.warn("Skipping sentence with missing data:", sentence);
+        continue;
+      }
+
+      const key = `${studentName}|||${sentenceText}`;
+
+      if (seen.has(key)) {
+        // This is a duplicate - mark for deletion
+        duplicatesToDelete.push(sentence);
+        console.log(`Duplicate found for ${sentence.studentName}: "${sentence.sentence}" (ID: ${sentence.id})`);
+      } else {
+        // First occurrence - keep it
+        seen.set(key, sentence);
+      }
+    }
+
+    if (duplicatesToDelete.length === 0) {
+      if (typeof showNotification === 'function') {
+        showNotification("No duplicate sentences found! Your data is clean.", "success");
+      }
+      return;
+    }
+
+    // Show summary of what will be deleted
+    const summary = duplicatesToDelete.reduce((acc, sentence) => {
+      const student = sentence.studentName || 'Unknown';
+      if (!acc[student]) {
+        acc[student] = 0;
+      }
+      acc[student]++;
+      return acc;
+    }, {});
+
+    let summaryText = `Found ${duplicatesToDelete.length} duplicate sentences:\n\n`;
+    Object.entries(summary).forEach(([student, count]) => {
+      summaryText += `• ${student}: ${count} duplicate${count > 1 ? 's' : ''}\n`;
+    });
+    summaryText += `\nDo you want to delete these duplicates now?`;
+
+    if (!confirm(summaryText)) {
+      return;
+    }
+
+    // Delete duplicates in batches
+    const batchSize = 500; // Firestore batch limit
+    let deletedCount = 0;
+
+    for (let i = 0; i < duplicatesToDelete.length; i += batchSize) {
+      const batch = window.db.batch();
+      const batchItems = duplicatesToDelete.slice(i, i + batchSize);
+
+      batchItems.forEach((sentence) => {
+        const sentenceRef = window.db.collection('sentences').doc(sentence.id);
+        batch.delete(sentenceRef);
+      });
+
+      await batch.commit();
+      deletedCount += batchItems.length;
+
+      if (typeof showNotification === 'function') {
+        showNotification(`Deleted ${deletedCount}/${duplicatesToDelete.length} duplicate sentences...`, "info");
+      }
+    }
+
+    if (typeof showNotification === 'function') {
+      showNotification(`Successfully removed ${duplicatesToDelete.length} duplicate sentences! 🎉`, "success");
+    }
+
+    // Reload data and refresh display
+    await loadSentences();
+    applySentencesFilter();
+
+  } catch (error) {
+    console.error("Error cleaning up duplicate sentences:", error);
+    if (typeof showNotification === 'function') {
+      showNotification("Error cleaning up duplicates. Please try again.", "error");
+    }
+  }
+}
+
+// Make the function available globally for debugging
+if (typeof window !== 'undefined') {
+  window.cleanupDuplicateSentences = cleanupDuplicateSentences;
+}
+
 function editSentence(sentenceId) {
   const sentence = sentences.find(s => s.id === sentenceId);
   if (!sentence) return;
