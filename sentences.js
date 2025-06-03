@@ -381,6 +381,10 @@ function getMostUsedWordSet() {
 // Export functions
 async function exportSentencesScreenshot() {
   try {
+    // Show popup for export options
+    const exportOptions = await showSentenceItemsPerPageModal();
+    if (!exportOptions) return; // User cancelled
+
     if (filteredSentences.length === 0) {
       if (typeof showNotification === 'function') {
         showNotification("No sentence data to export", "warning");
@@ -392,129 +396,314 @@ async function exportSentencesScreenshot() {
       showNotification("Generating sentence record download...", "info");
     }
 
-    // Create a container for the export content
-    const screenshotContainer = document.createElement('div');
-    screenshotContainer.style.cssText = `
-      width: 1600px !important;
-      max-width: none !important;
-      min-width: 1600px !important;
-      background: white;
-      padding: 40px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      color: #1e293b;
-      box-sizing: border-box !important;
-      position: absolute !important;
-      top: -10000px;
-      left: -10000px;
-      margin: 0 !important;
-      border: none !important;
-      overflow: visible !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      z-index: 9999;
-      transform: none !important;
-    `;
+    // Get current filter and sort settings from the sentences view
+    const filterType = document.getElementById('sentencesFilterType').value;
+    const filterValue = document.getElementById('sentencesFilterValue').value;
+    const fromDate = document.getElementById('sentencesFromDate').value;
+    const toDate = document.getElementById('sentencesToDate').value;
+    const sortBy = document.getElementById('sentencesSortBy').value;
 
-    // Create table rows for the sentence data
-    let tableRows = '';
-    filteredSentences.forEach((sentence, index) => {
-      const date = sentence.createdAt ? new Date(sentence.createdAt).toLocaleDateString() : 'Unknown date';
-      const time = sentence.createdAt ? new Date(sentence.createdAt).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-      }) : '';
-      
-      const rowColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-      
-      tableRows += `
-        <tr style="background: ${rowColor}; border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 15px 12px; font-weight: 600; color: #1e293b; border-right: 1px solid #e2e8f0;">
-            ${sentence.studentName || 'Unknown'}
-          </td>
-          <td style="padding: 15px 12px; text-align: center; border-right: 1px solid #e2e8f0;">
-            <span style="background: #1e40af; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block;">
-              ${sentence.targetWord || 'N/A'}
-            </span>
-          </td>
-          <td style="padding: 15px 12px; text-align: center; border-right: 1px solid #e2e8f0;">
-            <span style="background: #059669; color: white; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block;">
-              ${sentence.wordSetName || 'Unknown Set'}
-            </span>
-          </td>
-          <td style="padding: 15px 12px; text-align: center; color: #64748b; font-size: 14px; border-right: 1px solid #e2e8f0;">
-            ${date}<br><span style="font-size: 12px;">${time}</span>
-          </td>
-          <td style="padding: 15px 12px; font-style: italic; line-height: 1.4; color: #374151; max-width: 300px;">
-            "${sentence.sentence || 'No sentence'}"
-          </td>
-        </tr>
-      `;
-    });
+    // Use the current filtered sentences
+    let validSentences = [...filteredSentences];
 
-    // Build the complete HTML with header and table
-    screenshotContainer.innerHTML = `
-      <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #1e40af; padding-bottom: 20px;">
-        <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px;">
-        <div style="flex: 1; text-align: center;">
-          <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">📝 Sentence Record</h1>
-        </div>
-      </div>
-      
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-        <thead>
-          <tr style="background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);">
-            <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 16px; border-right: 2px solid rgba(255,255,255,0.2);">Student</th>
-            <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 16px; border-right: 2px solid rgba(255,255,255,0.2);">Target Word</th>
-            <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 16px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
-            <th style="color: white; padding: 20px 15px; text-align: center; font-weight: 700; font-size: 16px; border-right: 2px solid rgba(255,255,255,0.2);">Date & Time</th>
-            <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 16px;">Sentence</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows}
-        </tbody>
-      </table>
-      
-      <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; color: #0c4a6e;">
-        <strong>📊 Summary:</strong> ${filteredSentences.length} sentences from ${[...new Set(filteredSentences.map(s => s.studentName).filter(name => name))].length} students
-        <br><span style="font-size: 14px; margin-top: 5px; display: block;">Generated: ${new Date().toLocaleString()}</span>
-      </div>
-    `;
-
-    // Add to document temporarily
-    document.body.appendChild(screenshotContainer);
-
-    try {
-      // Generate the screenshot using html2canvas
-      const canvas = await html2canvas(screenshotContainer, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 1600,
-        height: screenshotContainer.scrollHeight
-      });
-
-      // Create download link
-      const link = document.createElement('a');
-      const today = new Date().toISOString().split('T')[0];
-      link.download = `sentence_record_${today}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-
+    if (validSentences.length === 0) {
       if (typeof showNotification === 'function') {
-        showNotification("Sentence record downloaded successfully!", "success");
+        showNotification("No data to export with current filters", "error");
+      }
+      return;
+    }
+
+    // Get filter and sort information for the header
+    let filterInfo = "";
+    if (filterType === "student" && filterValue) {
+      filterInfo = `Student: ${filterValue}`;
+    } else if (filterType === "wordset" && filterValue) {
+      filterInfo = `Word Set: ${filterValue}`;
+    } else {
+      filterInfo = "All Students";
+    }
+
+    const sortLabel = document.getElementById('sentencesSortBy').selectedOptions[0].text;
+    const screenshots = [];
+
+    if (exportOptions.mode === 'separate') {
+      // Separate by student mode - create individual pages for each student
+      const uniqueStudents = [...new Set(validSentences.map(s => s.studentName))]
+        .filter(name => name)
+        .sort();
+
+      if (uniqueStudents.length === 0) {
+        if (typeof showNotification === 'function') {
+          showNotification("No students found in the data", "error");
+        }
+        return;
       }
 
-    } catch (error) {
-      console.error('Error generating sentence record:', error);
       if (typeof showNotification === 'function') {
-        showNotification("Error generating sentence record", "error");
+        showNotification(`Creating individual reports for ${uniqueStudents.length} students...`, "info");
       }
-    } finally {
-      // Clean up - remove the temporary container
-      document.body.removeChild(screenshotContainer);
+
+      for (let studentIndex = 0; studentIndex < uniqueStudents.length; studentIndex++) {
+        const studentName = uniqueStudents[studentIndex];
+        const studentSentences = validSentences.filter(s => s.studentName === studentName);
+
+        if (studentSentences.length === 0) continue;
+
+        // Create individual student report
+        const screenshotContainer = document.createElement('div');
+        screenshotContainer.style.cssText = `
+          width: 1600px !important;
+          max-width: none !important;
+          min-width: 1600px !important;
+          background: white;
+          padding: 40px;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          color: #1e293b;
+          box-sizing: border-box !important;
+          position: absolute !important;
+          top: -10000px;
+          left: -10000px;
+          margin: 0 !important;
+          border: none !important;
+          overflow: visible !important;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          z-index: 9999;
+          transform: none !important;
+        `;
+
+        // Create table rows for the student's sentences
+        let tableRows = '';
+        studentSentences.forEach((sentence, index) => {
+          const date = sentence.createdAt ? new Date(sentence.createdAt) : new Date();
+          const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          const formattedTime = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          
+          tableRows += `
+            <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background: #f8fafc;' : ''}">
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.targetWord || 'N/A'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">${sentence.wordSetName || 'Unknown Set'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">
+                <div>${formattedDate}</div>
+                <div style="font-size: 12px; color: #94a3b8;">${formattedTime}</div>
+              </td>
+              <td style="padding: 15px; color: #1e293b; line-height: 1.4;">${sentence.sentence || 'No sentence'}</td>
+            </tr>
+          `;
+        });
+
+        screenshotContainer.innerHTML = `
+          <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #3b82f6; padding-bottom: 20px;">
+            <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px;">
+            <div style="flex: 1; text-align: center;">
+              <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Sentence Practice Report</h1>
+              <h2 style="margin: 10px 0 0 0; color: #3b82f6; font-size: 24px; font-weight: 600;">${studentName}</h2>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; color: #64748b;">
+            <span>Filter: ${filterInfo} | Sort: ${sortLabel}</span>
+            <span>Total Sentences: ${studentSentences.length}</span>
+          </div>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Target Word</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Date & Time</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">Sentence</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+          
+          <div style="text-align: center; margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 14px; color: #64748b;">
+            Generated: ${new Date().toLocaleString()} | Individual Report for ${studentName}
+          </div>
+        `;
+
+        // Add to document temporarily
+        document.body.appendChild(screenshotContainer);
+
+        try {
+          const canvas = await html2canvas(screenshotContainer, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: 1600,
+            height: screenshotContainer.scrollHeight
+          });
+
+          const link = document.createElement('a');
+          link.download = `${studentName.replace(/[^a-zA-Z0-9]/g, '_')}_sentence_report.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+
+          screenshots.push(link.download);
+        } catch (error) {
+          console.error(`Error generating screenshot for ${studentName}:`, error);
+          if (typeof showNotification === 'function') {
+            showNotification(`Error generating report for ${studentName}`, "error");
+          }
+        } finally {
+          document.body.removeChild(screenshotContainer);
+        }
+
+        // Small delay between students
+        if (studentIndex < uniqueStudents.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      if (screenshots.length > 0) {
+        if (typeof showNotification === 'function') {
+          showNotification(`Successfully created ${screenshots.length} individual student reports!`, "success");
+        }
+      }
+    } else {
+      // Original items per page mode
+      const itemsPerPage = parseInt(exportOptions.value);
+      const totalPages = Math.ceil(validSentences.length / itemsPerPage);
+
+      for (let pageNum = 0; pageNum < totalPages; pageNum++) {
+        const startIndex = pageNum * itemsPerPage;
+        const endIndex = Math.min(startIndex + itemsPerPage, validSentences.length);
+        const pageSentences = validSentences.slice(startIndex, endIndex);
+
+        // Create a container for the export content
+        const screenshotContainer = document.createElement('div');
+        screenshotContainer.style.cssText = `
+          width: 1600px !important;
+          max-width: none !important;
+          min-width: 1600px !important;
+          background: white;
+          padding: 40px;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          color: #1e293b;
+          box-sizing: border-box !important;
+          position: absolute !important;
+          top: -10000px;
+          left: -10000px;
+          margin: 0 !important;
+          border: none !important;
+          overflow: visible !important;
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          z-index: 9999;
+          transform: none !important;
+        `;
+
+        // Create table rows for the sentence data
+        let tableRows = '';
+        pageSentences.forEach((sentence, index) => {
+          const date = sentence.createdAt ? new Date(sentence.createdAt) : new Date();
+          const formattedDate = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+          const formattedTime = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+          
+          tableRows += `
+            <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background: #f8fafc;' : ''}">
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.studentName || 'Unknown'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #3b82f6;">${sentence.targetWord || 'N/A'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">${sentence.wordSetName || 'Unknown Set'}</td>
+              <td style="padding: 15px; border-right: 1px solid #e5e7eb; color: #64748b; font-size: 14px;">
+                <div>${formattedDate}</div>
+                <div style="font-size: 12px; color: #94a3b8;">${formattedTime}</div>
+              </td>
+              <td style="padding: 15px; color: #1e293b; line-height: 1.4;">${sentence.sentence || 'No sentence'}</td>
+            </tr>
+          `;
+        });
+
+        screenshotContainer.innerHTML = `
+          <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 3px solid #3b82f6; padding-bottom: 20px;">
+            <img src="logo.png" alt="Logo" style="width: 60px; height: 60px; margin-right: 20px;">
+            <div style="flex: 1; text-align: center;">
+              <h1 style="margin: 0; color: #1e293b; font-size: 32px; font-weight: 700;">Sentence Practice Records</h1>
+              ${totalPages > 1 ? `<h2 style="margin: 10px 0 0 0; color: #64748b; font-size: 18px;">Page ${pageNum + 1} of ${totalPages}</h2>` : ''}
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; color: #64748b;">
+            <span>Filter: ${filterInfo} | Sort: ${sortLabel}</span>
+            <span>Showing ${pageSentences.length} of ${validSentences.length} sentences</span>
+          </div>
+          
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <thead>
+              <tr style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Student</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Target Word</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Word Set</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px; border-right: 2px solid rgba(255,255,255,0.2);">Date & Time</th>
+                <th style="color: white; padding: 20px 15px; text-align: left; font-weight: 700; font-size: 18px;">Sentence</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+          
+          <div style="text-align: center; margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 14px; color: #64748b;">
+            Total Students: ${[...new Set(validSentences.map(s => s.studentName).filter(name => name))].length} students
+            <br><span style="font-size: 14px; margin-top: 5px; display: block;">Generated: ${new Date().toLocaleString()}</span>
+          </div>
+        `;
+
+        // Add to document temporarily
+        document.body.appendChild(screenshotContainer);
+
+        try {
+          // Generate the screenshot using html2canvas
+          const canvas = await html2canvas(screenshotContainer, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            width: 1600,
+            height: screenshotContainer.scrollHeight
+          });
+
+          // Create download link
+          const link = document.createElement('a');
+          link.download = totalPages > 1 ? 
+            `sentences_${filterInfo.replace(/[^a-zA-Z0-9]/g, '_')}_${sortLabel.replace(/[^a-zA-Z0-9]/g, '_')}_page_${pageNum + 1}_of_${totalPages}.png` :
+            `sentences_${filterInfo.replace(/[^a-zA-Z0-9]/g, '_')}_${sortLabel.replace(/[^a-zA-Z0-9]/g, '_')}.png`;
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+
+          screenshots.push(link.download);
+        } catch (error) {
+          console.error('Error generating sentence record:', error);
+          if (typeof showNotification === 'function') {
+            showNotification(`Error generating page ${pageNum + 1}`, "error");
+          }
+        } finally {
+          // Clean up - remove the temporary container
+          document.body.removeChild(screenshotContainer);
+        }
+
+        // Small delay between pages
+        if (pageNum < totalPages - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      if (screenshots.length > 0) {
+        if (typeof showNotification === 'function') {
+          showNotification(
+            totalPages > 1 ? 
+              `Successfully exported ${screenshots.length} screenshot pages!` : 
+              "Sentence record downloaded successfully!", 
+            "success"
+          );
+        }
+      }
     }
 
   } catch (error) {
@@ -526,9 +715,232 @@ async function exportSentencesScreenshot() {
 }
 
 function exportSentencesPdf() {
-  if (typeof showNotification === 'function') {
-    showNotification("PDF export functionality coming soon!", "info");
+  // Filter to get current sentences from the view
+  const validSentences = filteredSentences.filter(sentence => {
+    return sentence.studentName && sentence.sentence;
+  });
+
+  if (validSentences.length === 0) {
+    if (typeof showNotification === 'function') {
+      showNotification('No valid sentence data to export', 'warning');
+    }
+    return;
   }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Title
+  doc.setFontSize(20);
+  doc.setFont(undefined, 'bold');
+  doc.text('Sentence Practice Report', 20, 20);
+
+  // Date range and filter info
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  const filterType = document.getElementById('sentencesFilterType').value;
+  const filterValue = document.getElementById('sentencesFilterValue').value;
+  const fromDate = document.getElementById('sentencesFromDate').value;
+  const toDate = document.getElementById('sentencesToDate').value;
+
+  let filterInfo = 'Filter: ';
+  if (filterType === 'student' && filterValue) {
+    filterInfo += `Student - ${filterValue}`;
+  } else if (filterType === 'wordset' && filterValue) {
+    filterInfo += `Word Set - ${filterValue}`;
+  } else {
+    filterInfo += 'All Students';
+  }
+
+  if (fromDate || toDate) {
+    filterInfo += ` | Date Range: ${fromDate || 'Start'} to ${toDate || 'End'}`;
+  }
+
+  doc.text(filterInfo, 20, 30);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 40);
+  doc.text(`Total Sentences: ${validSentences.length}`, 20, 50);
+
+  let yPos = 70;
+
+  // Process each sentence
+  validSentences.forEach((sentence, index) => {
+    if (yPos > 250) { // Start new page if needed
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Student name header
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Student: ${sentence.studentName}`, 20, yPos);
+    
+    yPos += 8;
+    
+    // Target word and word set
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Target Word: ${sentence.targetWord || 'N/A'}`, 25, yPos);
+    doc.text(`Word Set: ${sentence.wordSetName || 'Unknown Set'}`, 120, yPos);
+    
+    yPos += 8;
+    
+    // Date
+    const date = sentence.createdAt ? new Date(sentence.createdAt) : new Date();
+    doc.text(`Date: ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`, 25, yPos);
+    
+    yPos += 8;
+    
+    // Sentence text
+    doc.setFont(undefined, 'bold');
+    doc.text('Sentence:', 25, yPos);
+    doc.setFont(undefined, 'normal');
+    
+    // Split long sentences across multiple lines
+    const sentenceText = sentence.sentence || 'No sentence';
+    const maxWidth = 160;
+    const lines = doc.splitTextToSize(sentenceText, maxWidth);
+    
+    yPos += 6;
+    lines.forEach((line, lineIndex) => {
+      if (yPos > 280) { // Check if we need a new page
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(line, 30, yPos);
+      yPos += 6;
+    });
+    
+    yPos += 8; // Add space between entries
+    
+    // Add a line separator
+    if (index < validSentences.length - 1) {
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, yPos, 190, yPos);
+      yPos += 8;
+    }
+  });
+
+  // Save the PDF
+  const today = new Date().toISOString().split('T')[0];
+  doc.save(`sentence_report_${today}.pdf`);
+
+  if (typeof showNotification === 'function') {
+    showNotification('Sentence report exported to PDF successfully!', 'success');
+  }
+}
+
+// Show modal for selecting sentence export options
+function showSentenceItemsPerPageModal() {
+  return new Promise((resolve) => {
+    const modalContent = `
+      <div style="text-align: center;">
+        <h3 style="margin: 0 0 20px 0; color: #1e293b;">Export Sentence Screenshot Options</h3>
+        <p style="margin: 0 0 24px 0; color: #64748b;">Choose how to organize the screenshot pages:</p>
+        
+        <div style="margin-bottom: 32px;">
+          <h4 style="margin: 0 0 16px 0; color: #1e293b; font-size: 1.1rem;">📄 Items Per Page</h4>
+          <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.9rem;">All students mixed together on each page:</p>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 16px;">
+            <button class="items-per-page-btn" data-value="4" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">4</button>
+            <button class="items-per-page-btn" data-value="5" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">5</button>
+            <button class="items-per-page-btn" data-value="8" style="padding: 12px; border: 2px solid #3b82f6; border-radius: 8px; background: #3b82f6; color: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">8</button>
+            <button class="items-per-page-btn" data-value="10" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">10</button>
+            <button class="items-per-page-btn" data-value="12" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">12</button>
+            <button class="items-per-page-btn" data-value="15" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">15</button>
+            <button class="items-per-page-btn" data-value="20" style="padding: 12px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s;">20</button>
+          </div>
+        </div>
+        
+        <div style="border-top: 2px solid #e0e7ef; padding-top: 24px;">
+          <h4 style="margin: 0 0 16px 0; color: #1e293b; font-size: 1.1rem;">👥 Separate by Student</h4>
+          <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.9rem;">Create individual pages for each student (perfect for handing out individual reports):</p>
+          <button class="separate-student-btn" data-value="separate" style="padding: 16px 24px; border: 2px solid #e0e7ef; border-radius: 8px; background: white; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 1rem;">
+            📋 Separate by Student
+          </button>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: center; margin-top: 32px;">
+          <button id="cancelSentenceItemsPerPage" class="btn-secondary">Cancel</button>
+          <button id="confirmSentenceItemsPerPage" class="btn-primary">Export Screenshots</button>
+        </div>
+      </div>
+    `;
+
+    // Show modal using the existing modal system
+    if (typeof showModal === 'function') {
+      showModal(modalContent);
+    } else {
+      // Fallback if showModal is not available
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalBody = document.getElementById('modalBody');
+      const modalTitle = document.getElementById('modalTitle');
+      
+      if (modalOverlay && modalBody && modalTitle) {
+        modalTitle.textContent = 'Export Options';
+        modalBody.innerHTML = modalContent;
+        modalOverlay.style.display = 'flex';
+      }
+    }
+
+    let selectedValue = '8'; // Default value
+    let selectedMode = 'page'; // Default mode
+
+    // Add event listeners for option selection
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('items-per-page-btn')) {
+        // Remove selection from all buttons
+        document.querySelectorAll('.items-per-page-btn, .separate-student-btn').forEach(btn => {
+          btn.style.border = '2px solid #e0e7ef';
+          btn.style.background = 'white';
+          btn.style.color = 'black';
+        });
+        
+        // Highlight selected button
+        e.target.style.border = '2px solid #3b82f6';
+        e.target.style.background = '#3b82f6';
+        e.target.style.color = 'white';
+        
+        selectedValue = e.target.dataset.value;
+        selectedMode = 'page';
+      } else if (e.target.classList.contains('separate-student-btn')) {
+        // Remove selection from all buttons
+        document.querySelectorAll('.items-per-page-btn, .separate-student-btn').forEach(btn => {
+          btn.style.border = '2px solid #e0e7ef';
+          btn.style.background = 'white';
+          btn.style.color = 'black';
+        });
+        
+        // Highlight selected button
+        e.target.style.border = '2px solid #3b82f6';
+        e.target.style.background = '#3b82f6';
+        e.target.style.color = 'white';
+        
+        selectedValue = e.target.dataset.value;
+        selectedMode = 'separate';
+      } else if (e.target.id === 'confirmSentenceItemsPerPage') {
+        if (typeof closeModal === 'function') {
+          closeModal();
+        } else {
+          const modalOverlay = document.getElementById('modalOverlay');
+          if (modalOverlay) modalOverlay.style.display = 'none';
+        }
+        
+        resolve({
+          value: selectedValue,
+          mode: selectedMode
+        });
+      } else if (e.target.id === 'cancelSentenceItemsPerPage') {
+        if (typeof closeModal === 'function') {
+          closeModal();
+        } else {
+          const modalOverlay = document.getElementById('modalOverlay');
+          if (modalOverlay) modalOverlay.style.display = 'none';
+        }
+        
+        resolve(null);
+      }
+    });
+  });
 }
 
 // Delete functions
