@@ -5057,7 +5057,7 @@ function autoSignOut(reason = 'Session timeout due to inactivity.') {
 }
 
 // Function to show partial quiz completion dialog
-function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCount, attemptedWords, autoSignOut = false) {
+function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCount, attemptedWords, showAutoSignOut = false) {
     const percentage = Math.round((correctCount / attemptedCount) * 100);
     
     let html = `
@@ -5090,7 +5090,7 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
     
     html += `
         <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;">
-            ${!autoSignOut ? `
+            ${!showAutoSignOut ? `
                 <button onclick="continuePartialQuiz()" style="background:#3b82f6;color:white;border:none;padding:12px 24px;border-radius:8px;font-weight:600;cursor:pointer;">
                     ▶️ Continue Practice
                 </button>
@@ -5112,7 +5112,7 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
         </div>
     `;
     
-    if (autoSignOut) {
+    if (showAutoSignOut) {
         html += `
             <div style="margin-top:20px;padding:16px;background:#ffedf0;border-radius:8px;color:#ef4444;font-size:0.9rem;">
                 ⚠️ <strong>Warning:</strong> No activity detected for 1 minute. You will be automatically signed out.
@@ -5123,7 +5123,7 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
     showModal(html);
     
     // If auto sign-out is enabled, start a countdown timer
-    if (autoSignOut) {
+    if (showAutoSignOut) {
         let countdown = 10; // 10 seconds countdown
         const countdownTimer = setInterval(() => {
             const warningDiv = document.querySelector('[style*="background:#ffedf0"]');
