@@ -261,7 +261,7 @@ function renderSentencesTable() {
           </span>
         </td>
         <td>
-          <div class="wordset-badge" style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; line-height: 1.3; max-width: 200px; word-wrap: break-word; white-space: normal; display: inline-block; text-align: center;">
+          <div class="wordset-badge" style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; line-height: 1.3; word-wrap: break-word; white-space: normal; display: inline-block; text-align: center; min-width: 120px;">
             ${wordSet}
           </div>
         </td>
@@ -484,7 +484,7 @@ async function exportSentencesScreenshot() {
             <tr style="border-bottom: 1px solid #e5e7eb; ${index % 2 === 1 ? 'background: #f8fafc;' : ''}">
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.targetWord || 'N/A'}</td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb;">
-                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; max-width: 180px; word-wrap: break-word; text-align: center;">
+                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; word-wrap: break-word; text-align: center; min-width: 120px;">
                   ${sentence.wordSetName || 'Unknown Set'}
                 </div>
               </td>
@@ -615,7 +615,7 @@ async function exportSentencesScreenshot() {
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #1e293b;">${sentence.studentName || 'Unknown'}</td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb; font-weight: 600; color: #3b82f6;">${sentence.targetWord || 'N/A'}</td>
               <td style="padding: 15px; border-right: 1px solid #e5e7eb;">
-                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; max-width: 180px; word-wrap: break-word; text-align: center;">
+                <div style="background: #059669; color: white; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 1.3; display: inline-block; word-wrap: break-word; text-align: center; min-width: 120px;">
                   ${sentence.wordSetName || 'Unknown Set'}
                 </div>
               </td>
