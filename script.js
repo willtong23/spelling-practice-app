@@ -5036,21 +5036,28 @@ async function autoSavePartialQuiz() {
 
 // Function to handle automatic sign-out
 function autoSignOut(reason = 'Session timeout due to inactivity.') {
+    console.log('🚪 === AUTO SIGN-OUT FUNCTION CALLED ===');
+    console.log('🚪 Reason:', reason);
     console.log('🚪 Auto sign-out triggered:', reason);
     
     // Stop any ongoing inactivity tracking
     stopInactivityTracking();
     
     // Show sign-out notification
+    console.log('🚪 Showing sign-out notification...');
     showNotification(`🚪 ${reason} Signing out for security...`, 'info');
     
     // Clear user session after a short delay
+    console.log('🚪 Setting timeout to clear session in 2 seconds...');
     setTimeout(() => {
+        console.log('🚪 Clearing localStorage...');
         localStorage.clear();
         showNotification('🚪 Signed out successfully! Reloading...', 'success');
         
         // Reload the page to return to login screen
+        console.log('🚪 Setting timeout to reload page in 1.5 seconds...');
         setTimeout(() => {
+            console.log('🚪 Reloading page now...');
             window.location.reload();
         }, 1500);
     }, 2000);
@@ -5125,31 +5132,48 @@ function showPartialQuizCompletionDialog(correctCount, attemptedCount, totalCoun
     // If auto sign-out is enabled, start a countdown timer
     if (showAutoSignOut) {
         let countdown = 10; // 10 seconds countdown
+        console.log('🔔 Starting auto sign-out countdown timer: 10 seconds');
+        
         const countdownTimer = setInterval(() => {
+            console.log(`⏰ Countdown: ${countdown} seconds remaining`);
+            
             const warningDiv = document.querySelector('[style*="background:#ffedf0"]');
             if (warningDiv) {
                 warningDiv.innerHTML = `⚠️ <strong>Warning:</strong> Auto sign-out in ${countdown} seconds... <span style="font-size:0.8rem;">(Click "Stay Signed In" to cancel)</span>`;
+            } else {
+                console.warn('⚠️ Warning div not found - modal may have been closed');
             }
+            
             countdown--;
             
             if (countdown < 0) {
+                console.log('🚪 Countdown reached 0 - triggering auto sign-out now');
                 clearInterval(countdownTimer);
                 closeModal();
+                
+                // Call autoSignOut function directly
+                console.log('🚪 Calling autoSignOut function...');
                 autoSignOut('Automatic sign-out after inactivity timeout.');
             }
         }, 1000);
         
         // Store countdown timer ID for potential cancellation
         window.autoSignOutTimer = countdownTimer;
+        console.log('🔔 Auto sign-out timer stored with ID:', countdownTimer);
     }
 }
 
 // Function to cancel auto sign-out
 function cancelAutoSignOut() {
+    console.log('⚡ === CANCEL AUTO SIGN-OUT CALLED ===');
     console.log('⚡ Auto sign-out cancelled by user');
     if (window.autoSignOutTimer) {
+        console.log('⚡ Clearing timer with ID:', window.autoSignOutTimer);
         clearInterval(window.autoSignOutTimer);
         window.autoSignOutTimer = null;
+        console.log('⚡ Timer cleared successfully');
+    } else {
+        console.log('⚡ No timer found to clear');
     }
     showNotification('⚡ Staying signed in! Remember to sign out when finished.', 'success');
 }
