@@ -2936,6 +2936,13 @@ h1 {
     display: block;
 }
 
+.sentence-validation.info {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    display: block;
+}
+
 /* Sentence Actions */
 .sentence-actions {
     display: flex;

@@ -4603,12 +4603,14 @@ async function saveSentence() {
     if (!sentence) {
         validation.textContent = 'Please enter a sentence first.';
         validation.className = 'sentence-validation error';
+        validation.style.display = 'block';
         return;
     }
     
     if (sentence.length < 5) {
         validation.textContent = 'Your sentence is too short.';
         validation.className = 'sentence-validation warning';
+        validation.style.display = 'block';
         return;
     }
     
@@ -4618,17 +4620,37 @@ async function saveSentence() {
     if (!hasWord) {
         validation.textContent = `Your sentence must include the word "${currentSentenceWord}".`;
         validation.className = 'sentence-validation error';
+        validation.style.display = 'block';
         return;
     }
     
-    // Save sentence to Firebase
+    // Check for duplicate sentences before saving
     try {
-        const currentUser = localStorage.getItem('userName'); // Fixed: was 'currentUser', should be 'userName'
+        const currentUser = localStorage.getItem('userName');
         if (!currentUser) {
             validation.textContent = 'Error: Please log in to save sentences.';
             validation.className = 'sentence-validation error';
+            validation.style.display = 'block';
             return;
         }
+        
+        // Check if this exact sentence already exists for this student
+        const duplicateCheck = await window.db.collection('sentences')
+            .where('studentName', '==', currentUser)
+            .where('sentence', '==', sentence)
+            .get();
+        
+        if (!duplicateCheck.empty) {
+            validation.textContent = '📝 Already saved! This sentence was previously recorded.';
+            validation.className = 'sentence-validation info';
+            validation.style.display = 'block';
+            return;
+        }
+        
+        // Show saving progress
+        validation.textContent = '💾 Saving sentence...';
+        validation.className = 'sentence-validation info';
+        validation.style.display = 'block';
         
         const sentenceData = {
             studentName: currentUser,
@@ -4644,14 +4666,13 @@ async function saveSentence() {
         
         validation.textContent = `✅ Sentence saved! Great use of "${currentSentenceWord}".`;
         validation.className = 'sentence-validation success';
-        
-        // Show success notification
-        showNotification(`Sentence saved successfully! 📝`, 'success');
+        validation.style.display = 'block';
         
     } catch (error) {
         console.error('Error saving sentence:', error);
         validation.textContent = 'Error saving sentence. Please try again.';
         validation.className = 'sentence-validation error';
+        validation.style.display = 'block';
         return;
     }
     
@@ -4693,8 +4714,40 @@ async function saveSentence() {
                 stopMergedVoiceInput();
             }
             
-            // Show notification for new word
-            showNotification(`Next word: "${currentSentenceWord}" - Create a new sentence!`, 'info');
+            // Create a simpler feedback element right above the save button instead of top-right notification
+            const saveButton = document.getElementById('saveSentenceButton');
+            if (saveButton) {
+                // Remove any existing next-word feedback
+                const existingFeedback = document.querySelector('.next-word-feedback');
+                if (existingFeedback) {
+                    existingFeedback.remove();
+                }
+                
+                // Create new feedback element
+                const nextWordFeedback = document.createElement('div');
+                nextWordFeedback.className = 'next-word-feedback';
+                nextWordFeedback.style.cssText = `
+                    background: #3b82f6;
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    margin-bottom: 8px;
+                    text-align: center;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                `;
+                nextWordFeedback.textContent = `Next word: "${currentSentenceWord}" - Create a new sentence!`;
+                
+                // Insert before the save button
+                saveButton.parentElement.insertBefore(nextWordFeedback, saveButton.parentElement.firstChild);
+                
+                // Remove the feedback after 3 seconds
+                setTimeout(() => {
+                    if (nextWordFeedback && nextWordFeedback.parentElement) {
+                        nextWordFeedback.remove();
+                    }
+                }, 3000);
+            }
         }
     }, 2000);
 }
