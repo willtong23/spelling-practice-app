@@ -834,7 +834,6 @@ function showSentenceItemsPerPageModal() {
   return new Promise((resolve) => {
     const modalContent = `
       <div style="text-align: center;">
-        <h3 style="margin: 0 0 20px 0; color: #1e293b;">Export Sentence Screenshot Options</h3>
         <p style="margin: 0 0 24px 0; color: #64748b;">Choose how to organize the screenshot pages:</p>
         
         <div style="margin-bottom: 32px;">
@@ -866,9 +865,9 @@ function showSentenceItemsPerPageModal() {
       </div>
     `;
 
-    // Show modal using the existing modal system
+    // Show modal using the teacher.js modal system with title and content
     if (typeof showModal === 'function') {
-      showModal(modalContent);
+      showModal('Export Sentence Screenshot Options', modalContent);
     } else {
       // Fallback if showModal is not available
       const modalOverlay = document.getElementById('modalOverlay');
@@ -886,7 +885,7 @@ function showSentenceItemsPerPageModal() {
     let selectedMode = 'page'; // Default mode
 
     // Add event listeners for option selection
-    document.addEventListener('click', function(e) {
+    const handleClick = function(e) {
       if (e.target.classList.contains('items-per-page-btn')) {
         // Remove selection from all buttons
         document.querySelectorAll('.items-per-page-btn, .separate-student-btn').forEach(btn => {
@@ -918,6 +917,7 @@ function showSentenceItemsPerPageModal() {
         selectedValue = e.target.dataset.value;
         selectedMode = 'separate';
       } else if (e.target.id === 'confirmSentenceItemsPerPage') {
+        document.removeEventListener('click', handleClick);
         if (typeof closeModal === 'function') {
           closeModal();
         } else {
@@ -930,6 +930,7 @@ function showSentenceItemsPerPageModal() {
           mode: selectedMode
         });
       } else if (e.target.id === 'cancelSentenceItemsPerPage') {
+        document.removeEventListener('click', handleClick);
         if (typeof closeModal === 'function') {
           closeModal();
         } else {
@@ -939,7 +940,9 @@ function showSentenceItemsPerPageModal() {
         
         resolve(null);
       }
-    });
+    };
+
+    document.addEventListener('click', handleClick);
   });
 }
 
