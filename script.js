@@ -2271,6 +2271,56 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, checking for user name...');
     
+    // CRITICAL: Prevent function keys from causing accidental sign out
+    // This prevents F3 volume keys and other function keys from triggering 
+    // browser refresh or other actions that cause sign out
+    function handleKeyboardProtection(e) {
+        // Block function keys F1-F12 (including F3 volume keys)
+        if (e.key && e.key.startsWith('F') && e.key.length <= 3) {
+            const keyNumber = parseInt(e.key.substring(1));
+            if (keyNumber >= 1 && keyNumber <= 12) {
+                console.log(`🔒 BLOCKED: Function key ${e.key} to prevent accidental sign out`);
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return false;
+            }
+        }
+        
+        // Block refresh key combinations
+        if ((e.key === 'F5') || 
+            (e.ctrlKey && e.key === 'r') || 
+            (e.metaKey && e.key === 'r') ||
+            (e.key === 'BrowserRefresh')) {
+            console.log(`🔒 BLOCKED: Refresh key combination to prevent accidental sign out`);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }
+        
+        // Block other browser shortcuts that might cause navigation
+        if ((e.ctrlKey && e.shiftKey && e.key === 'I') || // Dev tools
+            (e.metaKey && e.shiftKey && e.key === 'I') ||   // Dev tools on Mac
+            (e.key === 'F11') ||                           // Fullscreen
+            (e.key === 'F12')) {                           // Dev tools
+            console.log(`🔒 BLOCKED: Browser shortcut ${e.key} to prevent accidental sign out`);
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            return false;
+        }
+    }
+    
+    // Install protection at multiple levels for maximum coverage
+    document.addEventListener('keydown', handleKeyboardProtection, true);  // Capture phase
+    document.addEventListener('keyup', handleKeyboardProtection, true);    // Also block keyup
+    window.addEventListener('keydown', handleKeyboardProtection, true);    // Window level
+    window.addEventListener('keyup', handleKeyboardProtection, true);      // Window level keyup
+    
+    console.log('🔒 Function key protection enabled - F1-F12 keys will NOT cause sign out');
+    console.log('🔒 Sign out will ONLY happen through: 1-minute idle timeout, red sign out button, or refresh button');
+    
     // Setup word set panel immediately when DOM is ready
     setupWordSetPanel();
     
