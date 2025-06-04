@@ -709,6 +709,9 @@ let lastActivityTime = null;
 let hasAutoSaved = false;
 const INACTIVITY_TIMEOUT = 1 * 60 * 1000; // 1 minute in milliseconds
 
+// Track when word list modal is shown to reset quiz position
+let wordListModalShown = false;
+
 // Global authentication check function
 function isUserAuthenticated() {
     const isAuthenticated = localStorage.getItem('userAuthenticated') === 'true';
@@ -1901,6 +1904,21 @@ function showModal(contentHtml) {
 
 function closeModal() {
     modalOverlay.style.display = 'none';
+    
+    // If the word list modal was shown, reset to first word
+    if (wordListModalShown) {
+        console.log('Word list modal closed - resetting to first word');
+        currentWordIndex = 0;
+        wordListModalShown = false; // Reset the flag
+        updateDisplay(); // Update the display to show the first word
+        
+        // Speak the first word after a short delay
+        setTimeout(() => {
+            if (words.length > 0 && words[0]) {
+                speakWord(words[0]);
+            }
+        }, 200);
+    }
 }
 
 closeModalBtn.addEventListener('click', () => {
@@ -2201,6 +2219,15 @@ function showAllWords() {
         html += `<div style="color:#64748b;font-size:0.9rem;margin-bottom:16px;">Word Set: <strong>${currentWordSetName}</strong></div>`;
     }
     
+    // Add restart warning before the word list
+    html += '<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px;margin-bottom:16px;color:#856404;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+    html += '<span style="font-size:1.2em;">ℹ️</span>';
+    html += '<strong>Note:</strong>';
+    html += '</div>';
+    html += 'After viewing this word list, when you return to spelling practice, it will restart from the <strong>first word</strong> again.';
+    html += '</div>';
+    
     // Add instruction for clicking words
     html += '<div style="color:#3b82f6;font-size:0.9rem;margin-bottom:16px;font-style:italic;">💡 Click on any word to practice it individually!</div>';
     
@@ -2212,6 +2239,11 @@ function showAllWords() {
     
     html += '</div>';
     html += `<p style="margin-top:16px;color:#666;font-size:0.9rem;">Total: ${allWords.length} words</p>`;
+    
+    // Set flag to track that word list modal is being shown
+    wordListModalShown = true;
+    console.log('📋 Word list modal opened - restart warning displayed');
+    
     showModal(html);
 }
 
@@ -5246,3 +5278,4 @@ function startNewQuizRound() {
         }, 200);
     });
 }
+
