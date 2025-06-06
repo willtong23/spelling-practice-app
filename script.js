@@ -1836,7 +1836,7 @@ if (exitPracticeButton) {
             exitMultiListChallenge();
         } else if (isIndividualWordPractice) {
             exitIndividualWordPractice();
-        } else {
+    } else {
             exitPracticeMode();
         }
     });
