@@ -324,29 +324,28 @@
             </div>
 
             <div class="password-modal-body">
-                <div class="password-input-container">
-                    <input type="text" id="studentNameInput" placeholder="Enter your name" maxlength="50" autocomplete="name">
-                    <button type="button" id="clearNameBtn" class="password-toggle">
-                        <span class="password-toggle-icon">✖️</span>
-                    </button>
-                </div>
-
-                <div class="password-input-container" style="margin-top: 12px;">
-                    <input type="password" id="studentPasswordInput" placeholder="Enter password" maxlength="20" autocomplete="current-password">
-                    <button type="button" id="toggleStudentPasswordVisibility" class="password-toggle">
-                        <span class="password-toggle-icon">👁️</span>
-                    </button>
-                </div>
-                
-                <div class="password-modal-actions">
-                    <button id="cancelNameBtn" class="btn-cancel">Cancel</button>
-                    <button id="submitNameBtn" class="btn-submit">Sign In</button>
-                </div>
-                
-                <div id="nameError" class="password-error" style="display: none;">
-                    <span class="error-icon">⚠️</span>
-                    <span class="error-text">Please enter a valid name and password.</span>
-                </div>
+                <form id="signInForm" autocomplete="off">
+                    <div class="password-input-container">
+                        <input type="text" id="studentNameInput" placeholder="Enter your name" maxlength="50" autocomplete="name">
+                        <button type="button" id="clearNameBtn" class="password-toggle">
+                            <span class="password-toggle-icon">✖️</span>
+                        </button>
+                    </div>
+                    <div class="password-input-container" style="margin-top: 12px;">
+                        <input type="password" id="studentPasswordInput" placeholder="Enter password" maxlength="20" autocomplete="new-password">
+                        <button type="button" id="toggleStudentPasswordVisibility" class="password-toggle">
+                            <span class="password-toggle-icon">👁️</span>
+                        </button>
+                    </div>
+                    <div class="password-modal-actions">
+                        <button id="cancelNameBtn" class="btn-cancel">Cancel</button>
+                        <button id="submitNameBtn" class="btn-submit">Sign In</button>
+                    </div>
+                    <div id="nameError" class="password-error" style="display: none;">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text">Please enter a valid name and password.</span>
+                    </div>
+                </form>
             </div>
             
             <div class="password-modal-footer">
