@@ -5279,15 +5279,3 @@ function startNewQuizRound() {
     });
 }
 
-// Inactivity sign out logic
-let inactivityTimer;
-function resetInactivityTimer() {
-    clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-        autoSignOut('Session timeout due to inactivity.');
-    }, 60000); // 1 minute
-}
-document.addEventListener('mousemove', resetInactivityTimer);
-document.addEventListener('keydown', resetInactivityTimer);
-resetInactivityTimer();
-
