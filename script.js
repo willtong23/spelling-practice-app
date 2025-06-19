@@ -269,27 +269,37 @@ async function loadAvailableWordSets() {
                 console.log(`Total unique word set IDs found: ${assignedWordSetIds.size}`);
                 console.log('Loading word sets for IDs:', Array.from(assignedWordSetIds));
                 
-                for (const wordSetId of assignedWordSetIds) {
-                    try {
-                        const wordSetDoc = await window.db.collection('wordSets').doc(wordSetId).get();
-                        if (wordSetDoc.exists) {
-                            const wordSetData = { id: wordSetDoc.id, ...wordSetDoc.data() };
-                            
-                            // Check if we already have this word set (by ID only)
-                            const existingById = availableWordSets.find(ws => ws.id === wordSetData.id);
-                            
-                            if (existingById) {
-                                console.log(`Skipping duplicate word set by ID: ${wordSetData.name} (${wordSetData.id})`);
-                                continue;
-                            }
-                            
-                            availableWordSets.push(wordSetData);
-                            console.log(`Added word set: ${wordSetData.name} (${wordSetData.id})`);
+                // Batch load all word sets at once for better performance
+                const wordSetDocs = await Promise.all(
+                    Array.from(assignedWordSetIds).map(id => 
+                        window.db.collection('wordSets').doc(id).get()
+                    )
+                );
+                
+                wordSetDocs.forEach(doc => {
+                    if (doc.exists) {
+                        const wordSetData = { id: doc.id, ...doc.data() };
+                        
+                        // Sort words alphabetically within the set
+                        if (wordSetData.words && Array.isArray(wordSetData.words)) {
+                            wordSetData.words.sort((a, b) => a.localeCompare(b));
                         }
-                    } catch (error) {
-                        console.error(`Error loading word set ${wordSetId}:`, error);
+                        
+                        // Check if we already have this word set (by ID only)
+                        const existingById = availableWordSets.find(ws => ws.id === wordSetData.id);
+                        
+                        if (existingById) {
+                            console.log(`Skipping duplicate word set by ID: ${wordSetData.name} (${wordSetData.id})`);
+                            return;
+                        }
+                        
+                        availableWordSets.push(wordSetData);
+                        console.log(`Added word set: ${wordSetData.name} (${wordSetData.id})`);
                     }
-                }
+                });
+                
+                // Sort word sets alphabetically by name
+                availableWordSets.sort((a, b) => a.name.localeCompare(b.name));
             }
             
             console.log(`Found ${availableWordSets.length} assigned word sets for ${userName}`);
@@ -339,10 +349,6 @@ async function loadAvailableWordSets() {
                                 <input type="checkbox" value="${set.id}" class="word-set-checkbox" data-set-name="${set.name}" data-word-count="${set.words.length}">
                             ` : ''}
                         </div>
-                        <div class="word-preview-tooltip" style="display: none;">
-                            <div class="word-preview-header">Words in this set:</div>
-                            <div class="word-preview-list">${set.words.join(', ')}</div>
-                        </div>
                     `;
                     
                     // Radio button event handling (existing single-list functionality)
@@ -378,81 +384,48 @@ async function loadAvailableWordSets() {
                         });
                     }
                     
-                    // Hover tooltip functionality with dynamic positioning
-                    const tooltip = setItem.querySelector('.word-preview-tooltip');
+                    // --- Tooltip logic: use a single tooltip in the body ---
                     let hoverTimeout;
-                    
                     setItem.addEventListener('mouseenter', function(e) {
-                        // Clear any existing timeout
                         clearTimeout(hoverTimeout);
-                        
-                        // Hide all other tooltips first
-                        document.querySelectorAll('.word-preview-tooltip').forEach(t => {
-                            t.style.display = 'none';
-                        });
-                        
-                        // Show this tooltip after a short delay with dynamic positioning
-                        hoverTimeout = setTimeout(() => {
-                            const rect = setItem.getBoundingClientRect();
-                            const tooltipRect = tooltip.getBoundingClientRect();
-                            const viewportWidth = window.innerWidth;
-                            const viewportHeight = window.innerHeight;
-                            
-                            // Calculate optimal position
-                            let left, top;
-                            
-                            // Try to position to the right of the item first
-                            left = rect.right + 15;
-                            top = rect.top + (rect.height / 2);
-                            
-                            // If tooltip would go off the right edge, position it to the left
-                            if (left + 350 > viewportWidth) {
-                                left = rect.left - 350 - 15;
-                            }
-                            
-                            // If still off screen to the left, center it horizontally
-                            if (left < 0) {
-                                left = Math.max(10, (viewportWidth - 350) / 2);
-                                top = rect.bottom + 10; // Position below the item instead
-                            }
-                            
-                            // Make sure tooltip doesn't go off the bottom of the screen
-                            if (top + 100 > viewportHeight) {
-                                top = rect.top - 100;
-                            }
-                            
-                            // Make sure tooltip doesn't go off the top of the screen
-                            if (top < 10) {
-                                top = 10;
-                            }
-                            
-                            // Apply positioning and show
-                            tooltip.style.left = left + 'px';
-                            tooltip.style.top = top + 'px';
-                            tooltip.style.transform = 'none'; // Remove any transform
-                            tooltip.style.display = 'block';
-                            
-                            console.log('Tooltip positioned at:', left, top);
-                        }, 300);
-                    });
-                    
-                    setItem.addEventListener('mouseleave', function(e) {
-                        // Clear timeout if mouse leaves before tooltip shows
-                        clearTimeout(hoverTimeout);
-                        
-                        // Hide tooltip
-                        tooltip.style.display = 'none';
-                    });
-                    
-                    // Make the entire item clickable by clicking the radio when item is clicked
-                    setItem.addEventListener('click', function(e) {
-                        // Only trigger if not clicking directly on inputs
-                        if (e.target !== radio && e.target !== checkbox) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log(`Item clicked: selecting ${set.name} (${set.id})`);
-                            radio.click();
+                        // Hide any existing tooltip
+                        let tooltip = document.getElementById('global-word-preview-tooltip');
+                        if (!tooltip) {
+                            tooltip = document.createElement('div');
+                            tooltip.id = 'global-word-preview-tooltip';
+                            tooltip.className = 'word-preview-tooltip';
+                            tooltip.style.display = 'none';
+                            document.body.appendChild(tooltip);
                         }
+                        // Set content
+                        tooltip.innerHTML = `
+                            <div class="word-preview-header">Words in this set:</div>
+                            <div class="word-preview-list">${set.words.join(', ')}</div>
+                        `;
+                        // Show after a short delay
+                        hoverTimeout = setTimeout(() => {
+                            tooltip.style.display = 'block';
+                            // Position at cursor
+                            const x = e.clientX + 5;
+                            const y = e.clientY - 10;
+                            tooltip.style.position = 'fixed';
+                            tooltip.style.left = x + 'px';
+                            tooltip.style.top = y + 'px';
+                        }, 200);
+                    });
+                    setItem.addEventListener('mousemove', function(e) {
+                        let tooltip = document.getElementById('global-word-preview-tooltip');
+                        if (tooltip && tooltip.style.display === 'block') {
+                            const x = e.clientX + 5;
+                            const y = e.clientY - 10;
+                            tooltip.style.left = x + 'px';
+                            tooltip.style.top = y + 'px';
+                        }
+                    });
+                    setItem.addEventListener('mouseleave', function() {
+                        clearTimeout(hoverTimeout);
+                        let tooltip = document.getElementById('global-word-preview-tooltip');
+                        if (tooltip) tooltip.style.display = 'none';
                     });
                     
                     wordSetList.appendChild(setItem);
@@ -3235,11 +3208,11 @@ promptUserName();
 // Switch to a new word set immediately (simplified version)
 async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
     try {
-        console.log(`Switching to word set: ${wordSetName} (${wordSetId})`);
-        
-        // Close the word set panel curtain immediately when starting practice
-        if (window.closePanelCurtain) {
-            window.closePanelCurtain();
+        // Verify that the user has permission to access this word set
+        const isAssigned = await verifyWordSetAssignment(userName, wordSetId);
+        if (!isAssigned) {
+            showNotification('You do not have permission to access this word set', 'error');
+            return;
         }
         
         // Update the current words and UI
