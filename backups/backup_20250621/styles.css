@@ -2431,27 +2431,6 @@ h1 {
     padding: 0 8px 0 0; /* Add right padding to create space from edge */
 }
 
-/* Word Set Performance Color Coding */
-.word-set-selection.word-set-not-attempted {
-    background: rgba(255, 255, 255, 0.1);
-    border-left: 4px solid rgba(255, 255, 255, 0.3);
-}
-
-.word-set-selection.word-set-perfect {
-    background: rgba(34, 197, 94, 0.15);
-    border-left: 4px solid #22c55e;
-}
-
-.word-set-selection.word-set-good {
-    background: rgba(59, 130, 246, 0.15);
-    border-left: 4px solid #3b82f6;
-}
-
-.word-set-selection.word-set-needs-practice {
-    background: rgba(239, 68, 68, 0.15);
-    border-left: 4px solid #ef4444;
-}
-
 .word-set-label {
     display: flex;
     align-items: center;

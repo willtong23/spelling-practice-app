@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Key Protection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        .success { background: #dcfce7; color: #166534; border: 2px solid #22c55e; }
+        .info { background: #dbeafe; color: #1e40af; border: 2px solid #3b82f6; }
+        .warning { background: #fef3c7; color: #92400e; border: 2px solid #f59e0b; }
+        .log {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-weight: 600;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .key-test {
+            display: inline-block;
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            padding: 8px 12px;
+            margin: 4px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔒 Function Key Protection Test</h1>
+        
+        <div class="info status">
+            <strong>Test Instructions:</strong><br>
+            1. Press F3 (volume key) - it should be blocked and logged<br>
+            2. Try other function keys (F1, F2, F4, F5, etc.)<br>
+            3. Try Ctrl+R or Cmd+R (refresh) - should be blocked<br>
+            4. Check the log below to see blocked keys
+        </div>
+        
+        <div class="success status" id="protectionStatus">
+            ✅ Function key protection is ACTIVE
+        </div>
+        
+        <h3>🎯 Test These Keys:</h3>
+        <div>
+            <span class="key-test">F1</span>
+            <span class="key-test">F2</span>
+            <span class="key-test">F3</span>
+            <span class="key-test">F4</span>
+            <span class="key-test">F5</span>
+            <span class="key-test">F6</span>
+            <span class="key-test">F7</span>
+            <span class="key-test">F8</span>
+            <span class="key-test">F9</span>
+            <span class="key-test">F10</span>
+            <span class="key-test">F11</span>
+            <span class="key-test">F12</span>
+        </div>
+        
+        <div>
+            <span class="key-test">Ctrl+R</span>
+            <span class="key-test">Cmd+R</span>
+            <span class="key-test">Ctrl+Shift+I</span>
+        </div>
+        
+        <h3>📋 Protection Log:</h3>
+        <div class="log" id="protectionLog">
+            Waiting for key presses...<br>
+            (Function keys F1-F12 should be blocked and logged here)
+        </div>
+        
+        <button onclick="clearLog()">Clear Log</button>
+        <button onclick="testProtection()">Test Protection</button>
+        <button onclick="window.location.href='index.html'">← Back to Spelling App</button>
+        
+        <div class="warning status">
+            <strong>Expected Behavior:</strong><br>
+            • F3 and other function keys should NOT cause page refresh<br>
+            • Blocked keys should appear in the log above<br>
+            • Page should stay on this test page (no accidental navigation)<br>
+            • This prevents accidental sign out in the spelling app
+        </div>
+    </div>
+
+    <!-- Include the function key protection -->
+    <script src="function-key-protection.js"></script>
+    
+    <script>
+        // Override console.log to also display in our test log
+        const originalConsoleLog = console.log;
+        const logElement = document.getElementById('protectionLog');
+        
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            
+            // If this is a protection log message, show it in our test log
+            const message = args.join(' ');
+            if (message.includes('🔒 BLOCKED') || message.includes('Function key protection')) {
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.innerHTML += `<div style="color: #dc2626; font-weight: 600;">[${timestamp}] ${message}</div>`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        };
+        
+        function clearLog() {
+            logElement.innerHTML = 'Log cleared. Try pressing function keys...<br>';
+        }
+        
+        function testProtection() {
+            logElement.innerHTML += '<div style="color: #3b82f6; font-weight: 600;">Testing protection system...</div>';
+            
+            // Simulate key events for testing
+            const testKeys = ['F1', 'F3', 'F5', 'F12'];
+            testKeys.forEach((key, index) => {
+                setTimeout(() => {
+                    const event = new KeyboardEvent('keydown', { key: key });
+                    document.dispatchEvent(event);
+                }, index * 500);
+            });
+        }
+        
+        // Check if protection is working
+        if (window.keyboardProtectionEnabled) {
+            document.getElementById('protectionStatus').innerHTML = '✅ Function key protection is ACTIVE and working';
+        } else {
+            document.getElementById('protectionStatus').innerHTML = '❌ Function key protection may not be loaded';
+            document.getElementById('protectionStatus').className = 'warning status';
+        }
+        
+        // Add a visual indicator when keys are pressed
+        document.addEventListener('keydown', function(e) {
+            if (e.key && e.key.startsWith('F')) {
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.innerHTML += `<div style="color: #059669;">[${timestamp}] Key pressed: ${e.key}</div>`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+        });
+        
+        console.log('🔒 Function key protection test page loaded');
+        console.log('🔒 Press F3 or other function keys to test protection');
+    </script>
+</body>
+</html> 

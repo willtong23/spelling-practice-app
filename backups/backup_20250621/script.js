@@ -214,104 +214,7 @@ async function getWordsFromAssignment(userName) {
     }
 }
 
-// Function to analyze user performance for word sets and determine color coding
-async function analyzeWordSetPerformance(wordSetId, wordSetWords) {
-    try {
-        if (!userName || !wordSetId || !wordSetWords || wordSetWords.length === 0) {
-            return 'white'; // Default color for unanalyzed sets
-        }
-
-        // Query all results for this user and word set
-        const resultsSnapshot = await window.db.collection('results')
-            .where('user', '==', userName)
-            .where('wordSetId', '==', wordSetId)
-            .get();
-
-        if (resultsSnapshot.empty) {
-            return 'white'; // No attempts yet - white
-        }
-
-        let bestScore = 0;
-        let hasCompletedFullRound = false;
-
-        resultsSnapshot.forEach(doc => {
-            const result = doc.data();
-            
-            // Check if this is a complete round (all words in the set were attempted)
-            if (result.words && result.words.length === wordSetWords.length) {
-                hasCompletedFullRound = true;
-                
-                // Calculate score for this attempt
-                let correctCount = 0;
-                let correctWithoutHints = 0;
-                
-                result.words.forEach(wordResult => {
-                    const isCorrectAnswer = wordResult.correct || wordResult.firstTryCorrect;
-                    const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
-                    
-                    if (isCorrectAnswer) {
-                        correctCount++;
-                        if (!usedHint) {
-                            correctWithoutHints++;
-                        }
-                    }
-                });
-                
-                const scorePercentage = Math.round((correctCount / result.words.length) * 100);
-                const perfectScoreWithoutHints = (correctWithoutHints === result.words.length);
-                
-                // Update best score
-                if (scorePercentage > bestScore) {
-                    bestScore = scorePercentage;
-                }
-                
-                // If user got 100% without hints, immediately return green
-                if (perfectScoreWithoutHints) {
-                    bestScore = 100;
-                    return; // Early exit from forEach
-                }
-            }
-        });
-
-        // Determine color based on performance
-        if (!hasCompletedFullRound) {
-            return 'white'; // Never completed a full round - white
-        } else if (bestScore === 100) {
-            // Check if the 100% was achieved without hints
-            let hasHintlessFullScore = false;
-            
-            resultsSnapshot.forEach(doc => {
-                const result = doc.data();
-                if (result.words && result.words.length === wordSetWords.length) {
-                    let correctWithoutHints = 0;
-                    
-                    result.words.forEach(wordResult => {
-                        const isCorrectAnswer = wordResult.correct || wordResult.firstTryCorrect;
-                        const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
-                        
-                        if (isCorrectAnswer && !usedHint) {
-                            correctWithoutHints++;
-                        }
-                    });
-                    
-                    if (correctWithoutHints === result.words.length) {
-                        hasHintlessFullScore = true;
-                    }
-                }
-            });
-            
-            return hasHintlessFullScore ? 'green' : 'blue';
-        } else if (bestScore >= 50) {
-            return 'blue'; // 50-99% - blue
-        } else {
-            return 'red'; // Less than 50% - red
-        }
-    } catch (error) {
-        console.error('Error analyzing word set performance:', error);
-        return 'white'; // Default on error
-    }
-}
-
+// Load available word sets for the selection panel (only assigned sets)
 async function loadAvailableWordSets() {
     try {
         console.log(`Loading assigned word sets for user: ${userName}`);
@@ -429,37 +332,14 @@ async function loadAvailableWordSets() {
                     wordSetList.appendChild(challengeHeader);
                 }
                 
-                // Analyze performance for all word sets in parallel
-                const performancePromises = availableWordSets.map(set => 
-                    analyzeWordSetPerformance(set.id, set.words)
-                );
-                const performanceColors = await Promise.all(performancePromises);
-                
                 availableWordSets.forEach((set, index) => {
                     const setItem = document.createElement('div');
                     setItem.className = 'word-set-item';
                     
                     const isDefault = index === 0; // First set is default
-                    const performanceColor = performanceColors[index];
-                    
-                    // Apply color coding based on performance
-                    let colorClass = '';
-                    switch (performanceColor) {
-                        case 'green':
-                            colorClass = 'word-set-perfect';
-                            break;
-                        case 'blue':
-                            colorClass = 'word-set-good';
-                            break;
-                        case 'red':
-                            colorClass = 'word-set-needs-practice';
-                            break;
-                        default:
-                            colorClass = 'word-set-not-attempted';
-                    }
                     
                     setItem.innerHTML = `
-                        <div class="word-set-selection ${colorClass}">
+                        <div class="word-set-selection">
                             <label class="word-set-label">
                                 <input type="radio" name="selectedWordSet" value="${set.id}" ${isDefault ? 'checked' : ''} class="word-set-radio">
                                 <span class="word-set-name">${set.name}</span>
