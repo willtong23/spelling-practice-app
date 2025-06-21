@@ -249,8 +249,8 @@ async function loadAvailableWordSets() {
                     assignedWordSetIds.add(assignmentData.wordSetId);
                     console.log(`Found class assignment: ${assignmentData.wordSetId} (Assignment ID: ${doc.id}, Type: ${assignmentData.type})`);
                 });
-            
-            // Add class default word set if exists
+                
+                // Add class default word set if exists
                 const classDoc = await window.db.collection('classes').doc(studentData.classId).get();
                 if (classDoc.exists && classDoc.data().defaultWordSetId) {
                     assignedWordSetIds.add(classDoc.data().defaultWordSetId);
@@ -478,8 +478,8 @@ function setupWordSetPanel() {
     function setupPanelToggle() {
         const wordSetToggleBtn = document.getElementById('wordSetToggleBtn');
         const panelToggle = document.getElementById('panelToggle'); // Also handle the panel header button
-    const wordSetPanel = document.getElementById('wordSetPanel');
-    const mainContent = document.getElementById('mainContent');
+        const wordSetPanel = document.getElementById('wordSetPanel');
+        const mainContent = document.getElementById('mainContent');
         
         console.log('Panel toggle setup - Elements found:');
         console.log('- wordSetToggleBtn:', !!wordSetToggleBtn);
@@ -909,7 +909,7 @@ function showNameModal() {
             
             setTimeout(() => {
                 userName = name;
-    localStorage.setItem('userName', userName);
+                localStorage.setItem('userName', userName);
                 localStorage.setItem('userAuthenticated', 'true');
                 hideNameModal();
                 
@@ -1415,10 +1415,10 @@ function updateLetterHint() {
                     box.disabled = false; // Re-enable if it was disabled from hint
                 } else if (e.key === 'Backspace' && i > 0) {
                     // If current box is empty and backspace pressed, move to previous box and clear it
-                if (letterInputs[i - 1]) {
+                    if (letterInputs[i - 1]) {
                         letterInputs[i - 1].value = '';
                         letterInputs[i - 1].disabled = false; // Re-enable if it was disabled from hint
-                    letterInputs[i - 1].focus();
+                        letterInputs[i - 1].focus();
                     }
                 }
             }
@@ -1513,11 +1513,11 @@ function updateDisplay() {
 
     // Reset double-check prevention flag when navigating
     isCheckingSpelling = false;
-    
+
     // Ensure currentWordIndex is within bounds
     if (currentWordIndex < 0) currentWordIndex = 0;
     if (currentWordIndex >= words.length) currentWordIndex = words.length - 1;
-    
+
     currentWordNumber.textContent = currentWordIndex + 1;
     totalWords.textContent = words.length;
     resultMessage.innerHTML = '';
@@ -1588,7 +1588,7 @@ function startNewRound() {
     // Instead, just shuffle the existing Firebase words
     if (words.length > 1) shuffleArray(words);
     resetQuizState();
-    updateDisplay();
+            updateDisplay();
 }
 
 async function resetQuiz() {
@@ -1609,7 +1609,7 @@ async function resetQuiz() {
                     setId: selectedSet.id,
                     setName: selectedSet.name
                 };
-            } else {
+        } else {
                 // Fallback to assignment
                 wordData = await getWordsFromAssignment(userName);
             }
@@ -1624,9 +1624,6 @@ async function resetQuiz() {
         
         console.log('Reloaded words for new round:', words);
         console.log('Word set:', currentWordSetName);
-        
-        // Update word set display
-        updateWordSetDisplay();
         console.log('Number of words reloaded:', words.length);
         
         // Shuffle words for new round
@@ -1659,13 +1656,13 @@ function moveToNextWord() {
             completeCurrentChallengeList();
         } else {
             // For regular quiz, show feedback
-        quizComplete = true;
+            quizComplete = true;
             
             // Stop inactivity tracking since quiz is complete
             stopInactivityTracking();
             
             setTimeout(() => {
-        showEndOfQuizFeedback();
+                showEndOfQuizFeedback();
             }, 1000);
         }
     }
@@ -1908,12 +1905,12 @@ closeModalBtn.addEventListener('click', () => {
             }, 100);
         } else {
             // After main quiz, start new round
-        setTimeout(async () => {
-            await resetQuiz();
-            setTimeout(() => {
-                if (words.length > 0) speakWord(words[0]);
-            }, 200);
-        }, 100);
+            setTimeout(async () => {
+                await resetQuiz();
+                setTimeout(() => {
+                    if (words.length > 0) speakWord(words[0]);
+                }, 200);
+            }, 100);
         }
     }
 });
@@ -2019,16 +2016,16 @@ function showEndOfQuizFeedback() {
     
     // Calculate and show first-try score (only for main quiz, not practice) - COMPACT VERSION
     if (!isPracticeMode) {
-    const firstTryCorrectCount = words.filter((word, i) => {
-        const attempts = (userAnswers[i] || {}).attempts || [];
-        return attempts.length > 0 && attempts[0] === word;
-    }).length;
-    
-    const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
-    
+        const firstTryCorrectCount = words.filter((word, i) => {
+            const attempts = (userAnswers[i] || {}).attempts || [];
+            return attempts.length > 0 && attempts[0] === word;
+        }).length;
+        
+        const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
+        
         html += `<div style="margin-top:12px;padding:8px 12px;background:#f8fafc;border-radius:8px;text-align:center;font-size:0.9rem;">
-        <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
-    </div>`;
+            <strong>First-Try Score: ${firstTryScore}% (${firstTryCorrectCount}/${words.length})</strong>
+        </div>`;
     }
     
     showModal(html);
@@ -2036,11 +2033,11 @@ function showEndOfQuizFeedback() {
     
     // Save quiz results to Firebase (only for main quiz, not practice)
     if (!isPracticeMode) {
-    console.log('About to call saveQuizResults...');
-    console.log('Current userAnswers:', userAnswers);
-    console.log('Current hintUsed:', hintUsed);
-    console.log('Current words:', words);
-    saveQuizResults();
+        console.log('About to call saveQuizResults...');
+        console.log('Current userAnswers:', userAnswers);
+        console.log('Current hintUsed:', hintUsed);
+        console.log('Current words:', words);
+        saveQuizResults();
     } else {
         console.log('Practice mode complete - not saving results to Firebase');
     }
@@ -2058,9 +2055,6 @@ async function loadWordsFromFirestore() {
         console.log('Loaded words from Firebase:', words);
         console.log('Word set:', currentWordSetName);
         
-        // Update word set display
-        updateWordSetDisplay();
-        
         // Always shuffle words on every page load/refresh
         if (words.length > 1) {
             shuffleArray(words);
@@ -2076,10 +2070,6 @@ async function loadWordsFromFirestore() {
         words = ["want", "went", "what", "should", "could"];
         currentWordSetId = null;
         currentWordSetName = 'Default Set';
-        
-        // Update word set display
-        updateWordSetDisplay();
-        
         if (words.length > 1) {
             shuffleArray(words);
             console.log('Shuffled fallback words:', words);
@@ -2344,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (resultsToggleButton) {
         resultsToggleButton.addEventListener('click', toggleResultsPanel);
         console.log('Results toggle button event listener added');
-} else {
+    } else {
         console.log('Results toggle button not found');
     }
     
@@ -2355,9 +2345,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Immediate sign out without confirmation
             localStorage.clear();
             showNotification('🚪 Signed out successfully! Reloading...', 'success');
-    setTimeout(() => {
+            setTimeout(() => {
                 location.reload();
-    }, 1000);
+            }, 1000);
         });
         console.log('Sign out button event listener added');
     } else {
@@ -3230,9 +3220,6 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
         currentWordSetId = wordSetId;
         currentWordSetName = wordSetName;
         selectedWordSetId = wordSetId;
-        
-        // Update word set display
-        updateWordSetDisplay();
         
         // Shuffle words for new session
         if (words.length > 1) {
@@ -4195,35 +4182,25 @@ function updateUsernameDisplay() {
         // Create and add the "Learning Data" button
         const buttonContainer = document.getElementById('learningDataButtonContainer');
         if (buttonContainer) {
-            const studentRecordUrl = `student_teacher_view.html?student=${encodeURIComponent(userName)}`;
+            const studentRecordUrl = `${userName}_teacher_view.html`;
             const learningDataBtn = document.createElement('a');
             learningDataBtn.href = studentRecordUrl;
             learningDataBtn.textContent = 'Learning Data';
-            learningDataBtn.classList.add('btn', 'btn-primary', 'learning-data-btn');
+            learningDataBtn.classList.add('btn', 'btn-secondary', 'learning-data-btn');
             learningDataBtn.style.marginLeft = '15px';
-            learningDataBtn.style.padding = '8px 16px';
-            learningDataBtn.style.fontSize = '0.9rem';
+            learningDataBtn.style.padding = '5px 10px';
+            learningDataBtn.style.fontSize = '0.8rem';
             learningDataBtn.style.textDecoration = 'none';
-            learningDataBtn.style.backgroundColor = '#007bff';
+            learningDataBtn.style.backgroundColor = '#6c757d';
             learningDataBtn.style.color = 'white';
-            learningDataBtn.style.borderRadius = '6px';
+            learningDataBtn.style.borderRadius = '4px';
             learningDataBtn.style.border = 'none';
-            learningDataBtn.style.display = 'inline-block';
-            learningDataBtn.style.whiteSpace = 'nowrap';
             
             buttonContainer.innerHTML = ''; // Clear previous button if any
             buttonContainer.appendChild(learningDataBtn);
         }
     } else {
         console.log('Username display elements not found or no username available');
-    }
-}
-
-// Update word set display on main page
-function updateWordSetDisplay() {
-    const wordSetDisplay = document.getElementById('currentWordSetName');
-    if (wordSetDisplay && currentWordSetName) {
-        wordSetDisplay.textContent = currentWordSetName;
     }
 }
 

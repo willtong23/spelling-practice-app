@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "spelling-v002",
+    "site": "spelling-v001",
     "public": ".",
     "ignore": [
       "firebase.json",

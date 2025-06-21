@@ -2847,7 +2847,10 @@ function calculateScore(result) {
 
   const firstTryCorrect = words.filter((w) => {
     const attempts = w.attempts || [];
-    return attempts.length > 0 && attempts[0] === w.word;
+    const isCorrectAnswer = attempts.length > 0 && attempts[0] === w.word;
+    const usedHint = w.hint;
+    // Only count as correct if the answer was right AND no hint was used
+    return isCorrectAnswer && !usedHint;
   }).length;
 
   return `${firstTryCorrect}/${words.length}`;
@@ -2888,7 +2891,10 @@ function updateFilteredAnalytics() {
         const words = result.words || [];
         const firstTryCorrect = words.filter((w) => {
           const attempts = w.attempts || [];
-          return attempts.length > 0 && attempts[0] === w.word;
+          const isCorrectAnswer = attempts.length > 0 && attempts[0] === w.word;
+          const usedHint = w.hint;
+          // Only count as correct if the answer was right AND no hint was used
+          return isCorrectAnswer && !usedHint;
         }).length;
         const total = words.length;
         return sum + (total > 0 ? (firstTryCorrect / total) * 100 : 0);
@@ -2993,7 +2999,10 @@ function analyzeIndividualSession(result, sessionNumber) {
   // Calculate session statistics
   const firstTryCorrect = words.filter((w) => {
     const attempts = w.attempts || [];
-    return attempts.length > 0 && attempts[0] === w.word;
+    const isCorrectAnswer = attempts.length > 0 && attempts[0] === w.word;
+    const usedHint = w.hint;
+    // Only count as correct if the answer was right AND no hint was used
+    return isCorrectAnswer && !usedHint;
   }).length;
 
   const totalWords = words.length;
@@ -4294,7 +4303,10 @@ async function exportScreenshot() {
             const words = result.words || [];
             const firstTryCorrect = words.filter((w) => {
               const attempts = w.attempts || [];
-              return attempts.length > 0 && attempts[0] === w.word;
+              const isCorrectAnswer = attempts.length > 0 && attempts[0] === w.word;
+              const usedHint = w.hint;
+              // Only count as correct if the answer was right AND no hint was used
+              return isCorrectAnswer && !usedHint;
             }).length;
             const totalWords = words.length;
             const scoreText = `${firstTryCorrect}/${totalWords}`;
