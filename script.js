@@ -221,6 +221,13 @@ async function analyzeWordSetPerformance(wordSetId, wordSetWords) {
             return 'white'; // Default color for unanalyzed sets
         }
 
+        // Debug logging for specific case
+        const isDebugCase = userName === 'bb' && wordSetId === 'Y4T3BW6';
+        if (isDebugCase) {
+            console.log(`🔍 DEBUGGING: Analyzing performance for ${userName} on word set ${wordSetId}`);
+            console.log(`Word set has ${wordSetWords.length} words:`, wordSetWords);
+        }
+
         // Query all results for this user and word set
         const resultsSnapshot = await window.db.collection('results')
             .where('user', '==', userName)
@@ -228,6 +235,7 @@ async function analyzeWordSetPerformance(wordSetId, wordSetWords) {
             .get();
 
         if (resultsSnapshot.empty) {
+            if (isDebugCase) console.log('❌ No results found - returning WHITE');
             return 'white'; // No attempts yet - white
         }
 
@@ -236,76 +244,68 @@ async function analyzeWordSetPerformance(wordSetId, wordSetWords) {
 
         resultsSnapshot.forEach(doc => {
             const result = doc.data();
-            
-            // Check if this is a complete round (all words in the set were attempted)
+            if (isDebugCase) {
+                console.log(`📊 Analyzing result:`, {
+                    date: result.date,
+                    wordsAttempted: result.words?.length || 0,
+                    totalWordsInSet: wordSetWords.length,
+                    isComplete: (result.words?.length === wordSetWords.length)
+                });
+            }
+
+            // Only consider COMPLETE rounds (full word set attempts)
             if (result.words && result.words.length === wordSetWords.length) {
                 hasCompletedFullRound = true;
                 
-                // Calculate score for this attempt
+                // Calculate score for this complete round
                 let correctCount = 0;
-                let correctWithoutHints = 0;
-                
                 result.words.forEach(wordResult => {
-                    const isCorrectAnswer = wordResult.correct || wordResult.firstTryCorrect;
+                    const isCorrectAnswer = wordResult.isCorrect || wordResult.correct;
                     const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
                     
-                    if (isCorrectAnswer) {
+                    // Only count as correct if answer is right AND no hint was used
+                    if (isCorrectAnswer && !usedHint) {
                         correctCount++;
-                        if (!usedHint) {
-                            correctWithoutHints++;
-                        }
                     }
                 });
                 
                 const scorePercentage = Math.round((correctCount / result.words.length) * 100);
-                const perfectScoreWithoutHints = (correctWithoutHints === result.words.length);
                 
-                // Update best score
+                if (isDebugCase) {
+                    console.log(`✅ Complete round found: ${correctCount}/${result.words.length} = ${scorePercentage}%`);
+                }
+                
                 if (scorePercentage > bestScore) {
                     bestScore = scorePercentage;
                 }
-                
-                // If user got 100% without hints, immediately return green
-                if (perfectScoreWithoutHints) {
-                    bestScore = 100;
-                    return; // Early exit from forEach
+            } else {
+                if (isDebugCase) {
+                    console.log(`⏭️ Skipping partial session: ${result.words?.length || 0}/${wordSetWords.length} words`);
                 }
             }
         });
 
-        // Determine color based on performance
+        if (isDebugCase) {
+            console.log(`🎯 Final analysis:`, {
+                hasCompletedFullRound,
+                bestScore,
+                finalColor: !hasCompletedFullRound ? 'white' : 
+                           bestScore === 100 ? 'green' : 
+                           bestScore >= 50 ? 'blue' : 'red'
+            });
+        }
+
+        // Determine color based on analysis
         if (!hasCompletedFullRound) {
             return 'white'; // Never completed a full round - white
         } else if (bestScore === 100) {
-            // Check if the 100% was achieved without hints
-            let hasHintlessFullScore = false;
-            
-            resultsSnapshot.forEach(doc => {
-                const result = doc.data();
-                if (result.words && result.words.length === wordSetWords.length) {
-                    let correctWithoutHints = 0;
-                    
-                    result.words.forEach(wordResult => {
-                        const isCorrectAnswer = wordResult.correct || wordResult.firstTryCorrect;
-                        const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
-                        
-                        if (isCorrectAnswer && !usedHint) {
-                            correctWithoutHints++;
-                        }
-                    });
-                    
-                    if (correctWithoutHints === result.words.length) {
-                        hasHintlessFullScore = true;
-                    }
-                }
-            });
-            
-            return hasHintlessFullScore ? 'green' : 'blue';
+            return 'green'; // Perfect score without hints - green
         } else if (bestScore >= 50) {
-            return 'blue'; // 50-99% - blue
+            return 'blue'; // Good score (50-99%) - blue
         } else {
-            return 'red'; // Less than 50% - red
+            return 'red'; // Needs practice (<50%) - red
         }
+
     } catch (error) {
         console.error('Error analyzing word set performance:', error);
         return 'white'; // Default on error
