@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Practice App</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <!-- Add Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDP4A2AA9WocJtRTCF8i3wuN9DuZxLadDE",
+        authDomain: "spelling-v001.firebaseapp.com",
+        projectId: "spelling-v001",
+        storageBucket: "spelling-v001.firebasestorage.app",
+        messagingSenderId: "789364838972",
+        appId: "1:789364838972:web:f571d4f5e385c4e0fce939"
+      };
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.firestore();
+    </script>
+</head>
+<body>
+    <!-- Word Set Selection Panel -->
+    <div class="word-set-panel" id="wordSetPanel">
+        <div class="panel-header">
+            <h3>📚 Choose Word Set</h3>
+            <button class="panel-toggle" id="panelToggle">▶</button>
+        </div>
+        <div class="panel-content">
+            <div id="wordSetList" class="word-set-list">
+                <!-- Word sets will be populated here -->
+                <div class="loading-message">Loading assigned word sets...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content" id="mainContent">
+    <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <div class="word-set-toggle-container">
+                        <button class="word-set-toggle-btn" id="wordSetToggleBtn">▼</button>
+                        <span class="word-set-label">Choose Word Set</span>
+                    </div>
+                    <h1 class="title">
+                        <img src="logo.png" alt="Spelling Practice Logo" class="logo">
+                        Spelling Practice
+                    </h1>
+                    <div class="student-info" id="userWelcome" style="display: none;">
+                        <span class="student-label">Student:</span>
+                        <span class="student-name" id="currentUserName"></span>
+                        <span class="word-set-info" id="currentWordSetDisplay" style="margin-left: 15px; color: #64748b; font-size: 0.9rem;">
+                            📚 <span id="currentWordSetName">Default Set</span>
+                        </span>
+                        <span id="learningDataButtonContainer"></span>
+                    </div>
+                    <button class="control-btn exit-practice-btn" id="exitPracticeButton" style="display:none;">🚪 Exit Practice</button>
+                </div>
+                <div class="header-right">
+                    <div class="celebration-area">
+                        <div class="celebration-animation" id="celebrationAnimation">
+                            <div class="celebration-stars">
+                                <div class="star star-1">⭐</div>
+                                <div class="star star-2">🌟</div>
+                                <div class="star star-3">✨</div>
+                                <div class="star star-4">💫</div>
+                                <div class="star star-5">⭐</div>
+                            </div>
+                            <div class="celebration-text" id="celebrationText">Perfect!</div>
+                        </div>
+                    </div>
+                    <button id="clearDataBtn" class="control-btn" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); font-size: 0.8rem; padding: 6px 12px;">🚪 Sign Out</button>
+                    <a href="teacher.html" class="teacher-link">👨‍🏫 Teacher Dashboard</a>
+                </div>
+            </div>
+            
+            <div class="practice-layout">
+                <!-- Left side: Practice area -->
+                <div class="practice-card">
+                    <div class="word-counter-navigation">
+                        <button class="nav-btn" id="prevButton" disabled>← Previous</button>
+                        <div class="word-counter">
+                            <span id="currentWordNumber">1</span> of <span id="totalWords">5</span>
+                        </div>
+                        <button class="nav-btn" id="nextButton">Next →</button>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button class="control-btn speak-btn" id="speakButton">🔊 Listen</button>
+                        <button class="control-btn voice-select-btn" id="voiceSelectButton">🎙️ Voice</button>
+                        <button class="control-btn" id="allWordsButton">📋 Wordlist</button>
+                        <button class="control-btn hint-btn" id="hintButton">💡 Hint</button>
+                        <button class="control-btn alphabets-btn" id="alphabetsButton">🔤 Alphabets</button>
+                        <button class="control-btn voice-input-btn" id="voiceInputButton">🎤 Voice Input</button>
+                        <button class="control-btn results-toggle-btn" id="resultsToggleButton">📊 Hide Results</button>
+                        <button class="control-btn sentence-practice-btn" id="sentencePracticeButton">📝 Practice Sentences</button>
+                    </div>
+                    
+                    <!-- Original Spelling Practice Mode -->
+                    <div id="spellingPracticeMode" class="practice-mode-content">
+                        <div class="letter-hint" id="letterHint">
+                            <!-- Letter input boxes will be generated here -->
+                        </div>
+                        
+                        <!-- Virtual Alphabet Keyboard -->
+                        <div class="alphabet-keyboard" id="alphabetKeyboard" style="display:none;">
+                            <div class="alphabet-grid">
+                                <!-- First row: A-M -->
+                                <div class="alphabet-row">
+                                    <button class="alphabet-key" data-letter="a">a</button>
+                                    <button class="alphabet-key" data-letter="b">b</button>
+                                    <button class="alphabet-key" data-letter="c">c</button>
+                                    <button class="alphabet-key" data-letter="d">d</button>
+                                    <button class="alphabet-key" data-letter="e">e</button>
+                                    <button class="alphabet-key" data-letter="f">f</button>
+                                    <button class="alphabet-key" data-letter="g">g</button>
+                                    <button class="alphabet-key" data-letter="h">h</button>
+                                    <button class="alphabet-key" data-letter="i">i</button>
+                                    <button class="alphabet-key" data-letter="j">j</button>
+                                    <button class="alphabet-key" data-letter="k">k</button>
+                                    <button class="alphabet-key" data-letter="l">l</button>
+                                    <button class="alphabet-key" data-letter="m">m</button>
+                                </div>
+                                <!-- Second row: N-Z -->
+                                <div class="alphabet-row">
+                                    <button class="alphabet-key" data-letter="n">n</button>
+                                    <button class="alphabet-key" data-letter="o">o</button>
+                                    <button class="alphabet-key" data-letter="p">p</button>
+                                    <button class="alphabet-key" data-letter="q">q</button>
+                                    <button class="alphabet-key" data-letter="r">r</button>
+                                    <button class="alphabet-key" data-letter="s">s</button>
+                                    <button class="alphabet-key" data-letter="t">t</button>
+                                    <button class="alphabet-key" data-letter="u">u</button>
+                                    <button class="alphabet-key" data-letter="v">v</button>
+                                    <button class="alphabet-key" data-letter="w">w</button>
+                                    <button class="alphabet-key" data-letter="x">x</button>
+                                    <button class="alphabet-key" data-letter="y">y</button>
+                                    <button class="alphabet-key" data-letter="z">z</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Celebration Animation Area -->
+                        <div class="celebration-area" id="celebrationArea">
+                            <div class="celebration-animation" id="celebrationAnimation">
+                                <div class="celebration-stars">
+                                    <div class="star star-1">⭐</div>
+                                    <div class="star star-2">✨</div>
+                                    <div class="star star-3">🌟</div>
+                                    <div class="star star-4">⭐</div>
+                                    <div class="star star-5">✨</div>
+                                </div>
+                                <div class="celebration-text" id="celebrationText">Great Job!</div>
+                            </div>
+                        </div>
+                        
+                        <div class="result-message" id="resultMessage"></div>
+                        
+                        <div class="action-controls">
+                            <button class="action-btn check-btn" id="checkButton">✓ Check Spelling</button>
+                        </div>
+                    </div>
+                    
+                    <!-- New Sentence Practice Mode -->
+                    <div id="sentencePracticeMode" class="practice-mode-content" style="display: none;">
+                        <div class="sentence-practice-header">
+                            <h3>Create a sentence using: 
+                                <span id="sentenceTargetWord" class="target-word">word</span>
+                            </h3>
+                            <p class="sentence-instructions">Make a complete sentence that includes the word above. You can type and speak to create your sentence.</p>
+                        </div>
+                        
+                        <div class="sentence-input-container">
+                            <!-- Merged Typing and Voice Input -->
+                            <div id="typingInputContainer" class="input-container active">
+                                <div class="merged-input-header">
+                                    <span class="input-mode-label">✏️ Type your sentence or 🎤 click Voice to add words</span>
+                                    <div class="voice-controls-mini">
+                                        <button class="voice-control-btn-mini" id="startVoiceMiniBtn">🎤 Add Voice</button>
+                                        <button class="voice-control-btn-mini" id="stopVoiceMiniBtn" disabled style="display: none;">⏹️ Stop</button>
+                                        <button class="voice-control-btn-mini clear-btn" id="clearSentenceBtn">🧹 Clear</button>
+                                    </div>
+                                </div>
+                                <textarea id="sentenceTextarea" placeholder="Type your sentence here... Click 'Add Voice' to speak words at cursor position" rows="4" maxlength="500"></textarea>
+                                <div class="input-help">
+                                    <span class="char-counter"><span id="charCount">0</span>/500</span>
+                                    <span class="input-tip">💡 Make sure to include the word "<span id="requiredWordHint">word</span>" in your sentence</span>
+                                </div>
+                                <div class="voice-status-mini" id="sentenceVoiceStatusMini" style="display: none;">
+                                    <span class="voice-icon-mini">🎤</span>
+                                    <span class="voice-text-mini">Click "Add Voice" to speak words</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="sentence-validation" id="sentenceValidation">
+                            <!-- Validation feedback will appear here -->
+                        </div>
+                        
+                        <div class="sentence-actions">
+                            <button class="action-btn check-btn" id="saveSentenceButton">💾 Save Sentence</button>
+                            <button class="action-btn secondary-btn" id="skipSentenceButton">⏭️ Skip Word</button>
+                            <button class="action-btn secondary-btn" id="backToSpellingButton">🔙 Back to Spelling</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right side: Results panel -->
+                <div class="results-panel" id="resultsPanel">
+                    <div class="results-header">
+                        <h3>📊 Your Progress</h3>
+                        <div class="score-summary" id="scoreSummary">
+                            <span class="score-text">Score: <span id="currentScore">0/0</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="results-content" id="resultsContent">
+                        <div class="results-placeholder">
+                            <div class="placeholder-icon">🎯</div>
+                            <p>Start spelling to see your results here!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="results-footer" id="resultsFooter" style="display: none;">
+                        <div class="final-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Perfect First Try:</span>
+                                <span class="stat-value" id="perfectCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Used Hints:</span>
+                                <span class="stat-value" id="hintCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for displaying all words -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>All Words</h2>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Modal content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Selection Modal -->
+    <div class="modal-overlay" id="voiceSelectionModal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎙️ Choose Voice</h2>
+                <button class="close-btn" id="closeVoiceModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="voiceModalBody">
+                <div class="voice-selection-container">
+                    <p>Select a voice for the "Listen" button. Female voices are generally clearer for spelling practice:</p>
+                    <div class="voice-list" id="voiceList">
+                        <!-- Voice options will be populated here -->
+                    </div>
+                    <div class="voice-test-area">
+                        <button class="control-btn" id="testVoiceBtn">🔊 Test Selected Voice</button>
+                        <p class="voice-test-word">Test word: "<span id="testWord">hello</span>"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal for Teacher Access -->
+    <div id="passwordModal" class="password-modal-overlay" style="display: none;">
+        <div class="password-modal">
+            <div class="password-modal-header">
+                <img src="logo.png" alt="Logo" class="password-modal-logo">
+                <h2>Teacher Dashboard Access</h2>
+                <p>Please enter your teacher password to continue</p>
+            </div>
+            
+            <div class="password-modal-body">
+                <div class="password-input-container">
+                    <input type="password" id="teacherPasswordInput" placeholder="Enter password" maxlength="20">
+                    <button type="button" id="togglePasswordVisibility" class="password-toggle">
+                        <span class="password-toggle-icon">👁️</span>
+                    </button>
+                </div>
+                
+                <div class="password-modal-actions">
+                    <button id="cancelPasswordBtn" class="btn-cancel">Cancel</button>
+                    <button id="submitPasswordBtn" class="btn-submit">Access Dashboard</button>
+                </div>
+                
+                <div id="passwordError" class="password-error" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <span class="error-text">Incorrect password. Please try again.</span>
+                </div>
+            </div>
+            
+            <div class="password-modal-footer">
+                <p>🔒 Secure access for authorized teachers only</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Name Entry Modal -->
+    <div id="nameModal" class="password-modal-overlay" style="display: none;">
+        <div class="password-modal student-modal">
+            <div class="password-modal-header student-header">
+                <img src="logo.png" alt="Logo" class="password-modal-logo">
+                <h2>Welcome to Spelling Practice!</h2>
+                <p>Please enter your name and password to sign in</p>
+            </div>
+
+            <div class="password-modal-body">
+                <div class="password-input-container">
+                    <input type="text" id="studentNameInput" placeholder="Enter your name" maxlength="50" autocomplete="name">
+                    <button type="button" id="clearNameBtn" class="password-toggle">
+                        <span class="password-toggle-icon">✖️</span>
+                    </button>
+                </div>
+
+                <div class="password-input-container" style="margin-top: 12px;">
+                    <input type="password" id="studentPasswordInput" placeholder="Enter password" maxlength="20" autocomplete="current-password">
+                    <button type="button" id="toggleStudentPasswordVisibility" class="password-toggle">
+                        <span class="password-toggle-icon">👁️</span>
+                    </button>
+                </div>
+                
+                <div class="password-modal-actions">
+                    <button id="cancelNameBtn" class="btn-cancel">Cancel</button>
+                    <button id="submitNameBtn" class="btn-submit">Sign In</button>
+                </div>
+                
+                <div id="nameError" class="password-error" style="display: none;">
+                    <span class="error-icon">⚠️</span>
+                    <span class="error-text">Please enter a valid name and password.</span>
+                </div>
+            </div>
+            
+            <div class="password-modal-footer">
+                <p>🔒 Secure access for registered students only</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+
+    <script src="script.js"></script>
+    <script src="function-key-protection.js"></script>
+    
+    <!-- Tooltip Cleanup Script - Ensures no stuck tooltips from other pages -->
+    <script>
+        // Enhanced Tooltip Cleanup System for Student Page
+        function clearAllStuckTooltips() {
+            // Remove any tooltips that might persist from teacher dashboard
+            const tooltips = document.querySelectorAll('.wordset-preview-tooltip, #wordset-preview-tooltip');
+            tooltips.forEach(tooltip => {
+                tooltip.remove();
+                console.log('Removed stuck tooltip from previous page:', tooltip);
+            });
+            
+            if (tooltips.length > 0) {
+                console.log(`Cleared ${tooltips.length} stuck tooltip(s) on student page`);
+            }
+        }
+
+        // Run cleanup immediately when student page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Student page loaded - checking for stuck tooltips');
+            clearAllStuckTooltips();
+            
+            // Set up event handlers to clear any tooltips
+            document.addEventListener('click', clearAllStuckTooltips);
+            document.addEventListener('scroll', clearAllStuckTooltips, true);
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    clearAllStuckTooltips();
+                }
+            });
+            
+            // Clear tooltips when leaving student page
+            window.addEventListener('beforeunload', clearAllStuckTooltips);
+            window.addEventListener('pagehide', clearAllStuckTooltips);
+            
+            // Clear tooltips on page visibility changes
+            document.addEventListener('visibilitychange', function() {
+                if (document.hidden) {
+                    clearAllStuckTooltips();
+                }
+            });
+            
+            // Make the cleanup function globally available
+            window.clearAllStuckTooltips = clearAllStuckTooltips;
+            
+            console.log('Student page tooltip cleanup system ready');
+        });
+    </script>
+</body>
+</html> 

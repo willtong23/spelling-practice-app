@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Learning Data - Spelling Practice App</title>
+    <link rel="icon" href="logo.png" type="image/png">
+    
+    <!-- Firebase Configuration -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- Screenshot Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="styles.css?v=1.1">
+    <link rel="stylesheet" href="teacher.css?v=1.1">
+    
+    <style>
+        /* Professional dashboard styling with enhanced layout */
+        body {
+            background: linear-gradient(135deg, #7f8cfa 0%, #667eea 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #374151;
+        }
+        
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .main-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px 10px;
+            margin-bottom: 20px;
+        }
+
+        .title-with-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-logo {
+            height: 50px;
+            width: 50px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .main-page-title {
+            color: white;
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            margin: 0;
+        }
+        
+        .student-name-highlight {
+            color: #fbbf24;
+            text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .print-btn {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-shadow: none;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .print-btn:hover {
+            background: linear-gradient(135deg, #4338ca, #6d28d9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        }
+        
+        .print-btn:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+        
+        .btn-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Enhanced main content layout */
+        .analytics-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+            padding: 0 30px 30px;
+        }
+        
+
+        
+        /* Enhanced filters section */
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2f7;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .section-header h3 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .analytics-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+            align-items: end;
+        }
+        
+        .analytics-filters .filter-group:nth-child(1) {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        
+        .analytics-filters .filter-group:nth-child(2) {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        .analytics-filters .filter-group:nth-child(3) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        .analytics-filters .filter-group:nth-child(4) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        
+        .analytics-filters .filter-group:nth-child(5) {
+            grid-column: 3;
+            grid-row: 2;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .filter-group label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        
+        .form-control {
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Enhanced results table section */
+        .results-section {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #eef2f7;
+        }
+        
+        .results-header {
+            background: #f8fafc;
+            padding: 20px 25px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .results-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .results-controls label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+
+        #resultsTableContainer {
+            overflow-x: auto;
+        }
+        
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        
+        .results-table th {
+            background-color: #f8fafc;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        
+        .results-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eef2f7;
+            color: #374151;
+        }
+        
+        .results-table tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .results-table tr:hover td {
+            background: #f0f5ff;
+        }
+        
+        .trial-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        
+        /* No color coding for trials */
+        
+        .score-cell {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .results-table .score-perfect { color: #22c55e !important; font-weight: 700; }      /* 100% - Green */
+        .results-table .score-good { color: #3b82f6 !important; font-weight: 600; }         /* 50-99% - Blue */
+        .results-table .score-needs-improvement { color: #ef4444 !important; font-weight: 600; } /* <50% - Red */
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .loading-screen {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .spinner {
+            width: 50px; 
+            height: 50px;
+            border: 4px solid #e2e8f0; 
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+            font-size: 1.2rem;
+            color: #dc2626;
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+            margin: 1rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        .view-details-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .view-details-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 20px 30px;
+            border-bottom: 2px solid #e2e8f0;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: #1e293b;
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .close {
+            color: #6b7280;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .close:hover {
+            color: #374151;
+        }
+        
+        .modal-body {
+            padding: 30px;
+        }
+        
+        .hint-indicator {
+            color: #f59e0b;
+            font-weight: 500;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+        
+        .hint-indicator-plain {
+            color: #6b7280;
+            font-weight: 400;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+        
+        .hint-used-plain {
+            color: #6b7280;
+            font-weight: 400;
+            font-size: 0.9em;
+        }
+        
+        .hint-letter {
+            background-color: #fef3c7;
+            color: #f59e0b;
+            font-weight: 600;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        
+        /* Print Styles */
+        @media print {
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact;
+                padding: 20px !important;
+            }
+            
+            /* Hide all non-essential elements for print */
+            .header-logo { 
+                display: none !important; 
+            }
+            
+            .header-buttons { 
+                display: none !important; 
+            }
+            
+            .filters-section { 
+                display: none !important; 
+            }
+            
+            .summary-stats {
+                display: none !important;
+            }
+            
+            .results-controls {
+                display: none !important;
+            }
+            
+            .view-details-btn {
+                display: none !important;
+            }
+            
+            .results-table th:last-child,
+            .results-table td:last-child {
+                display: none !important;
+            }
+            
+            /* Center and style the main title */
+            .main-header-bar {
+                justify-content: center !important;
+                text-align: center !important;
+                margin-bottom: 30px !important;
+            }
+            
+            .title-with-logo {
+                justify-content: center !important;
+            }
+            
+            .main-page-title {
+                color: #1f2937 !important;
+                text-shadow: none !important;
+                font-size: 2rem !important;
+                text-align: center !important;
+            }
+            
+            .student-name-highlight {
+                color: #1f2937 !important;
+                text-shadow: none !important;
+            }
+            
+            /* Center the results section */
+            .results-section {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 auto !important;
+                max-width: 100% !important;
+            }
+            
+            .results-header {
+                display: none !important;
+            }
+            
+            /* Center table headers and content */
+            .results-table {
+                width: 100% !important;
+                margin: 0 auto !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+            }
+            
+            .results-table th,
+            .results-table td {
+                text-align: center !important;
+                border: 1px solid #d1d5db !important;
+                padding: 12px 8px !important;
+                vertical-align: middle !important;
+            }
+            
+            /* Adjust column widths for better space distribution */
+            .results-table th:nth-child(1),
+            .results-table td:nth-child(1) {
+                width: 12% !important; /* Date */
+            }
+            
+            .results-table th:nth-child(2),
+            .results-table td:nth-child(2) {
+                width: 10% !important; /* Word Set - reduced */
+            }
+            
+            .results-table th:nth-child(3),
+            .results-table td:nth-child(3) {
+                width: 12% !important; /* Trial */
+            }
+            
+            .results-table th:nth-child(4),
+            .results-table td:nth-child(4) {
+                width: 10% !important; /* Score */
+            }
+            
+            .results-table th:nth-child(5),
+            .results-table td:nth-child(5) {
+                width: 12% !important; /* Time Taken */
+            }
+            
+            .results-table th:nth-child(6),
+            .results-table td:nth-child(6) {
+                width: 44% !important; /* Details - increased */
+                text-align: left !important; /* Left align details for better readability */
+            }
+            
+            .results-table th {
+                background-color: #f9fafb !important;
+                font-weight: 600 !important;
+                color: #1f2937 !important;
+            }
+            
+            .results-table tbody tr:nth-child(even) {
+                background-color: #f9fafb !important;
+            }
+            
+            .results-table tbody tr:nth-child(odd) {
+                background-color: white !important;
+            }
+            
+            /* Ensure color coding still works in print */
+            .results-table .score-perfect {
+                color: #059669 !important;
+                font-weight: 600 !important;
+            }
+            
+            .results-table .score-good {
+                color: #0284c7 !important;
+                font-weight: 600 !important;
+            }
+            
+            .results-table .score-poor {
+                color: #dc2626 !important;
+                font-weight: 600 !important;
+            }
+            
+            .trial-badge {
+                background: #e5e7eb !important;
+                color: #1f2937 !important;
+                border: 1px solid #d1d5db !important;
+                padding: 4px 8px !important;
+                border-radius: 4px !important;
+                font-size: 0.8rem !important;
+                font-weight: 500 !important;
+            }
+            
+            .dashboard-container { 
+                box-shadow: none !important; 
+                max-width: none !important;
+            }
+            
+            .analytics-content {
+                padding: 0 !important;
+                gap: 20px !important;
+            }
+            
+            /* Ensure all content in table cells is visible */
+            .results-table td * {
+                display: block !important;
+                visibility: visible !important;
+            }
+            
+            /* Center the entire table container */
+            .results-section {
+                display: flex !important;
+                justify-content: center !important;
+                width: 100% !important;
+            }
+            
+            /* Ensure hint indicators and letters are visible in print */
+            .hint-indicator {
+                color: #f59e0b !important;
+                font-weight: 600 !important;
+            }
+            
+            .hint-indicator-plain {
+                color: #6b7280 !important;
+                font-weight: 400 !important;
+            }
+            
+            .hint-used-plain {
+                color: #6b7280 !important;
+                font-weight: 400 !important;
+            }
+            
+            .hint-letter {
+                background-color: #fef3c7 !important;
+                color: #f59e0b !important;
+                font-weight: 600 !important;
+                padding: 1px 2px !important;
+                border-radius: 2px !important;
+            }
+            
+            /* Simple print-friendly details */
+            .print-details {
+                display: block !important;
+                font-family: monospace !important;
+                font-size: 0.7rem !important;
+                line-height: 1.2 !important;
+                margin-top: 8px !important;
+                padding: 8px !important;
+                border-top: 1px solid #d1d5db !important;
+                white-space: pre-wrap !important;
+                color: #374151 !important;
+                background: none !important;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body { 
+                padding: 10px; 
+            }
+            
+            .main-header-bar { 
+                flex-direction: column; 
+                gap: 15px; 
+                text-align: center; 
+            }
+            
+            .main-page-title { 
+                font-size: 2rem; 
+            }
+            
+            .analytics-content { 
+                padding: 0 20px 20px; 
+                gap: 20px;
+            }
+            
+
+            
+            .analytics-filters { 
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(5, auto);
+                gap: 15px;
+            }
+            
+            .analytics-filters .filter-group:nth-child(1),
+            .analytics-filters .filter-group:nth-child(2),
+            .analytics-filters .filter-group:nth-child(3),
+            .analytics-filters .filter-group:nth-child(4),
+            .analytics-filters .filter-group:nth-child(5) {
+                grid-column: 1;
+                grid-row: auto;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 15px;
+            }
+            
+            .results-table { 
+                font-size: 0.85rem; 
+            }
+            
+            .results-table th, 
+            .results-table td { 
+                padding: 10px 8px; 
+            }
+            
+            .filters-section,
+            .results-section {
+                padding: 20px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .results-table th,
+            .results-table td {
+                padding: 8px 6px;
+                font-size: 0.8rem;
+            }
+            
+            .trial-badge {
+                padding: 4px 8px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen" class="loading-screen">
+        <div class="spinner"></div>
+        <p>Loading Student Data...</p>
+    </div>
+
+    <div id="dashboardContainer" class="dashboard-container" style="display: none;">
+        <div class="main-header-bar">
+            <div class="title-with-logo">
+                <img src="logo.png" alt="Logo" class="header-logo">
+                <h1 class="main-page-title">Learning Data for <span id="studentNameDisplay" class="student-name-highlight">Student</span></h1>
+            </div>
+            <div class="header-buttons">
+                <button onclick="printPage()" class="print-btn">🖨️ Print</button>
+                <button onclick="exportScreenshot()" class="btn-primary">🖨️ Print Details</button>
+                <a href="index.html" class="btn-secondary">🏠 Back to Menu</a>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error-message" style="display: none;">
+            <p>Error loading student data. Please check the student name and try again.</p>
+        </div>
+
+        <div class="analytics-content">
+            <!-- Analytics Filters Section -->
+            <div class="filters-section">
+                <div class="section-header">
+                    <h3>🔍 Filters & Search</h3>
+                </div>
+                <div class="analytics-filters">
+                    <div class="filter-group">
+                        <label for="analyticsStudentFilter">Student:</label>
+                        <select id="analyticsStudentFilter" class="form-control">
+                            <option value="">All Students</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="analyticsWordSetFilter">Word Set:</label>
+                        <select id="analyticsWordSetFilter" class="form-control">
+                            <option value="">All Word Sets</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="analyticsFromDate">From Date:</label>
+                        <input type="date" id="analyticsFromDate" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label for="analyticsToDate">To Date:</label>
+                        <input type="date" id="analyticsToDate" class="form-control">
+                    </div>
+                    <div class="filter-group">
+                        <label>&nbsp;</label>
+                        <button id="applyAnalyticsFilter" class="btn-primary">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table Section -->
+            <div class="results-section">
+                <div class="results-header">
+                    <h3>📈 Practice Results</h3>
+                    <div class="results-controls">
+                        <label for="detailsFilter">Details:</label>
+                        <select id="detailsFilter" class="form-control">
+                            <option value="hide-details">Hide Details</option>
+                            <option value="show-details">Show Details</option>
+                        </select>
+                        <label for="displayFilter">Display:</label>
+                        <select id="displayFilter" class="form-control">
+                            <option value="complete">Complete Round</option>
+                            <option value="all">All Practice</option>
+                        </select>
+                        <label for="sortBy">Sort by:</label>
+                        <select id="sortBy" class="form-control">
+                            <option value="timestamp-desc">Date (Newest First)</option>
+                            <option value="timestamp-asc">Date (Oldest First)</option>
+                            <option value="score-desc">Score (Highest First)</option>
+                            <option value="score-asc">Score (Lowest First)</option>
+                            <option value="wordSetName-asc">Word Set (A-Z)</option>
+                            <option value="wordSetName-desc">Word Set (Z-A)</option>
+                            <option value="timeTaken-asc">Time (Fastest First)</option>
+                            <option value="timeTaken-desc">Time (Slowest First)</option>
+                            <option value="trial-asc">Trial (First to Last)</option>
+                            <option value="trial-desc">Trial (Last to First)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="resultsTableContainer">
+                    <table id="resultsTable" class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Word Set</th>
+                                <th>Trial</th>
+                                <th>Score</th>
+                                <th>Time Taken</th>
+                                <th class="details-column">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsTableBody">
+                            <!-- Results will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for detailed results -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Quiz Details</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modalBody" class="modal-body">
+                <!-- Modal content will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="student_teacher_view.js?v=3.9"></script>
+</body>
+</html> 

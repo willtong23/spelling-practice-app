@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Typing Test - Find Your Best Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .controls-section {
+            background: #f8fafc;
+            padding: 20px 30px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: #374151;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .control-btn:hover {
+            background: #1f2937;
+            transform: translateY(-1px);
+        }
+
+        .control-btn.mic-btn {
+            background: #3b82f6;
+        }
+
+        .control-btn.mic-btn:hover {
+            background: #2563eb;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .test-section.active {
+            border-color: #ef4444;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        }
+
+        .test-header {
+            background: #f9fafb;
+            padding: 20px 25px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .test-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .test-title h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .test-description {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #9ca3af;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.listening {
+            background: #ef4444;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        .status-dot.processing {
+            background: #f59e0b;
+        }
+
+        .status-dot.success {
+            background: #10b981;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+
+        .test-content {
+            padding: 25px;
+        }
+
+        .settings-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #1e40af;
+            line-height: 1.5;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .test-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .test-btn.start {
+            background: #10b981;
+            color: white;
+        }
+
+        .test-btn.start:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .test-btn.stop {
+            background: #ef4444;
+            color: white;
+        }
+
+        .test-btn.stop:hover {
+            background: #dc2626;
+        }
+
+        .test-btn.clear {
+            background: #6b7280;
+            color: white;
+            flex: 0.5;
+        }
+
+        .test-btn.clear:hover {
+            background: #4b5563;
+        }
+
+        .result-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 80px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+
+        .result-box.has-content {
+            background: #f0fdf4;
+            border-color: #10b981;
+            border-style: solid;
+        }
+
+        .result-box.listening {
+            background: #fef2f2;
+            border-color: #ef4444;
+            border-style: solid;
+        }
+
+        .result-placeholder {
+            color: #9ca3af;
+            font-style: italic;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .instructions {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+
+        .instructions h4 {
+            color: #92400e;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+        }
+
+        .instructions ul {
+            color: #92400e;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: #4f46e5;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .back-link:hover {
+            background: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .interim-text {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 16px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .test-content {
+                padding: 20px;
+            }
+            
+            .controls-section {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .test-controls {
+                flex-direction: column;
+            }
+            
+            .test-btn.clear {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="teacher.html" class="back-link">
+        ← Back to Teacher Dashboard
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Voice Typing Test</h1>
+            <p>Find the perfect voice recognition settings for your needs</p>
+        </div>
+
+        <div class="controls-section">
+            <button class="control-btn mic-btn" onclick="requestMicPermission()">
+                🎤 Enable Microphone
+            </button>
+            <button class="control-btn" onclick="stopAllTests()">
+                🛑 Stop All Tests
+            </button>
+            <button class="control-btn" onclick="clearAllResults()">
+                🗑️ Clear All Results
+            </button>
+        </div>
+
+        <div class="main-content">
+            <!-- Test 1: Fast & Sensitive -->
+            <div class="test-section" id="section1">
+                <div class="test-header">
+                    <div class="test-title">
+                        <h3>⚡ Fast & Sensitive</h3>
+                        <div class="status-dot" id="status1"></div>
+                    </div>
+                </div>
+                <div class="test-content">
+                    <div class="test-description">
+                        Perfect for clear, quick speech in quiet environments. Responds immediately to voice input.
+                    </div>
+                    <div class="settings-info">
+                        <strong>Settings:</strong> High sensitivity (0.1) • Quick timeout (500ms) • Minimal pause (100ms) • Low noise threshold
+                    </div>
+                    <div class="test-controls">
+                        <button class="test-btn start" onclick="startTest(1)" id="btn1">
+                            🎤 Start Test
+                        </button>
+                        <button class="test-btn clear" onclick="clearResult(1)">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="result-box" id="result1">
+                        <div class="result-placeholder">Click "Start Test" and speak clearly...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 2: Balanced & Reliable -->
+            <div class="test-section" id="section2">
+                <div class="test-header">
+                    <div class="test-title">
+                        <h3>⚖️ Balanced & Reliable</h3>
+                        <div class="status-dot" id="status2"></div>
+                    </div>
+                </div>
+                <div class="test-content">
+                    <div class="test-description">
+                        Best general-purpose settings. Good balance between speed and accuracy for most users.
+                    </div>
+                    <div class="settings-info">
+                        <strong>Settings:</strong> Medium sensitivity (0.3) • Balanced timeout (1000ms) • Standard pause (300ms) • Medium noise threshold
+                    </div>
+                    <div class="test-controls">
+                        <button class="test-btn start" onclick="startTest(2)" id="btn2">
+                            🎤 Start Test
+                        </button>
+                        <button class="test-btn clear" onclick="clearResult(2)">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="result-box" id="result2">
+                        <div class="result-placeholder">Click "Start Test" and speak normally...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 3: Patient & Tolerant -->
+            <div class="test-section" id="section3">
+                <div class="test-header">
+                    <div class="test-title">
+                        <h3>🐌 Patient & Tolerant</h3>
+                        <div class="status-dot" id="status3"></div>
+                    </div>
+                </div>
+                <div class="test-content">
+                    <div class="test-description">
+                        Great for hesitant speakers, noisy environments, or when you need time to think between words.
+                    </div>
+                    <div class="settings-info">
+                        <strong>Settings:</strong> Low sensitivity (0.5) • Long timeout (2000ms) • Extended pause (500ms) • High noise threshold
+                    </div>
+                    <div class="test-controls">
+                        <button class="test-btn start" onclick="startTest(3)" id="btn3">
+                            🎤 Start Test
+                        </button>
+                        <button class="test-btn clear" onclick="clearResult(3)">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="result-box" id="result3">
+                        <div class="result-placeholder">Click "Start Test" and speak slowly...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Test 4: Ultra Sensitive -->
+            <div class="test-section" id="section4">
+                <div class="test-header">
+                    <div class="test-title">
+                        <h3>🔊 Ultra Sensitive</h3>
+                        <div class="status-dot" id="status4"></div>
+                    </div>
+                </div>
+                <div class="test-content">
+                    <div class="test-description">
+                        Picks up very quiet speech and whispers. Best for soft-spoken users or distant microphones.
+                    </div>
+                    <div class="settings-info">
+                        <strong>Settings:</strong> Ultra high sensitivity (0.05) • Quick timeout (300ms) • Very short pause (50ms) • Very low noise threshold
+                    </div>
+                    <div class="test-controls">
+                        <button class="test-btn start" onclick="startTest(4)" id="btn4">
+                            🎤 Start Test
+                        </button>
+                        <button class="test-btn clear" onclick="clearResult(4)">
+                            Clear
+                        </button>
+                    </div>
+                    <div class="result-box" id="result4">
+                        <div class="result-placeholder">Click "Start Test" and speak softly...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="instructions">
+                <h4>💡 How to Test Effectively</h4>
+                <ul>
+                    <li>Try saying the same phrase with each setting (e.g., "Hello, this is a voice typing test")</li>
+                    <li>Test in different environments: quiet room vs background noise</li>
+                    <li>Try speaking at different speeds and volumes</li>
+                    <li>Note which setting feels most responsive and accurate for your voice</li>
+                    <li>Pay attention to how quickly each setting starts and stops listening</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Voice recognition instances for each test
+        const recognitions = {};
+        const activeTests = new Set();
+        const accumulatedText = {}; // Store accumulated text for each test
+
+        // Test configurations
+        const testConfigs = {
+            1: { // Fast & Sensitive
+                continuous: true,
+                interimResults: true,
+                maxAlternatives: 1,
+                lang: 'en-US'
+            },
+            2: { // Balanced
+                continuous: true,
+                interimResults: true,
+                maxAlternatives: 3,
+                lang: 'en-US'
+            },
+            3: { // Patient
+                continuous: true,
+                interimResults: true,
+                maxAlternatives: 5,
+                lang: 'en-US'
+            },
+            4: { // Ultra Sensitive
+                continuous: true,
+                interimResults: true,
+                maxAlternatives: 1,
+                lang: 'en-US'
+            }
+        };
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            checkBrowserSupport();
+            // Initialize accumulated text for all tests
+            for (let i = 1; i <= 4; i++) {
+                accumulatedText[i] = '';
+            }
+        });
+
+        function checkBrowserSupport() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('❌ Speech Recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+                return false;
+            }
+            return true;
+        }
+
+        function requestMicPermission() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+                .then(stream => {
+                    console.log('Microphone permission granted');
+                    stream.getTracks().forEach(track => track.stop());
+                    alert('✅ Microphone permission granted! You can now test voice typing.');
+                })
+                .catch(err => {
+                    console.error('Microphone permission denied:', err);
+                    alert('❌ Microphone permission denied. Please allow microphone access to use voice typing.');
+                });
+        }
+
+        function startTest(testNum) {
+            if (!checkBrowserSupport()) return;
+
+            // Stop test if already running
+            if (activeTests.has(testNum)) {
+                stopTest(testNum);
+                return;
+            }
+
+            const config = testConfigs[testNum];
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            const recognition = new SpeechRecognition();
+            
+            // Apply configuration
+            recognition.continuous = config.continuous;
+            recognition.interimResults = config.interimResults;
+            recognition.maxAlternatives = config.maxAlternatives;
+            recognition.lang = config.lang;
+
+            recognitions[testNum] = recognition;
+            activeTests.add(testNum);
+
+            // Update UI
+            updateTestStatus(testNum, 'listening');
+            updateButton(testNum, 'stop');
+
+            // Don't clear accumulated text, just update display
+            updateResultDisplay(testNum, '');
+
+            // Recognition event handlers
+            recognition.onstart = () => {
+                console.log(`Test ${testNum} started`);
+                updateTestStatus(testNum, 'listening');
+            };
+
+            recognition.onresult = (event) => {
+                updateTestStatus(testNum, 'processing');
+                
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Add final transcript to accumulated text
+                if (finalTranscript.trim()) {
+                    accumulatedText[testNum] += finalTranscript;
+                    updateTestStatus(testNum, 'success');
+                    
+                    // Brief success indication
+                    setTimeout(() => {
+                        if (activeTests.has(testNum)) {
+                            updateTestStatus(testNum, 'listening');
+                        }
+                    }, 1000);
+                }
+
+                // Update display with accumulated + interim text
+                updateResultDisplay(testNum, interimTranscript);
+            };
+
+            recognition.onerror = (event) => {
+                console.error(`Test ${testNum} error:`, event.error);
+                
+                if (event.error === 'not-allowed') {
+                    alert('❌ Microphone access denied. Please allow microphone access and try again.');
+                } else if (event.error === 'no-speech') {
+                    console.log(`Test ${testNum}: No speech detected`);
+                    // Continue listening
+                } else {
+                    console.error(`Voice recognition error in Test ${testNum}: ${event.error}`);
+                }
+                
+                if (event.error !== 'no-speech') {
+                    stopTest(testNum);
+                }
+            };
+
+            recognition.onend = () => {
+                console.log(`Test ${testNum} ended`);
+                if (activeTests.has(testNum)) {
+                    // Restart if still supposed to be active
+                    setTimeout(() => {
+                        if (activeTests.has(testNum)) {
+                            recognition.start();
+                        }
+                    }, 100);
+                }
+            };
+
+            // Start recognition
+            try {
+                recognition.start();
+            } catch (error) {
+                console.error(`Failed to start test ${testNum}:`, error);
+                alert(`❌ Failed to start test ${testNum}: ${error.message}`);
+                stopTest(testNum);
+            }
+        }
+
+        function updateResultDisplay(testNum, interimText) {
+            const resultBox = document.getElementById(`result${testNum}`);
+            
+            // Build the display content with accumulated text + interim text
+            let displayContent = accumulatedText[testNum];
+            
+            if (interimText.trim()) {
+                displayContent += `<span class="interim-text">${interimText}</span>`;
+            }
+
+            if (displayContent.trim()) {
+                resultBox.innerHTML = displayContent;
+                resultBox.classList.add('has-content');
+                resultBox.classList.remove('listening');
+            } else {
+                // Show placeholder if no content
+                resultBox.innerHTML = '<div class="result-placeholder">Click "Start Test" and speak...</div>';
+                resultBox.classList.remove('has-content');
+                if (activeTests.has(testNum)) {
+                    resultBox.classList.add('listening');
+                }
+            }
+        }
+
+        function stopTest(testNum) {
+            if (recognitions[testNum]) {
+                recognitions[testNum].stop();
+                delete recognitions[testNum];
+            }
+            
+            activeTests.delete(testNum);
+            updateTestStatus(testNum, 'inactive');
+            updateButton(testNum, 'start');
+            
+            // Remove listening state from result box
+            const resultBox = document.getElementById(`result${testNum}`);
+            resultBox.classList.remove('listening');
+        }
+
+        function stopAllTests() {
+            for (let i = 1; i <= 4; i++) {
+                stopTest(i);
+            }
+        }
+
+        function clearResult(testNum) {
+            accumulatedText[testNum] = ''; // Clear accumulated text
+            const resultBox = document.getElementById(`result${testNum}`);
+            resultBox.innerHTML = '<div class="result-placeholder">Click "Start Test" and speak...</div>';
+            resultBox.classList.remove('has-content', 'listening');
+        }
+
+        function clearAllResults() {
+            for (let i = 1; i <= 4; i++) {
+                clearResult(i);
+            }
+        }
+
+        function updateTestStatus(testNum, status) {
+            const statusDot = document.getElementById(`status${testNum}`);
+            const section = document.getElementById(`section${testNum}`);
+            
+            // Remove all status classes
+            statusDot.className = 'status-dot';
+            section.classList.remove('active');
+            
+            // Add new status
+            switch (status) {
+                case 'listening':
+                    statusDot.classList.add('listening');
+                    section.classList.add('active');
+                    break;
+                case 'processing':
+                    statusDot.classList.add('processing');
+                    section.classList.add('active');
+                    break;
+                case 'success':
+                    statusDot.classList.add('success');
+                    section.classList.add('active');
+                    break;
+                case 'inactive':
+                default:
+                    // Keep default gray
+                    break;
+            }
+        }
+
+        function updateButton(testNum, type) {
+            const button = document.getElementById(`btn${testNum}`);
+            
+            if (type === 'start') {
+                button.textContent = '🎤 Start Test';
+                button.className = 'test-btn start';
+                button.onclick = () => startTest(testNum);
+            } else if (type === 'stop') {
+                button.textContent = '🛑 Stop Test';
+                button.className = 'test-btn stop';
+                button.onclick = () => stopTest(testNum);
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            stopAllTests();
+        });
+    </script>
+</body>
+</html> 
