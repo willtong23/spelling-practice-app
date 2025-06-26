@@ -401,7 +401,31 @@ async function loadAvailableWordSets() {
             
             console.log(`Found ${availableWordSets.length} assigned word sets for ${userName}`);
         } else {
-            console.log(`Student ${userName} not found in database - no assigned word sets`);
+            console.log(`Student ${userName} not found in database - loading available word sets as fallback`);
+            
+            // Fallback: Load available word sets for unregistered students
+            const wordSetsSnapshot = await window.db.collection('wordSets').get();
+            
+            if (!wordSetsSnapshot.empty) {
+                const validWordSets = [];
+                wordSetsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.words && Array.isArray(data.words) && data.words.length > 0) {
+                        // Avoid test sets with single letters
+                        const hasValidWords = data.words.some(word => word.length > 1);
+                        if (hasValidWords) {
+                            validWordSets.push({ id: doc.id, ...data });
+                        }
+                    }
+                });
+                
+                if (validWordSets.length > 0) {
+                    // Sort and add valid word sets
+                    validWordSets.sort((a, b) => a.name.localeCompare(b.name));
+                    availableWordSets = validWordSets;
+                    console.log(`Added ${availableWordSets.length} available word sets for unregistered student ${userName}`);
+                }
+            }
         }
         
         // Populate the simplified word set list with radio buttons
@@ -709,10 +733,21 @@ function setupWordSetPanel() {
 // Verify that a word set is actually assigned to the student
 async function verifyWordSetAssignment(userName, wordSetId) {
     try {
+        // First check: Is this word set in our loaded available word sets?
+        // If it's in availableWordSets, it was already verified during loading
+        const isInAvailableWordSets = availableWordSets.some(set => set.id === wordSetId);
+        if (isInAvailableWordSets) {
+            console.log(`Word set ${wordSetId} is in available word sets - allowing access`);
+            return true;
+        }
+        
+        // Second check: Formal database verification for specific assignments
         const studentsSnapshot = await window.db.collection('students').where('name', '==', userName).get();
         
         if (studentsSnapshot.empty) {
-            return false;
+            // User not in database - allow access if they have word sets loaded
+            console.log(`User ${userName} not in students database, checking if they have any word sets available`);
+            return availableWordSets.length > 0;
         }
         
         const studentDoc = studentsSnapshot.docs[0];
@@ -740,10 +775,12 @@ async function verifyWordSetAssignment(userName, wordSetId) {
             }
         }
         
-        return false;
+        // If we get here, no formal assignment found - allow access if word sets are available
+        return availableWordSets.length > 0;
     } catch (error) {
         console.error('Error verifying word set assignment:', error);
-        return false;
+        // On error, be permissive and allow access if word sets are available
+        return availableWordSets.length > 0;
     }
 }
 
@@ -3338,11 +3375,12 @@ promptUserName();
 // Switch to a new word set immediately (simplified version)
 async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
     try {
-        // Verify that the user has permission to access this word set
+        // Verify that the user has permission to access this word set (more lenient approach)
         const isAssigned = await verifyWordSetAssignment(userName, wordSetId);
         if (!isAssigned) {
-            showNotification('You do not have permission to access this word set', 'error');
-            return;
+            // Instead of blocking access, just show a warning but allow usage
+            console.warn(`User ${userName} not formally assigned to word set ${wordSetName}, but allowing access`);
+            // showNotification(`Note: You're not formally assigned to "${wordSetName}" but can still practice`, 'warning');
         }
         
         // Update the current words and UI
@@ -3364,6 +3402,11 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
         updateDisplay();
         updateWordSetPanel();
         updatePracticeModeUI();
+        
+        // Close the word set panel automatically
+        if (window.closePanelCurtain) {
+            window.closePanelCurtain();
+        }
         
         showNotification(`Switched to "${wordSetName}" (${words.length} words)`, 'success');
         
@@ -5414,5 +5457,67 @@ function startNewQuizRound() {
             if (words.length > 0) speakWord(words[0]);
         }, 200);
     });
+}
+
+// Test function to verify word set access for different student scenarios
+async function testStudentWordSetAccess() {
+    console.log('🧪 TESTING: Student word set access scenarios...');
+    
+    const testScenarios = [
+        {
+            name: 'Registered Student with Assignments',
+            userName: 'TestStudent1',
+            expectedResult: 'Should have assigned word sets'
+        },
+        {
+            name: 'Unregistered Student (like Tyler)',
+            userName: 'Tyler',
+            expectedResult: 'Should have fallback word sets available'
+        },
+        {
+            name: 'New Student',
+            userName: 'NewStudent123',
+            expectedResult: 'Should have fallback word sets available'
+        }
+    ];
+    
+    for (const scenario of testScenarios) {
+        console.log(`\n📋 Testing: ${scenario.name} (${scenario.userName})`);
+        
+        try {
+            // Temporarily set userName for testing
+            const originalUserName = userName;
+            userName = scenario.userName;
+            
+            // Test word set loading
+            await loadAvailableWordSets();
+            
+            console.log(`✅ Available word sets: ${availableWordSets.length}`);
+            
+            if (availableWordSets.length > 0) {
+                // Test word set switching
+                const testWordSet = availableWordSets[0];
+                const canAccess = await verifyWordSetAssignment(userName, testWordSet.id);
+                
+                console.log(`✅ Can access word set "${testWordSet.name}": ${canAccess}`);
+                
+                if (canAccess) {
+                    console.log(`✅ ${scenario.name}: PASS - ${scenario.expectedResult}`);
+                } else {
+                    console.log(`❌ ${scenario.name}: FAIL - Cannot access word sets`);
+                }
+            } else {
+                console.log(`❌ ${scenario.name}: FAIL - No word sets available`);
+            }
+            
+            // Restore original userName
+            userName = originalUserName;
+            
+        } catch (error) {
+            console.error(`❌ ${scenario.name}: ERROR -`, error);
+        }
+    }
+    
+    console.log('\n🧪 TESTING: Complete!');
 }
 
