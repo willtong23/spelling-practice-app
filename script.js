@@ -1041,7 +1041,7 @@ function showNameModal() {
         }
         
         // Check password
-        if (password !== '123456') {
+        if (password !== '2026') {
             showNameError('Incorrect password. Please try again.');
             return;
         }
@@ -3369,8 +3369,10 @@ function toggleResultsPanel() {
 // Always require fresh sign-in on page load
 console.log('DOM loaded, requiring fresh authentication...');
 
-// Always prompt for authentication - no auto-login
-promptUserName();
+// promptUserName() is invoked once from the DOMContentLoaded handler above.
+// Calling it again here would attach handleNameSubmit twice, causing
+// initializeApp → loadAvailableWordSets to fire twice on sign-in
+// (visible bug: word sets rendered as duplicates on Choose Word Set page).
 
 // Switch to a new word set immediately (simplified version)
 async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
