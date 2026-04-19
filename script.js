@@ -2422,9 +2422,10 @@ function initializeApp() {
                 startPracticeImmediately();
             });
         });
-        
-        // Setup word set panel
-        setupWordSetPanel();
+        // setupWordSetPanel() is already invoked from DOMContentLoaded.
+        // Calling it again here would attach a second click listener to the
+        // toggle button — one click then fires "open" and "close" back-to-back,
+        // so the panel appears not to react.
     } else {
         console.log('Firebase not available, using default words');
         words = ["want", "went", "what", "should", "could"];
