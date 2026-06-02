@@ -2,6 +2,9 @@
 // --- Configurable word list (now supports word sets from teacher dashboard) ---
 const defaultWords = ["want", "went", "what", "should", "could"];
 
+// 串字比較統一 lowercase（避免老師輸入大楷後學生點都過唔到）
+const sameWord = (a, b) => (a || '').toString().toLowerCase() === (b || '').toString().toLowerCase();
+
 // Word set selection variables
 let availableWordSets = [];
 let selectedWordSetId = null;
@@ -902,23 +905,35 @@ function enableAppInterface() {
 
 // --- Name Prompt ---
 function promptUserName() {
-    // Always require sign-in - no auto-login on refresh
+    // Only show sign-in modal if student is not already authenticated.
+    // Persistent auth means F-key refreshes (F3/F5 etc.) do NOT "jump out" the
+    // student — sign-out only happens via the red Sign Out button.
+    const storedName = localStorage.getItem('userName');
+    const storedAuth = localStorage.getItem('userAuthenticated') === 'true';
+
+    if (storedAuth && storedName) {
+        console.log('=== AUTH RESTORED FROM LOCALSTORAGE ===');
+        console.log('Welcome back,', storedName);
+        userName = storedName;
+        enableAppInterface();
+        const welcomeBanner = document.getElementById('userWelcome');
+        const currentUserName = document.getElementById('currentUserName');
+        if (welcomeBanner && currentUserName) {
+            currentUserName.textContent = storedName;
+            welcomeBanner.style.display = 'flex';
+        }
+        if (typeof initializeApp === 'function') {
+            try { initializeApp(); } catch (err) { console.warn('initializeApp failed:', err); }
+        }
+        return;
+    }
+
     console.log('=== AUTHENTICATION REQUIRED ===');
-    console.log('Browser refresh detected - requiring fresh sign-in');
-    console.log('=== END DEBUG ===');
-    
-    // Clear any stored authentication data
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userAuthenticated');
-    
-    // Disable app interface until authenticated
     disableAppInterface();
-    
-    // Always show the sign-in modal
     console.log('Showing sign-in modal...');
     setTimeout(() => {
         showNameModal();
-    }, 300); // Small delay to ensure DOM is fully ready
+    }, 300);
 }
 
 function showNameModal() {
@@ -1157,12 +1172,24 @@ function setBritishVoice() {
     const voices = speechSynthesis.getVoices();
     console.log('Available voices:', voices.map(v => `${v.name} (${v.lang}) - ${v.gender || 'unknown gender'}`));
     
-    // First priority: Female voices (various options for iPad/iOS)
-    let preferred = voices.find(v => v.name === 'Google UK English Female');
-    if (!preferred) preferred = voices.find(v => v.name === 'Samantha'); // iOS female voice
-    if (!preferred) preferred = voices.find(v => v.name === 'Karen'); // iOS Australian female voice
-    if (!preferred) preferred = voices.find(v => v.name === 'Serena'); // iOS UK female voice
-    if (!preferred) preferred = voices.find(v => v.name === 'Kate'); // iOS UK female voice
+    // First priority: clearest British English voices across platforms.
+    // UK voices are prioritised over US/AU because pupils complained the
+    // previous pick (Samantha = US, Karen = AU) sounded unclear for British
+    // spellings. Enhanced/Premium iOS voices are tried first where present.
+    let preferred = voices.find(v => v.name === 'Serena (Premium)');
+    if (!preferred) preferred = voices.find(v => v.name === 'Kate (Enhanced)');
+    if (!preferred) preferred = voices.find(v => v.name === 'Daniel (Enhanced)'); // UK male – very clear
+    if (!preferred) preferred = voices.find(v => v.name === 'Serena');             // iOS UK female
+    if (!preferred) preferred = voices.find(v => v.name === 'Kate');               // iOS UK female
+    if (!preferred) preferred = voices.find(v => v.name === 'Google UK English Female');
+    if (!preferred) preferred = voices.find(v => v.name === 'Google UK English Male');
+    if (!preferred) preferred = voices.find(v => v.name === 'Microsoft Libby Online (Natural) - English (United Kingdom)');
+    if (!preferred) preferred = voices.find(v => v.name === 'Microsoft Sonia Online (Natural) - English (United Kingdom)');
+    if (!preferred) preferred = voices.find(v => v.lang === 'en-GB' && v.name.toLowerCase().includes('female'));
+    if (!preferred) preferred = voices.find(v => v.lang === 'en-GB');
+    if (!preferred) preferred = voices.find(v => v.name === 'Daniel');
+    if (!preferred) preferred = voices.find(v => v.name === 'Samantha'); // iOS US female fallback
+    if (!preferred) preferred = voices.find(v => v.name === 'Karen');    // AU female fallback
     if (!preferred) preferred = voices.find(v => v.name.toLowerCase().includes('female') && v.lang.startsWith('en'));
     
     // Second priority: Any female voice in English
@@ -1227,8 +1254,16 @@ if (typeof speechSynthesis !== 'undefined') {
     setBritishVoice();
 }
 function speakWord(word) {
+    // Cancel any queued/in-flight utterances so one click speaks the word
+    // exactly once — previously, overlapping calls (auto-speak on word change
+    // + button click) stacked up and pronounced the word multiple times.
+    try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
+
     const utterance = new SpeechSynthesisUtterance(word);
-    utterance.rate = 0.8;
+    utterance.rate = 0.75;   // slower for clarity (was 0.8)
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.lang = 'en-GB';
     if (selectedVoice) utterance.voice = selectedVoice;
     speechSynthesis.speak(utterance);
 }
@@ -1531,9 +1566,9 @@ function updateLetterHint() {
                 }
                 
                 if (words[currentWordIndex] && words[currentWordIndex][i]) {
-                    box.value = words[currentWordIndex][i];
+                    box.value = (words[currentWordIndex][i] || '').toLowerCase();
                     box.disabled = true;
-                    
+
                     // Track which letter position was hinted
                     if (!hintUsed[currentWordIndex]) {
                         hintUsed[currentWordIndex] = [];
@@ -1608,9 +1643,9 @@ function updateLetterHint() {
             resetInactivityTimer();
             
             if (!box.disabled) return;
-            if (words[currentWordIndex] && box.value === words[currentWordIndex][i]) return;
+            if (words[currentWordIndex] && sameWord(box.value, words[currentWordIndex][i])) return;
             if (words[currentWordIndex] && words[currentWordIndex][i]) {
-                box.value = words[currentWordIndex][i];
+                box.value = (words[currentWordIndex][i] || '').toLowerCase();
                 box.disabled = true;
                 
                 // Track which letter position was hinted (same as spacebar logic)
@@ -1860,7 +1895,7 @@ function checkSpelling() {
     }
     userAnswers[currentWordIndex].attempts.push(userAnswer);
     
-    let isCorrect = userAnswer === correctWord;
+    let isCorrect = sameWord(userAnswer, correctWord);
     if (isCorrect) userAnswers[currentWordIndex].correct = true;
     
     console.log('Is correct:', isCorrect);
@@ -2087,9 +2122,9 @@ function showEndOfQuizFeedback() {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const attempts = entry.attempts || [];
         const correctWord = words[i];
-        
+
         // Check if first attempt was correct
-        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
+        const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], correctWord);
         if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             allPerfectFirstTry = false;
             // Add to practice list if wrong or hint used
@@ -2129,8 +2164,8 @@ function showEndOfQuizFeedback() {
         const correctWord = words[i];
         
         // Check if first attempt was correct
-        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
-        const eventuallyCorrect = attempts.includes(correctWord);
+        const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], correctWord);
+        const eventuallyCorrect = attempts.some(a => sameWord(a, correctWord));
         
         // Always show the correct word in after-session feedback
         const displayWord = correctWord;
@@ -2154,7 +2189,7 @@ function showEndOfQuizFeedback() {
         // Show all attempts
         if (attempts.length > 0) {
             const attemptsList = attempts.map((attempt, idx) => {
-                if (attempt === correctWord) {
+                if (sameWord(attempt, correctWord)) {
                     return `<span style="color:#22c55e;font-weight:600;">${attempt}</span>`;
                 } else {
                     return `<span style="color:#ef4444;">${attempt}</span>`;
@@ -2178,7 +2213,7 @@ function showEndOfQuizFeedback() {
     if (!isPracticeMode) {
     const firstTryCorrectCount = words.filter((word, i) => {
         const attempts = (userAnswers[i] || {}).attempts || [];
-        return attempts.length > 0 && attempts[0] === word;
+        return attempts.length > 0 && sameWord(attempts[0], word);
     }).length;
     
     const firstTryScore = Math.round((firstTryCorrectCount / words.length) * 100);
@@ -2261,11 +2296,11 @@ async function saveQuizResults() {
             const userAnswer = userAnswers[index] || { attempts: [], correct: false };
             const attempts = userAnswer.attempts || [];
             
-            // A word is only correct if the FIRST attempt was correct
-            const firstAttemptCorrect = attempts.length > 0 && attempts[0] === word;
-            
+            // A word is only correct if the FIRST attempt was correct（case-insensitive）
+            const firstAttemptCorrect = attempts.length > 0 && sameWord(attempts[0], word);
+
             const wordObj = {
-                word: word,
+                word: (word || '').toLowerCase(), // Normalize stored word to lowercase so downstream analyze 唔再受大楷影響
                 correct: firstAttemptCorrect, // Only true if first attempt was correct
                 attempts: attempts,
                 hint: Array.isArray(hintUsed[index]) ? hintUsed[index].length > 0 : hintUsed[index] || false,
@@ -2303,9 +2338,25 @@ async function saveQuizResults() {
         console.log('Final quiz data to save:', JSON.stringify(quizData, null, 2));
         const docRef = await window.db.collection('results').add(quizData);
         console.log('Quiz results saved successfully with ID:', docRef.id);
-        
+
+        // v2 spaced repetition：逐字更新 Leitner box（非阻塞，失敗唔影響核心儲存）
+        if (window.SR && typeof window.SR.upsertQuiz === 'function') {
+            try {
+                await window.SR.upsertQuiz(userName, wordsData.map(w => ({ word: w.word, firstTryCorrect: w.firstTryCorrect })));
+            } catch (srErr) {
+                console.error('SR progress update failed (non-blocking):', srErr);
+            }
+        }
+
         // Show a brief success message to the user
         showNotification('Quiz results saved successfully!', 'success');
+
+        // 完成後刷新 word set panel，令啱啱完成嘅 list 立即顯示新顏色（綠/藍/紅）
+        try {
+            await loadAvailableWordSets();
+        } catch (refreshErr) {
+            console.warn('Word set panel refresh after save failed:', refreshErr);
+        }
     } catch (error) {
         console.error('Error saving quiz results:', error);
         showNotification('Error saving quiz results. Please try again.', 'error');
@@ -2448,10 +2499,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // This prevents F3 volume keys and other function keys from triggering 
     // browser refresh or other actions that cause sign out
     function handleKeyboardProtection(e) {
-        // Block function keys F1-F12 (including F3 volume keys)
+        // Block function keys F1-F24 (Chromebook/Mac extended keyboards expose
+        // F13-F24 for volume, media, print-screen — any of which may reload)
         if (e.key && e.key.startsWith('F') && e.key.length <= 3) {
             const keyNumber = parseInt(e.key.substring(1));
-            if (keyNumber >= 1 && keyNumber <= 12) {
+            if (keyNumber >= 1 && keyNumber <= 24) {
                 console.log(`🔒 BLOCKED: Function key ${e.key} to prevent accidental sign out`);
                 e.preventDefault();
                 e.stopPropagation();
@@ -2712,8 +2764,8 @@ function startPracticeMode() {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const attempts = entry.attempts || [];
         const correctWord = words[i];
-        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
-        
+        const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], correctWord);
+
         if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             practiceWords.push(correctWord);
         }
@@ -2810,8 +2862,8 @@ function checkForContinuedPractice() {
         const entry = userAnswers[i] || { attempts: [], correct: false };
         const attempts = entry.attempts || [];
         const correctWord = words[i];
-        const firstTryCorrect = attempts.length > 0 && attempts[0] === correctWord;
-        
+        const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], correctWord);
+
         if (!firstTryCorrect || (Array.isArray(hintUsed[i]) ? hintUsed[i].length > 0 : hintUsed[i])) {
             stillNeedPractice.push(correctWord);
         }
@@ -3200,7 +3252,7 @@ function updateResultsPanel() {
         if (userAnswer && userAnswer.attempts && userAnswer.attempts.length > 0) {
             totalAttempted++;
             // Check if first attempt was correct
-            if (userAnswer.attempts[0] === words[i]) {
+            if (sameWord(userAnswer.attempts[0], words[i])) {
                 correctCount++;
             }
         }
@@ -3995,7 +4047,7 @@ function completeMultiListChallenge() {
         listResult.words.forEach((word, index) => {
             const userAnswer = listResult.userAnswers[index];
             const attempts = userAnswer ? userAnswer.attempts : [];
-            const firstTryCorrect = attempts.length > 0 && attempts[0] === word;
+            const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], word);
             
             if (firstTryCorrect) totalCorrectFirstTry++;
             if (Array.isArray(listResult.hintUsed[index]) ? listResult.hintUsed[index].length > 0 : listResult.hintUsed[index]) {
@@ -4028,7 +4080,7 @@ function completeMultiListChallenge() {
         const listCorrect = listResult.words.filter((word, wordIndex) => {
             const userAnswer = listResult.userAnswers[wordIndex];
             const attempts = userAnswer ? userAnswer.attempts : [];
-            return attempts.length > 0 && attempts[0] === word;
+            return attempts.length > 0 && sameWord(attempts[0], word);
         }).length;
         
         const listScore = Math.round((listCorrect / listResult.words.length) * 100);
@@ -4055,8 +4107,8 @@ function completeMultiListChallenge() {
         listResult.words.forEach((word, wordIndex) => {
             const userAnswer = listResult.userAnswers[wordIndex];
             const attempts = userAnswer ? userAnswer.attempts : [];
-            const firstTryCorrect = attempts.length > 0 && attempts[0] === word;
-            const eventuallyCorrect = attempts.includes(word);
+            const firstTryCorrect = attempts.length > 0 && sameWord(attempts[0], word);
+            const eventuallyCorrect = attempts.some(a => sameWord(a, word));
             const hintsUsedForWord = Array.isArray(listResult.hintUsed[wordIndex]) ? 
                 listResult.hintUsed[wordIndex].length > 0 : listResult.hintUsed[wordIndex];
             
@@ -4081,7 +4133,7 @@ function completeMultiListChallenge() {
             // Show all attempts with color coding
             if (attempts.length > 0) {
                 const attemptsList = attempts.map((attempt, idx) => {
-                    if (attempt === word) {
+                    if (sameWord(attempt, word)) {
                         return `<span style="color: #22c55e; font-weight: 600;">${attempt}</span>`;
                     } else {
                         return `<span style="color: #ef4444; font-weight: 600;">${attempt}</span>`;
@@ -4218,12 +4270,12 @@ async function saveMultiListChallengeResults() {
             const wordsData = listResult.words.map((word, index) => {
                 const userAnswer = listResult.userAnswers[index] || { attempts: [], correct: false };
                 const attempts = userAnswer.attempts || [];
-                
-                // A word is only correct if the FIRST attempt was correct
-                const firstAttemptCorrect = attempts.length > 0 && attempts[0] === word;
-                
+
+                // A word is only correct if the FIRST attempt was correct（case-insensitive）
+                const firstAttemptCorrect = attempts.length > 0 && sameWord(attempts[0], word);
+
                 return {
-                    word: word,
+                    word: (word || '').toLowerCase(), // Normalize stored word to lowercase
                     correct: firstAttemptCorrect, // Only true if first attempt was correct
                     attempts: attempts,
                     hint: Array.isArray(listResult.hintUsed[index]) ? listResult.hintUsed[index].length > 0 : listResult.hintUsed[index] || false,
@@ -5231,10 +5283,10 @@ async function autoSavePartialQuiz() {
         
         // Transform data to match teacher dashboard expectations (only attempted words)
         const wordsData = attemptedQuestions.map((question) => {
-            const firstAttemptCorrect = question.attempts.length > 0 && question.attempts[0] === question.word;
-            
+            const firstAttemptCorrect = question.attempts.length > 0 && sameWord(question.attempts[0], question.word);
+
             return {
-                word: question.word,
+                word: (question.word || '').toLowerCase(),
                 correct: firstAttemptCorrect, // Only true if first attempt was correct
                 attempts: question.attempts,
                 hint: question.hint,
@@ -5283,8 +5335,9 @@ async function autoSavePartialQuiz() {
         // Show notification to student
         showNotification(`📝 Your progress was automatically saved! You answered ${correctCount}/${attemptedQuestions.length} questions correctly.`, 'info');
         
-        // Show completion dialog with auto sign-out message
-        showPartialQuizCompletionDialog(correctCount, attemptedQuestions.length, words.length, attemptedWords, true);
+        // Show completion dialog WITHOUT auto sign-out warning — we now keep
+        // students signed in until they tap the Sign Out button themselves.
+        showPartialQuizCompletionDialog(correctCount, attemptedQuestions.length, words.length, attemptedWords, false);
         
     } catch (error) {
         console.error('❌ Error auto-saving partial quiz results:', error);
@@ -5299,33 +5352,14 @@ async function autoSavePartialQuiz() {
     }
 }
 
-// Function to handle automatic sign-out
+// Auto sign-out on idle is DISABLED by design: students should only be signed
+// out when they explicitly tap the red Sign Out button. The function is kept
+// as a no-op so existing callers (inactivity timer, auto-save flow, the
+// explicit "Sign Out Now" dialog button) don't throw — the explicit Sign Out
+// button's click handler clears localStorage and reloads directly.
 function autoSignOut(reason = 'Session timeout due to inactivity.') {
-    console.log('🚪 === AUTO SIGN-OUT FUNCTION CALLED ===');
-    console.log('🚪 Reason:', reason);
-    console.log('🚪 Auto sign-out triggered:', reason);
-    
-    // Stop any ongoing inactivity tracking
+    console.log('⏸️ Auto sign-out suppressed (reason was: ' + reason + ')');
     stopInactivityTracking();
-    
-    // Show sign-out notification
-    console.log('🚪 Showing sign-out notification...');
-    showNotification(`🚪 ${reason} Signing out for security...`, 'info');
-    
-    // Clear user session after a short delay
-    console.log('🚪 Setting timeout to clear session in 2 seconds...');
-    setTimeout(() => {
-        console.log('🚪 Clearing localStorage...');
-        localStorage.clear();
-        showNotification('🚪 Signed out successfully! Reloading...', 'success');
-        
-        // Reload the page to return to login screen
-        console.log('🚪 Setting timeout to reload page in 1.5 seconds...');
-        setTimeout(() => {
-            console.log('🚪 Reloading page now...');
-            window.location.reload();
-        }, 1500);
-    }, 2000);
 }
 
 // Function to show partial quiz completion dialog

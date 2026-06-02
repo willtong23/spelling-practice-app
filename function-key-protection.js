@@ -8,10 +8,10 @@
     
     // Function to handle keyboard events and block problematic keys
     function handleKeyboardProtection(e) {
-        // Block function keys F1-F12
+        // Block function keys F1-F24
         if (e.key && e.key.startsWith('F') && e.key.length <= 3) {
             const keyNumber = parseInt(e.key.substring(1));
-            if (keyNumber >= 1 && keyNumber <= 12) {
+            if (keyNumber >= 1 && keyNumber <= 24) {
                 console.log(`🔒 BLOCKED: Function key ${e.key} (prevents accidental sign out)`);
                 e.preventDefault();
                 e.stopPropagation();
