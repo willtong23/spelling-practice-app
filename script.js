@@ -2072,6 +2072,8 @@ function showModal(contentHtml) {
 
 function closeModal() {
     modalOverlay.style.display = 'none';
+    const modalTitle = document.getElementById('modalTitle');
+    if (modalTitle) modalTitle.textContent = 'All Words'; // 🐾 My animals 彈窗會改標題，閂咗還原
     
     // If the word list modal was shown, reset to first word
     if (wordListModalShown) {
@@ -2233,6 +2235,14 @@ function showEndOfQuizFeedback() {
     console.log('Current hintUsed:', hintUsed);
     console.log('Current words:', words);
     saveQuizResults();
+    // 🐾 Y4 全對得動物（animals.js；唔影響儲存成績）
+    if (window.Animals) {
+        try {
+            window.Animals.afterQuiz({ user: userName, words: words, answers: userAnswers, wordSetName: currentWordSetName, individual: typeof isIndividualWordPractice !== 'undefined' && isIndividualWordPractice });
+        } catch (animalErr) {
+            console.error('Animals hook failed (non-blocking):', animalErr);
+        }
+    }
     } else {
         console.log('Practice mode complete - not saving results to Firebase');
     }
@@ -2458,6 +2468,7 @@ function initializeApp() {
     }
     
     console.log('User authenticated, proceeding with app initialization');
+    if (window.Animals) window.Animals.syncButton(); // 🐾 Y4 先見到 My animals 掣
     console.log('window.db available:', !!window.db);
     console.log('firebase available:', typeof firebase !== 'undefined');
     
