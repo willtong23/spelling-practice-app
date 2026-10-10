@@ -1067,9 +1067,10 @@ function showNameModal() {
         
         try {
             // Verify name exists in database
-            const isValidUser = await verifyUserInDatabase(name);
-            
-            if (!isValidUser) {
+            // 用資料庫嘅正式名做 userName，確保 results / wordProgress 照舊用 "20-05" 做 key
+            const canonicalName = await verifyUserInDatabase(name);
+
+            if (!canonicalName) {
                 showNameError('Name not found in records. Please check with your teacher.');
                 submitBtn.classList.remove('loading');
                 submitBtn.textContent = 'Sign In';
@@ -1080,8 +1081,8 @@ function showNameModal() {
             showNameSuccess();
             
             setTimeout(() => {
-                userName = name;
-    localStorage.setItem('userName', userName);
+                userName = canonicalName;
+                localStorage.setItem('userName', userName);
                 localStorage.setItem('userAuthenticated', 'true');
                 hideNameModal();
                 
@@ -1136,30 +1137,36 @@ function hideNameModal() {
 }
 
 // Verify if user exists in the database
+// 比對用：去掉大小寫、空格、連字號等，學生打 2005 / 20 05 / 20-05 都當同一個
+function normaliseLoginName(name) {
+    return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+// 回傳資料庫入面嘅正式名（例如 "20-05"），搵唔到就回傳 null
 async function verifyUserInDatabase(userName) {
     try {
         console.log(`Verifying user "${userName}" in database...`);
-        
-        // Normalize the username for better matching
-        const normalizedUserName = userName.trim().toLowerCase();
-        
+
+        const normalizedUserName = normaliseLoginName(userName);
+        if (!normalizedUserName) return null;
+
         // Check if user exists in students collection
         const studentsSnapshot = await window.db.collection('students').get();
-        let userExists = false;
-        
+        let canonicalName = null;
+
         studentsSnapshot.forEach(doc => {
             const docData = doc.data();
-            if (docData.name && docData.name.trim().toLowerCase() === normalizedUserName) {
-                userExists = true;
-                console.log(`User "${userName}" found in database`);
+            if (!canonicalName && docData.name && normaliseLoginName(docData.name) === normalizedUserName) {
+                canonicalName = docData.name.trim();
+                console.log(`User "${userName}" found in database as "${canonicalName}"`);
             }
         });
-        
-        if (!userExists) {
+
+        if (!canonicalName) {
             console.log(`User "${userName}" not found in database`);
         }
-        
-        return userExists;
+
+        return canonicalName;
         
     } catch (error) {
         console.error('Error verifying user in database:', error);
