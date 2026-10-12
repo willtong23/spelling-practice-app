@@ -964,7 +964,12 @@ function showNameModal() {
     }, 300);
     
     // Handle input events
-    nameInput.addEventListener('input', function() {
+    nameInput.addEventListener('input', function(e) {
+        // 只係數字（學號）先自動補「-」：打夠兩個數字 → 20-；有英文字母（名）就唔郁
+        if (/^[\d-]*$/.test(nameInput.value)) {
+            const isDeleting = (e.inputType || '').startsWith('delete');
+            nameInput.value = formatStudentCode(nameInput.value, isDeleting);
+        }
         errorDiv.style.display = 'none';
         submitBtn.classList.remove('loading');
     });
@@ -1138,6 +1143,15 @@ function hideNameModal() {
 
 // Verify if user exists in the database
 // 比對用：去掉大小寫、空格、連字號等，學生打 2005 / 20 05 / 20-05 都當同一個
+// 學號輸入：打夠兩個數字就自動補「-」（20 → 20-，2005 → 20-05）；backspace 緊就唔補，否則刪唔走
+function formatStudentCode(raw, isDeleting) {
+    const text = String(raw || '');
+    const digits = text.replace(/\D/g, '').slice(0, 4);
+    if (digits.length > 2) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    if (digits.length === 2) return isDeleting && !text.endsWith('-') ? digits : `${digits}-`;
+    return digits;
+}
+
 function normaliseLoginName(name) {
     return String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
