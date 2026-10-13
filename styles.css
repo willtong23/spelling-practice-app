@@ -3273,3 +3273,17 @@ h1 {
 @keyframes animal-pop { 0% { transform: scale(0.3); opacity: 0; } 70% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .animal-new-img { animation: none; } }
 @media (max-width: 480px) { .animal-result { flex-direction: column; text-align: center; } }
+
+/* 🔤 字母格唔准跌出畫面（Will 2026-10-13：Y4「augh and au」list 格數睇落唔啱）
+   iPad 直放（≲850px）時控制列 9 個掣唔轉行 → .practice-card（min-width:auto）被撐闊過畫面
+   → 置中嘅字母格最右一兩格出咗屏幕，學生睇落少咗格（daughter 得 7 格）。
+   修：控制列可轉行、咭唔准撐闊；格仔尺寸由 script.js fitLetterBoxes() 按實際闊度計。 */
+.controls { flex-wrap: wrap; }
+.practice-card { min-width: 0; max-width: 100%; }
+.letter-hint-container { min-width: 0; max-width: 100%; }
+/* 尺寸唔做動畫：fitLetterBoxes 改闊度要即時生效先量得準；focus 效果照舊 */
+.letter-hint-container .letter-hint-box { transition-property: transform, border-color, box-shadow, background-color, color; }
+/* ≤1000px（iPad 直放）：練習區同進度欄上下排，唔再左右擠；咭闊度跟版面唔跟內容（fitLetterBoxes 先量得準） */
+@media (max-width: 1000px) {
+    .practice-layout { display: flex; flex-direction: column; align-items: stretch; }
+}

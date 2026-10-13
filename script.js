@@ -1709,8 +1709,56 @@ function updateLetterHint() {
         letterInputs.push(box);
         letterContainer.appendChild(box);
     }
-    
+
     letterHint.appendChild(letterContainer);
+    fitLetterBoxes();
+}
+
+// 字母格按實際可用闊度縮細：窄屏（iPad 直放）時唔可以有格跌出畫面（Will 2026-10-13：格數睇落唔啱）
+// CSS 斷點太多互相打架，所以直接量度：裝得落就用 CSS 預設大小，裝唔落先平均縮細每格
+let lastLetterHintWidth = 0;
+function fitLetterBoxes() {
+    const container = letterHint.querySelector('.letter-hint-container');
+    if (!container || !letterInputs.length || letterHint.clientWidth === 0) return;
+
+    // 清走上次嘅 inline 尺寸，用返 CSS 預設大小量度
+    letterInputs.forEach(box => {
+        box.style.width = box.style.height = box.style.minWidth = box.style.fontSize = '';
+        box.style.marginLeft = box.style.marginRight = '';
+    });
+
+    const hintStyle = getComputedStyle(letterHint);
+    const containerStyle = getComputedStyle(container);
+    const available = letterHint.clientWidth
+        - parseFloat(hintStyle.paddingLeft) - parseFloat(hintStyle.paddingRight)
+        - parseFloat(containerStyle.paddingLeft) - parseFloat(containerStyle.paddingRight)
+        - 6; // 留位畀 focus 時放大 1.05 倍嘅格
+    lastLetterHintWidth = letterHint.clientWidth;
+
+    const n = letterInputs.length;
+    const gap = parseFloat(containerStyle.columnGap) || 0;
+    const sample = letterInputs[n - 1]; // 唔用第一格：佢 focus 咗會放大
+    const sampleStyle = getComputedStyle(sample);
+    const margin = parseFloat(sampleStyle.marginLeft) + parseFloat(sampleStyle.marginRight);
+    const needed = n * (sample.offsetWidth + margin) + (n - 1) * gap;
+    if (needed <= available) return;
+
+    const tightMargin = 1; // 每邊 1px
+    const size = Math.floor((available - (n - 1) * gap) / n - tightMargin * 2);
+    letterInputs.forEach(box => {
+        box.style.width = box.style.height = box.style.minWidth = size + 'px'; // CSS min-width 35px 會頂住，要一齊改
+        box.style.fontSize = Math.round(size * 0.5) + 'px';
+        box.style.marginLeft = box.style.marginRight = tightMargin + 'px';
+    });
+}
+
+// 轉向／收埋 results panel 令闊度變咗就重新計（只喺闊度真係變咗先計，避免循環）
+if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+        if (letterHint.clientWidth !== lastLetterHintWidth) fitLetterBoxes();
+    }).observe(letterHint);
+} else {
+    window.addEventListener('resize', fitLetterBoxes);
 }
 
 function updateDisplay() {
@@ -2259,7 +2307,7 @@ function showEndOfQuizFeedback() {
     // 🐾 Y4 全對得動物（animals.js；唔影響儲存成績）
     if (window.Animals) {
         try {
-            window.Animals.afterQuiz({ user: userName, words: words, answers: userAnswers, wordSetName: currentWordSetName, individual: typeof isIndividualWordPractice !== 'undefined' && isIndividualWordPractice });
+            window.Animals.afterQuiz({ user: userName, words: words, answers: userAnswers, hints: hintUsed, wordSetName: currentWordSetName, individual: typeof isIndividualWordPractice !== 'undefined' && isIndividualWordPractice });
         } catch (animalErr) {
             console.error('Animals hook failed (non-blocking):', animalErr);
         }

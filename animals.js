@@ -1,5 +1,5 @@
 // 🐾 Spelling 動物（Will 2026-10-09／10-10）：Y4 一節全對得一隻動物
-// - 全對＝每個字第一次就串啱（用咗提示都計，Will 揀「易啲」）；一節要夠 MIN_WORDS 個字
+// - 全對＝每個字第一次就串啱，而且冇用提示（Will 2026-10-13 改：用咗提示唔應該得動物）；一節要夠 MIN_WORDS 個字
 // - 每日（香港日期）最多一隻；7 隻收齊為止；次序固定（下一隻喺「My animals」出剪影）
 // - 獨立於 Typing Coach：唔使積分、唔使房、唔使餵（Will：「spelling should be separate, easier」）
 // - 圖＝Typing Coach 同一套 Pet Sanctuary 素材（animals/*.webp）
@@ -27,12 +27,15 @@
 
   const same = (a, b) => (typeof sameWord === "function" ? sameWord(a, b) : String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase());
 
-  /** 全對：夠字數，而且每個字第一次就啱（提示唔理） */
-  function isPerfect(words, answers) {
+  // hintUsed[i] 係揭咗邊幾個字母嘅 array（舊路徑可能係 true/false）
+  const usedHint = (h) => (Array.isArray(h) ? h.length > 0 : Boolean(h));
+
+  /** 全對：夠字數，每個字第一次就啱，而且冇揭過任何字母 */
+  function isPerfect(words, answers, hints) {
     if (!Array.isArray(words) || words.length < MIN_WORDS) return false;
     return words.every((w, i) => {
       const attempts = (answers && answers[i] && answers[i].attempts) || [];
-      return attempts.length > 0 && same(attempts[0], w);
+      return attempts.length > 0 && same(attempts[0], w) && !usedHint(hints && hints[i]);
     });
   }
 
@@ -79,14 +82,27 @@
   }
 
   /** 結果頁：全對就試攞一隻，結果放喺結果彈窗最頂 */
-  function afterQuiz({ user, words, answers, wordSetName, individual }) {
-    if (!eligible(user) || individual || !isPerfect(words, answers)) return;
+  function afterQuiz({ user, words, answers, hints, wordSetName, individual }) {
+    if (!eligible(user) || individual) return;
+    const perfect = isPerfect(words, answers, hints);
+    // 全對但用咗提示：唔得動物，但話佢知下次唔用提示就得（Will 2026-10-13）
+    const perfectWithHints = !perfect && isPerfect(words, answers);
+    if (!perfect && !perfectWithHints) return;
     const box = document.createElement("div");
     box.className = "animal-result";
     box.setAttribute("role", "status");
     box.hidden = true;
     const body = document.getElementById("modalBody");
     if (body) body.prepend(box);
+    if (perfectWithHints) {
+      const nudge = () => {
+        box.innerHTML = `<div><p class="animal-title">⭐ Every word right!</p><p>Try it without hints next time to welcome a new animal.</p></div>`;
+        box.hidden = false;
+      };
+      // 收齊 7 隻就唔使講「下次會有新動物」
+      load(user).then((owned) => (owned.length >= ANIMALS.length ? box.remove() : nudge()), nudge);
+      return;
+    }
     award(user, wordSetName).then(
       (out) => {
         box.innerHTML = resultHtml(out);
@@ -122,7 +138,7 @@
     const done = owned.length >= ANIMALS.length;
     const title = document.getElementById("modalTitle");
     if (title) title.textContent = "🐾 My animals"; // closeModal() 會還原做 All Words
-    showModal(`<p class="animals-lede">${done ? `You have all ${ANIMALS.length} animals. Amazing spelling!` : "Spell every word in a set right first time to welcome a new animal. One new animal can join you each day."}</p>
+    showModal(`<p class="animals-lede">${done ? `You have all ${ANIMALS.length} animals. Amazing spelling!` : "Spell every word in a set right first time, without hints, to welcome a new animal. One new animal can join you each day."}</p>
       <p class="animal-meta">You have ${owned.length} of ${ANIMALS.length}.</p>
       <ul class="animal-grid" aria-label="My animals">${cards}</ul>`);
   }
