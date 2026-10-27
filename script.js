@@ -398,8 +398,8 @@ async function loadAvailableWordSets() {
                     }
                 });
                 
-                // Sort word sets alphabetically by name
-                availableWordSets.sort((a, b) => a.name.localeCompare(b.name));
+                // priority 大嘅排先（新一期字表排頂），同 priority 就按名排
+                availableWordSets.sort((a, b) => (b.priority || 0) - (a.priority || 0) || a.name.localeCompare(b.name));
             }
             
             console.log(`Found ${availableWordSets.length} assigned word sets for ${userName}`);
@@ -2321,7 +2321,11 @@ function showEndOfQuizFeedback() {
 async function loadWordsFromFirestore() {
     console.log('Loading words from Firestore...');
     try {
-        const wordData = await getWordsFromAssignment(userName);
+        // 開頭用列表最頂嗰份（同 radio 一致）；舊做法 assignments.docs[0] 係按 doc ID 隨機
+        const topSet = availableWordSets[0];
+        const wordData = topSet?.words?.length
+            ? { words: topSet.words, setId: topSet.id, setName: topSet.name }
+            : await getWordsFromAssignment(userName);
         words = [...wordData.words]; // Create a copy
         currentWordSetId = wordData.setId;
         currentWordSetName = wordData.setName;
