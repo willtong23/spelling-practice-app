@@ -2442,6 +2442,29 @@ h1 {
     border-left: 4px solid #22c55e;
 }
 
+/* 全部字都識嘅 list：成格綠，揀中都唔會俾藍色蓋過；加 ✅ 唔淨靠顏色 */
+.word-set-item:has(.word-set-selection.word-set-perfect) {
+    background: #dcfce7;
+    border-color: #22c55e;
+}
+
+.word-set-item:has(.word-set-radio:checked):has(.word-set-selection.word-set-perfect) {
+    background: #bbf7d0;
+    border-color: #16a34a;
+}
+
+.word-set-item:has(.word-set-selection.word-set-perfect) .word-set-name {
+    color: #166534;
+}
+
+.word-set-item:has(.word-set-selection.word-set-perfect) .word-set-count {
+    color: #15803d;
+}
+
+.word-set-selection.word-set-perfect .word-set-count::before {
+    content: '✅ ';
+}
+
 .word-set-selection.word-set-good {
     background: rgba(59, 130, 246, 0.15);
     border-left: 4px solid #3b82f6;

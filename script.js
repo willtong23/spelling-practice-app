@@ -217,102 +217,49 @@ async function getWordsFromAssignment(userName) {
     }
 }
 
-// Function to analyze user performance for word sets and determine color coding
-async function analyzeWordSetPerformance(wordSetId, wordSetWords) {
-    try {
-        if (!userName || !wordSetId || !wordSetWords || wordSetWords.length === 0) {
-            return 'white'; // Default color for unanalyzed sets
-        }
+// 一個字算「識」：第一次就串啱，而且冇用提示（同舊綠色標準一樣）
+function isRightFirstTimeNoHint(wordResult) {
+    if (!wordResult || typeof wordResult !== 'object') return false;
+    const isCorrectAnswer = wordResult.isCorrect || wordResult.correct;
+    const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
+    return !!isCorrectAnswer && !usedHint;
+}
 
-        // Debug logging for specific case
-        const isDebugCase = userName === 'bb' && wordSetId === 'Y4T3BW6';
-        if (isDebugCase) {
-            console.log(`🔍 DEBUGGING: Analyzing performance for ${userName} on word set ${wordSetId}`);
-            console.log(`Word set has ${wordSetWords.length} words:`, wordSetWords);
-        }
+// 讀晒呢位學生所有 results（一次 query），俾每份 list 計顏色用
+async function loadUserResultsForColours() {
+    if (!userName || !window.db) return [];
+    const snapshot = await window.db.collection('results').where('user', '==', userName).get();
+    return snapshot.docs.map(doc => doc.data());
+}
 
-        // Query all results for this user and word set
-        const resultsSnapshot = await window.db.collection('results')
-            .where('user', '==', userName)
-            .where('wordSetId', '==', wordSetId)
-            .get();
+// List 顏色：
+// 綠＝每個字都曾經一次就啱冇提示（任何一次練習都計：呢份 list、📅 My Words、做咗一半、Multi-List），
+//     或者有一次完整做晒 100%
+// 藍／紅＝最佳完整一次 ≥50%／<50%；白＝未完整做過
+function wordSetColour(wordSetId, wordSetWords, userResults) {
+    if (!wordSetId || !wordSetWords || wordSetWords.length === 0) return 'white';
 
-        if (resultsSnapshot.empty) {
-            if (isDebugCase) console.log('❌ No results found - returning WHITE');
-            return 'white'; // No attempts yet - white
-        }
-
-        let bestScore = 0;
-        let hasCompletedFullRound = false;
-
-        resultsSnapshot.forEach(doc => {
-            const result = doc.data();
-            if (isDebugCase) {
-                console.log(`📊 Analyzing result:`, {
-                    date: result.date,
-                    wordsAttempted: result.words?.length || 0,
-                    totalWordsInSet: wordSetWords.length,
-                    isComplete: (result.words?.length === wordSetWords.length)
-                });
-            }
-
-            // Only consider COMPLETE rounds (full word set attempts)
-            if (result.words && result.words.length === wordSetWords.length) {
-                hasCompletedFullRound = true;
-                
-                // Calculate score for this complete round
-                let correctCount = 0;
-                result.words.forEach(wordResult => {
-                    const isCorrectAnswer = wordResult.isCorrect || wordResult.correct;
-                    const usedHint = wordResult.hint || (wordResult.hintLetters && wordResult.hintLetters.length > 0);
-                    
-                    // Only count as correct if answer is right AND no hint was used
-                    if (isCorrectAnswer && !usedHint) {
-                        correctCount++;
-                    }
-                });
-                
-                const scorePercentage = Math.round((correctCount / result.words.length) * 100);
-                
-                if (isDebugCase) {
-                    console.log(`✅ Complete round found: ${correctCount}/${result.words.length} = ${scorePercentage}%`);
-                }
-                
-                if (scorePercentage > bestScore) {
-                    bestScore = scorePercentage;
-                }
-            } else {
-                if (isDebugCase) {
-                    console.log(`⏭️ Skipping partial session: ${result.words?.length || 0}/${wordSetWords.length} words`);
-                }
-            }
+    const knownWords = new Set();
+    userResults.forEach(result => {
+        (result.words || []).forEach(wordResult => {
+            if (isRightFirstTimeNoHint(wordResult)) knownWords.add(String(wordResult.word || '').toLowerCase());
         });
+    });
+    const everyWordRightBefore = wordSetWords.every(word => knownWords.has(String(word || '').toLowerCase()));
 
-        if (isDebugCase) {
-            console.log(`🎯 Final analysis:`, {
-                hasCompletedFullRound,
-                bestScore,
-                finalColor: !hasCompletedFullRound ? 'white' : 
-                           bestScore === 100 ? 'green' : 
-                           bestScore >= 50 ? 'blue' : 'red'
-            });
-        }
+    let bestScore = 0;
+    let hasCompletedFullRound = false;
+    userResults.forEach(result => {
+        // 只計呢份 list 嘅完整一次
+        if (result.wordSetId !== wordSetId || !result.words || result.words.length !== wordSetWords.length) return;
+        hasCompletedFullRound = true;
+        const correctCount = result.words.filter(isRightFirstTimeNoHint).length;
+        bestScore = Math.max(bestScore, Math.round((correctCount / result.words.length) * 100));
+    });
 
-        // Determine color based on analysis
-        if (!hasCompletedFullRound) {
-            return 'white'; // Never completed a full round - white
-        } else if (bestScore === 100) {
-            return 'green'; // Perfect score without hints - green
-        } else if (bestScore >= 50) {
-            return 'blue'; // Good score (50-99%) - blue
-        } else {
-            return 'red'; // Needs practice (<50%) - red
-        }
-
-    } catch (error) {
-        console.error('Error analyzing word set performance:', error);
-        return 'white'; // Default on error
-    }
+    if (everyWordRightBefore || bestScore === 100) return 'green';
+    if (!hasCompletedFullRound) return 'white';
+    return bestScore >= 50 ? 'blue' : 'red';
 }
 
 async function loadAvailableWordSets() {
@@ -456,11 +403,14 @@ async function loadAvailableWordSets() {
                     wordSetList.appendChild(challengeHeader);
                 }
                 
-                // Analyze performance for all word sets in parallel
-                const performancePromises = availableWordSets.map(set => 
-                    analyzeWordSetPerformance(set.id, set.words)
-                );
-                const performanceColors = await Promise.all(performancePromises);
+                // 一次過讀晒學生嘅 results，再逐份 list 計顏色（讀唔到就全部白色，唔阻住開 list）
+                let userResults = [];
+                try {
+                    userResults = await loadUserResultsForColours();
+                } catch (colourErr) {
+                    console.error('Could not load results for word set colours:', colourErr);
+                }
+                const performanceColors = availableWordSets.map(set => wordSetColour(set.id, set.words, userResults));
                 
                 availableWordSets.forEach((set, index) => {
                     const setItem = document.createElement('div');
