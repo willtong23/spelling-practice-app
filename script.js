@@ -785,6 +785,7 @@ let practiceResults = [];
 let isAlphabetKeyboardVisible = false;
 let currentFocusedLetterBox = null;
 let isCheckingSpelling = false; // Prevent double-checking
+let awaitingNextWord = false; // 答啱之後鎖住，直到跳去下一個字（防撳住掣連發／卡住唔前進）
 
 // Inactivity tracking for auto-save
 let inactivityTimer = null;
@@ -1488,6 +1489,12 @@ function updateLetterHint() {
         box.addEventListener('input', function(e) {
             // Prevent processing if quiz is complete or word has changed
             if (quizComplete || !words[currentWordIndex]) return;
+
+            // 答啱咗、等緊跳下一個字：打咩都唔收
+            if (awaitingNextWord) {
+                box.value = '';
+                return;
+            }
             
             // Reset inactivity timer on user input
             resetInactivityTimer();
@@ -1523,6 +1530,17 @@ function updateLetterHint() {
         box.addEventListener('keydown', function(e) {
             // Prevent processing if quiz is complete
             if (quizComplete) return;
+
+            if (awaitingNextWord) {
+                e.preventDefault();
+                return;
+            }
+
+            // 撳住掣唔放：只當撳一下（今日有人撳住 b／=／space 連發幾十次）
+            if (e.repeat && !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                return;
+            }
             
             // Reset inactivity timer on user activity
             resetInactivityTimer();
@@ -1724,6 +1742,11 @@ function updateDisplay() {
 
     // Reset double-check prevention flag when navigating
     isCheckingSpelling = false;
+    awaitingNextWord = false;
+    if (feedbackTimeout) {
+        clearTimeout(feedbackTimeout);
+        feedbackTimeout = null;
+    }
     
     // Ensure currentWordIndex is within bounds
     if (currentWordIndex < 0) currentWordIndex = 0;
@@ -1762,6 +1785,7 @@ function resetQuizState() {
     quizComplete = false;
     lastQuizComplete = false;
     isCheckingSpelling = false; // Reset double-check prevention flag
+    awaitingNextWord = false;
     
     // Start time tracking
     window.quizStartTime = new Date();
@@ -1893,6 +1917,9 @@ function checkSpelling() {
     }
     
     if (words.length === 0 || quizComplete) return;
+
+    // 答啱咗、等緊跳下一個字
+    if (awaitingNextWord) return;
     
     // Prevent double-checking
     if (isCheckingSpelling) {
@@ -1944,6 +1971,7 @@ function checkSpelling() {
         
         resultMessage.innerHTML = '<span style="font-size:1.3em;">✅</span> Correct!';
         resultMessage.className = 'result-message correct';
+        awaitingNextWord = true;
         letterInputs.forEach(box => box.value = '');
         letterInputs.forEach(box => box.disabled = false);
         letterInputs[0].focus();
@@ -1952,6 +1980,7 @@ function checkSpelling() {
             resultMessage.innerHTML = '';
             resultMessage.className = 'result-message';
             isCheckingSpelling = false; // Reset flag
+            awaitingNextWord = false;
             moveToNextWord();
             if (!quizComplete && words[currentWordIndex]) speakWord(words[currentWordIndex]);
         }, 2000);
