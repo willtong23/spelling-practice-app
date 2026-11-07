@@ -1854,6 +1854,10 @@ async function resetQuiz() {
         }
         
         words = [...wordData.words]; // Create a copy
+        // 成功載入完整字表後離開練習模式，避免殘留旗標令 pet 判定被略過。
+        isIndividualWordPractice = false;
+        originalPracticeState = null;
+        isPracticeMode = false;
         currentWordSetId = wordData.setId;
         currentWordSetName = wordData.setName;
         
@@ -3503,6 +3507,10 @@ async function switchToWordSet(wordSetId, wordSetName, wordSetWords) {
         
         // Update the current words and UI
         words = [...wordSetWords];
+        // 選完整字表是新一節，不能沿用單字／Focus Practice 的模式與返回資料。
+        isIndividualWordPractice = false;
+        originalPracticeState = null;
+        isPracticeMode = false;
         currentWordSetId = wordSetId;
         currentWordSetName = wordSetName;
         selectedWordSetId = wordSetId;
